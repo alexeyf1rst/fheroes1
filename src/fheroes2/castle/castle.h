@@ -83,7 +83,6 @@ enum BuildingType : uint32_t
     BUILD_SPEC = 0x00000400,
     BUILD_CASTLE = 0x00000800,
     BUILD_CAPTAIN = 0x00001000,
-    BUILD_SHRINE = 0x00002000,
     BUILD_MAGEGUILD1 = 0x00004000,
     BUILD_MAGEGUILD2 = 0x00008000,
     BUILD_MAGEGUILD3 = 0x00010000,
@@ -97,15 +96,7 @@ enum BuildingType : uint32_t
     DWELLING_MONSTER4 = 0x00800000,
     DWELLING_MONSTER5 = 0x01000000,
     DWELLING_MONSTER6 = 0x02000000,
-    DWELLING_MONSTERS = DWELLING_MONSTER1 | DWELLING_MONSTER2 | DWELLING_MONSTER3 | DWELLING_MONSTER4 | DWELLING_MONSTER5 | DWELLING_MONSTER6,
-    DWELLING_UPGRADE2 = 0x04000000,
-    DWELLING_UPGRADE3 = 0x08000000,
-    DWELLING_UPGRADE4 = 0x10000000,
-    DWELLING_UPGRADE5 = 0x20000000,
-    DWELLING_UPGRADE6 = 0x40000000,
-    // Black Dragons
-    DWELLING_UPGRADE7 = 0x80000000,
-    DWELLING_UPGRADES = DWELLING_UPGRADE2 | DWELLING_UPGRADE3 | DWELLING_UPGRADE4 | DWELLING_UPGRADE5 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7
+    DWELLING_MONSTERS = DWELLING_MONSTER1 | DWELLING_MONSTER2 | DWELLING_MONSTER3 | DWELLING_MONSTER4 | DWELLING_MONSTER5 | DWELLING_MONSTER6
 };
 
 enum class BuildingStatus : int32_t
@@ -188,11 +179,6 @@ public:
 
     bool AllowBuyHero( std::string * msg = nullptr ) const;
     bool isPosition( const fheroes2::Point & pt ) const override;
-    bool isNecromancyShrineBuild() const
-    {
-        return _race == Race::NECR && ( BUILD_SHRINE & _constructedBuildings );
-    }
-
     uint32_t CountBuildings() const;
 
     Heroes * RecruitHero( Heroes * hero );
@@ -222,17 +208,17 @@ public:
 
     bool HaveLibraryCapability() const
     {
-        return _race == Race::WZRD;
+        return false;
     }
 
     bool isLibraryBuilt() const
     {
-        return _race == Race::WZRD && isBuild( BUILD_SPEC );
+        return false;
     }
 
     void trainHeroInMageGuild( HeroBase & hero ) const
     {
-        _mageGuild.trainHero( hero, GetLevelMageGuild(), isLibraryBuilt() );
+        _mageGuild.trainHero( hero, GetLevelMageGuild(), false );
     }
 
     bool isFortificationBuilt() const

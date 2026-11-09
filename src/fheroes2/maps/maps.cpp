@@ -768,12 +768,6 @@ void Maps::UpdateCastleSprite( const fheroes2::Point & center, int race, bool is
     case Race::WRLK:
         raceIndex = 3;
         break;
-    case Race::WZRD:
-        raceIndex = 4;
-        break;
-    case Race::NECR:
-        raceIndex = 5;
-        break;
     default:
         break;
     }

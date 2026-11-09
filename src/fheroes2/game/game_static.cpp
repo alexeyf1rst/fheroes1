@@ -33,7 +33,7 @@
 
 namespace
 {
-    const std::array<Skill::FactionProperties, 6> factionProperties = { { { "knight",
+    const std::array<Skill::FactionProperties, 4> factionProperties = { { { "knight",
                                                                             { 1, 1, 1, 1 },
                                                                             { 2, 2, 1, 1 },
                                                                             0,
@@ -68,25 +68,7 @@ namespace
                                                                             10,
                                                                             { 10, 10, 50, 30 },
                                                                             { 20, 20, 30, 30 },
-                                                                            { 1, 3, 2, 3, 2, 1, 2, 1, 3, 2, 1, 2, 4, 5 } },
-                                                                          { "wizard",
-                                                                            { 0, 0, 2, 2 },
-                                                                            { 0, 1, 2, 2 },
-                                                                            17,
-                                                                            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2 },
-                                                                            10,
-                                                                            { 10, 10, 40, 40 },
-                                                                            { 20, 20, 30, 30 },
-                                                                            { 1, 3, 2, 3, 2, 2, 2, 2, 4, 2, 0, 2, 2, 5 } },
-                                                                          { "necromancer",
-                                                                            { 0, 0, 2, 2 },
-                                                                            { 1, 0, 2, 2 },
-                                                                            10,
-                                                                            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1 },
-                                                                            10,
-                                                                            { 15, 15, 35, 35 },
-                                                                            { 25, 25, 25, 25 },
-                                                                            { 1, 3, 2, 3, 2, 0, 2, 1, 3, 2, 5, 3, 1, 4 } } } };
+                                                                            { 1, 3, 2, 3, 2, 1, 2, 1, 3, 2, 1, 2, 4, 5 } } } };
 
     const std::array<Skill::SecondarySkillValuesPerLevel, 14> secondarySkillValuesPerLevel = { { { "pathfinding", { 25, 50, 100 } },
                                                                                                  { "archery", { 10, 25, 50 } },
@@ -213,10 +195,6 @@ const Skill::FactionProperties * GameStatic::GetFactionProperties( const int rac
         return &factionProperties[2];
     case Race::WRLK:
         return &factionProperties[3];
-    case Race::WZRD:
-        return &factionProperties[4];
-    case Race::NECR:
-        return &factionProperties[5];
     default:
         break;
     }

@@ -123,13 +123,13 @@ namespace Logging
 #elif defined( _WIN32 )
         const std::scoped_lock<std::mutex> lock( logMutex );
 
-        const std::string configDir = System::GetConfigDirectory( "fheroes2" );
+        const std::string configDir = System::GetConfigDirectory( "fheroes1" );
 
         System::MakeDirectory( configDir );
 
         logFile.open( System::concatPath( configDir, "fheroes2.log" ), std::ofstream::app );
 #elif defined( MACOS_APP_BUNDLE )
-        openlog( "fheroes2", LOG_CONS | LOG_NDELAY, LOG_USER );
+        openlog( "fheroes", LOG_CONS | LOG_NDELAY, LOG_USER );
 
         setlogmask( LOG_UPTO( LOG_WARNING ) );
 #endif

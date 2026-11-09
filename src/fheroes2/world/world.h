@@ -212,6 +212,8 @@ public:
 
     bool loadResurrectionMap( const std::string & filename );
 
+    bool loadHoMM1Map( const std::vector<uint8_t> & data );
+
     // Generate 2x2 map for Battle Only mode.
     void generateBattleOnlyMap( const int32_t groundType );
 

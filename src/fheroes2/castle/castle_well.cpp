@@ -401,25 +401,25 @@ void Castle::_wellRedrawBackground( fheroes2::Image & background ) const
             break;
         case DWELLING_MONSTER2:
             offset.y = 151;
-            icnIndex = DWELLING_UPGRADE2 & _constructedBuildings ? 25 : 20;
+            icnIndex = 20;
             break;
         case DWELLING_MONSTER3:
             offset.y = 301;
-            icnIndex = DWELLING_UPGRADE3 & _constructedBuildings ? 26 : 21;
+            icnIndex = 21;
             break;
         case DWELLING_MONSTER4:
             offset.x = 314;
-            icnIndex = DWELLING_UPGRADE4 & _constructedBuildings ? 27 : 22;
+            icnIndex = 22;
             break;
         case DWELLING_MONSTER5:
             offset.x = 314;
             offset.y = 151;
-            icnIndex = DWELLING_UPGRADE5 & _constructedBuildings ? 28 : 23;
+            icnIndex = 23;
             break;
         case DWELLING_MONSTER6:
             offset.x = 314;
             offset.y = 301;
-            icnIndex = DWELLING_UPGRADE7 & _constructedBuildings ? 30 : ( DWELLING_UPGRADE6 & _constructedBuildings ? 29 : 24 );
+            icnIndex = 24;
             break;
         default:
             // Have you added a new dwelling?

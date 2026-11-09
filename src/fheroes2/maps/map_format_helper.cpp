@@ -1346,8 +1346,6 @@ namespace Maps
         static_assert( Race::BARB == 1 << 1, "The race values have changed. You are going to break map format!" );
         static_assert( Race::SORC == 1 << 2, "The race values have changed. You are going to break map format!" );
         static_assert( Race::WRLK == 1 << 3, "The race values have changed. You are going to break map format!" );
-        static_assert( Race::WZRD == 1 << 4, "The race values have changed. You are going to break map format!" );
-        static_assert( Race::NECR == 1 << 5, "The race values have changed. You are going to break map format!" );
         static_assert( Race::MULT == 1 << 6, "The race values have changed. You are going to break map format!" );
         static_assert( Race::RAND == 1 << 7, "The race values have changed. You are going to break map format!" );
 

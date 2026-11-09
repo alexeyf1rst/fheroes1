@@ -262,12 +262,18 @@ namespace fheroes2
         const bool isMonochromatic = ( icnHeader.animationFrames & 0x20 );
 
         if ( isMonochromatic ) {
+            int32_t currentRow = 0;
+
             while ( data < dataEnd ) {
                 if ( *data == 0 ) {
                     // 0x00 - end of row reached, go to the first pixel of next row.
 
                     noTransformLayer = noTransformLayer && ( static_cast<int32_t>( posX ) >= icnHeader.width );
 
+                    ++currentRow;
+                    if ( currentRow >= icnHeader.height ) {
+                        break;
+                    }
                     imageTransform += icnHeader.width;
                     posX = 0;
                     ++data;
@@ -278,7 +284,13 @@ namespace fheroes2
 
                     const uint8_t pixelCount = *data;
 
-                    memset( imageTransform + posX, static_cast<uint8_t>( 0 ), pixelCount );
+                    const uint32_t safeCount
+                        = ( posX < static_cast<uint32_t>( icnHeader.width ) )
+                              ? std::min( static_cast<uint32_t>( pixelCount ), static_cast<uint32_t>( icnHeader.width ) - posX )
+                              : 0;
+                    if ( safeCount > 0 ) {
+                        memset( imageTransform + posX, static_cast<uint8_t>( 0 ), safeCount );
+                    }
 
                     ++data;
                     posX += pixelCount;
@@ -301,6 +313,7 @@ namespace fheroes2
         }
         else {
             uint8_t * imageData = sprite.image();
+            int32_t currentRow = 0;
 
             while ( data < dataEnd ) {
                 if ( *data == 0 ) {
@@ -309,6 +322,10 @@ namespace fheroes2
 
                     noTransformLayer = noTransformLayer && ( static_cast<int32_t>( posX ) >= icnHeader.width );
 
+                    ++currentRow;
+                    if ( currentRow >= icnHeader.height ) {
+                        break;
+                    }
                     imageData += icnHeader.width;
                     imageTransform += icnHeader.width;
                     posX = 0;
@@ -326,8 +343,14 @@ namespace fheroes2
                         break;
                     }
 
-                    memcpy( imageData + posX, data, pixelCount );
-                    memset( imageTransform + posX, static_cast<uint8_t>( 0 ), pixelCount );
+                    const uint32_t safeCount
+                        = ( posX < static_cast<uint32_t>( icnHeader.width ) )
+                              ? std::min( static_cast<uint32_t>( pixelCount ), static_cast<uint32_t>( icnHeader.width ) - posX )
+                              : 0;
+                    if ( safeCount > 0 ) {
+                        memcpy( imageData + posX, data, safeCount );
+                        memset( imageTransform + posX, static_cast<uint8_t>( 0 ), safeCount );
+                    }
 
                     data += pixelCount;
                     posX += pixelCount;
@@ -370,7 +393,13 @@ namespace fheroes2
                         const uint8_t transformType = static_cast<uint8_t>( ( ( transformValue & 0x3C ) >> 2 ) + 2 );
 
                         if ( transformType < 16 ) {
-                            memset( imageTransform + posX, transformType, pixelCount );
+                            const uint32_t safeCount
+                                = ( posX < static_cast<uint32_t>( icnHeader.width ) )
+                                      ? std::min( pixelCount, static_cast<uint32_t>( icnHeader.width ) - posX )
+                                      : 0;
+                            if ( safeCount > 0 ) {
+                                memset( imageTransform + posX, transformType, safeCount );
+                            }
                         }
                     }
 
@@ -389,8 +418,14 @@ namespace fheroes2
                     const uint32_t pixelCount = ( *data == 0xC1 ) ? *( ++data ) : *data - 0xC0;
                     ++data;
 
-                    memset( imageData + posX, *data, pixelCount );
-                    memset( imageTransform + posX, static_cast<uint8_t>( 0 ), pixelCount );
+                    const uint32_t safeCount2
+                        = ( posX < static_cast<uint32_t>( icnHeader.width ) )
+                              ? std::min( pixelCount, static_cast<uint32_t>( icnHeader.width ) - posX )
+                              : 0;
+                    if ( safeCount2 > 0 ) {
+                        memset( imageData + posX, *data, safeCount2 );
+                        memset( imageTransform + posX, static_cast<uint8_t>( 0 ), safeCount2 );
+                    }
 
                     posX += pixelCount;
 

@@ -376,7 +376,7 @@ void Game::SetLastSaveName( const std::string & name )
 
 std::string Game::GetSaveDir()
 {
-    return System::concatPath( System::concatPath( System::GetDataDirectory( "fheroes2" ), "files" ), "save" );
+    return System::concatPath( System::concatPath( System::GetDataDirectory( "fheroes1" ), "files" ), "save" );
 }
 
 std::string Game::GetSaveFileBaseName()

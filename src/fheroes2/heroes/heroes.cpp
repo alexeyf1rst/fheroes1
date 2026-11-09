@@ -101,21 +101,9 @@ namespace
         gettext_noop( "Arie" ), gettext_noop( "Alamar" ), gettext_noop( "Vesper" ), gettext_noop( "Crodo" ), gettext_noop( "Barok" ), gettext_noop( "Kastore" ),
         gettext_noop( "Agar" ), gettext_noop( "Falagar" ), gettext_noop( "Wrathmont" ),
 
-        // Wizard heroes from The Succession Wars.
-        gettext_noop( "Myra" ), gettext_noop( "Flint" ), gettext_noop( "Dawn" ), gettext_noop( "Halon" ), gettext_noop( "Myrini" ), gettext_noop( "Wilfrey" ),
-        gettext_noop( "Sarakin" ), gettext_noop( "Kalindra" ), gettext_noop( "Mandigal" ),
-
-        // Necromancer heroes from The Succession Wars.
-        gettext_noop( "Zom" ), gettext_noop( "Darlana" ), gettext_noop( "Zam" ), gettext_noop( "Ranloo" ), gettext_noop( "Charity" ), gettext_noop( "Rialdo" ),
-        gettext_noop( "Roxana" ), gettext_noop( "Sandro" ), gettext_noop( "Celia" ),
-
         // The Succession Wars campaign heroes.
         gettext_noop( "Roland" ), gettext_noop( "Lord Corlagon" ), gettext_noop( "Sister Eliza" ), gettext_noop( "Archibald" ), gettext_noop( "Lord Halton" ),
         gettext_noop( "Brother Brax" ),
-
-        // The Price of Loyalty expansion heroes.
-        gettext_noop( "Solmyr" ), gettext_noop( "Dainwin" ), gettext_noop( "Mog" ), gettext_noop( "Uncle Ivan" ), gettext_noop( "Joseph" ), gettext_noop( "Gallavant" ),
-        gettext_noop( "Elderian" ), gettext_noop( "Ceallach" ), gettext_noop( "Drakonia" ), gettext_noop( "Martine" ), gettext_noop( "Jarkonas" ),
 
         // Debug hero. Should not be used anywhere outside the development!
         "Debug Hero" };
@@ -131,15 +119,11 @@ namespace
             return { Heroes::ASTRA, Heroes::LUNA };
         case Race::WRLK:
             return { Heroes::ARIE, Heroes::WRATHMONT };
-        case Race::WZRD:
-            return { Heroes::MYRA, Heroes::MANDIGAL };
-        case Race::NECR:
-            return { Heroes::ZOM, Heroes::CELIA };
         default:
             break;
         }
 
-        return { Heroes::LORDKILBURN, Heroes::CELIA };
+        return { Heroes::LORDKILBURN, Heroes::WRATHMONT };
     }
 
     int getObjectMoraleModifiers( const std::set<MP2::MapObjectType> & objectTypes, std::string * output )
@@ -256,8 +240,8 @@ Heroes::Heroes( const int heroId, const int race )
     // Add to debug hero a lot of stuff.
     if ( _id == DEBUG_HERO ) {
         _army.Clean();
-        _army.JoinTroop( Monster::BLACK_DRAGON, 2, false );
-        _army.JoinTroop( Monster::RED_DRAGON, 3, false );
+        _army.JoinTroop( Monster::GREEN_DRAGON, 2, false );
+        _army.JoinTroop( Monster::PHOENIX, 3, false );
 
         _secondarySkills = Skill::SecSkills();
         _secondarySkills.AddSkill( Skill::Secondary( Skill::Secondary::PATHFINDING, Skill::Level::ADVANCED ) );
@@ -980,9 +964,6 @@ uint32_t Heroes::GetMaxMovePoints( const bool onWater ) const
         // Influence of Navigation skill
         result = _updateMovementPoints( result, Skill::Secondary::NAVIGATION );
 
-        // Artifact bonuses
-        result += GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::SEA_MOBILITY );
-
         // Bonuses from captured lighthouses
         result += 500 * world.CountCapturedObject( MP2::OBJ_LIGHTHOUSE, GetColor() );
     }
@@ -1018,9 +999,6 @@ uint32_t Heroes::GetMaxMovePoints( const bool onWater ) const
         // Influence of Logistics skill
         result = _updateMovementPoints( result, Skill::Secondary::LOGISTICS );
 
-        // Artifact bonuses
-        result += GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::LAND_MOBILITY );
-
         // Bonuses from visited objects
         if ( isObjectTypeVisited( MP2::OBJ_STABLES ) ) {
             result += GameStatic::getMovementPointBonus( MP2::OBJ_STABLES );
@@ -1047,17 +1025,6 @@ int Heroes::getMoraleWithModifiers( std::string * text ) const
     // bonus artifact
     result += GetMoraleModificator( text );
 
-    // A special artifact ability presence must be the last check.
-    const Artifact maxMoraleArtifact = _bagArtifacts.getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::MAXIMUM_MORALE );
-    if ( maxMoraleArtifact.isValid() ) {
-        if ( text != nullptr ) {
-            *text += maxMoraleArtifact.GetName();
-            *text += _( " gives you maximum morale" );
-        }
-
-        return Morale::BLOOD;
-    }
-
     if ( text != nullptr && !text->empty() && text->back() == '\n' ) {
         // Remove the possible empty line at the end of the string.
         text->pop_back();
@@ -1083,16 +1050,6 @@ int Heroes::getLuckWithModifiers( std::string * text ) const
 
     // bonus artifact
     result += GetLuckModificator( text );
-
-    const Artifact maxLuckArtifact = _bagArtifacts.getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::MAXIMUM_LUCK );
-    if ( maxLuckArtifact.isValid() ) {
-        if ( text != nullptr ) {
-            *text += maxLuckArtifact.GetName();
-            *text += _( " gives you maximum luck" );
-        }
-
-        return Luck::IRISH;
-    }
 
     if ( text != nullptr && !text->empty() && text->back() == '\n' ) {
         // Remove the possible empty line at the end of the string.
@@ -1190,9 +1147,6 @@ void Heroes::ActionAfterBattle()
 uint32_t Heroes::getDailyRestoredSpellPoints() const
 {
     uint32_t points = GameStatic::GetHeroesRestoreSpellPointsPerDay();
-
-    // Spell points from artifacts.
-    points += static_cast<uint32_t>( GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::SPELL_POINTS_DAILY_GENERATION ) );
 
     points += GetSecondarySkillValue( Skill::Secondary::MYSTICISM );
 
@@ -1444,36 +1398,6 @@ bool Heroes::PickupArtifact( const Artifact & art )
     // If the hero is in jail and gets an artifact assigned using the map editor, then there is no need to scout the area
     if ( Modes( JAIL ) ) {
         return true;
-    }
-
-    const auto scout = [this]( const int32_t artifactID ) {
-        const std::vector<fheroes2::ArtifactBonus> & bonuses = fheroes2::getArtifactData( artifactID ).bonuses;
-        if ( std::find( bonuses.begin(), bonuses.end(), fheroes2::ArtifactBonus( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE ) ) == bonuses.end() ) {
-            return false;
-        }
-
-        Scout( GetIndex() );
-        if ( isControlHuman() ) {
-            ScoutRadar();
-        }
-
-        return true;
-    };
-
-    // Check the picked up artifact for a bonus to the scouting area.
-    if ( scout( art.GetID() ) ) {
-        return true;
-    }
-
-    // If there were artifacts assembled, check them for a bonus to the scouting area.
-    for ( const ArtifactSetData & assembledArtifact : assembledArtifacts ) {
-        if ( scout( assembledArtifact._assembledArtifactID ) ) {
-            return true;
-        }
-    }
-
-    if ( isControlAI() && Difficulty::isArtifactSortingAllowedForAI( Game::getDifficulty() ) ) {
-        GetBagArtifacts().sortFromWorstToBest();
     }
 
     return true;
@@ -1767,8 +1691,7 @@ void Heroes::Scout( const int tileIndex ) const
 
 int32_t Heroes::GetScoutingDistance() const
 {
-    return GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE )
-           + GameStatic::getFogDiscoveryDistance( GameStatic::FogDiscoveryType::HEROES ) + static_cast<int32_t>( GetSecondarySkillValue( Skill::Secondary::SCOUTING ) );
+    return GameStatic::getFogDiscoveryDistance( GameStatic::FogDiscoveryType::HEROES ) + static_cast<int32_t>( GetSecondarySkillValue( Skill::Secondary::SCOUTING ) );
 }
 
 fheroes2::Rect Heroes::GetScoutRoi() const
@@ -2256,7 +2179,7 @@ void AllHeroes::Init()
 
     _heroes.emplace_back( std::make_unique<Heroes>( Heroes::UNKNOWN, Race::KNGT ) );
 
-    for ( const int race : std::array<int, 6>{ Race::KNGT, Race::BARB, Race::SORC, Race::WRLK, Race::WZRD, Race::NECR } ) {
+    for ( const int race : std::array<int, 4>{ Race::KNGT, Race::BARB, Race::SORC, Race::WRLK } ) {
         const auto [minHeroId, maxHeroId] = getHeroIdRangeForRace( race );
         assert( minHeroId <= maxHeroId );
 
@@ -2266,34 +2189,12 @@ void AllHeroes::Init()
     }
 
     // SW campaign
-    _heroes.emplace_back( std::make_unique<Heroes>( Heroes::ROLAND, Race::WZRD, 5000 ) );
+    _heroes.emplace_back( std::make_unique<Heroes>( Heroes::ROLAND, Race::WRLK, 5000 ) );
     _heroes.emplace_back( std::make_unique<Heroes>( Heroes::CORLAGON, Race::KNGT, 5000 ) );
     _heroes.emplace_back( std::make_unique<Heroes>( Heroes::ELIZA, Race::SORC, 5000 ) );
     _heroes.emplace_back( std::make_unique<Heroes>( Heroes::ARCHIBALD, Race::WRLK, 5000 ) );
     _heroes.emplace_back( std::make_unique<Heroes>( Heroes::HALTON, Race::KNGT, 5000 ) );
-    _heroes.emplace_back( std::make_unique<Heroes>( Heroes::BRAX, Race::NECR, 5000 ) );
-
-    // PoL
-    const GameVersion version = Settings::Get().getCurrentMapInfo().version;
-    if ( version == GameVersion::PRICE_OF_LOYALTY || version == GameVersion::RESURRECTION ) {
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::SOLMYR, Race::WZRD, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::DAINWIN, Race::WRLK, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::MOG, Race::NECR, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::UNCLEIVAN, Race::BARB, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::JOSEPH, Race::WZRD, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::GALLAVANT, Race::KNGT, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::ELDERIAN, Race::WRLK, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::CEALLACH, Race::KNGT, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::DRAKONIA, Race::WZRD, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::MARTINE, Race::SORC, 5000 ) );
-        _heroes.emplace_back( std::make_unique<Heroes>( Heroes::JARKONAS, Race::BARB, 5000 ) );
-    }
-    else {
-        // for non-PoL maps, just add unknown heroes instead in place of the PoL-specific ones
-        for ( int i = Heroes::SOLMYR; i <= Heroes::JARKONAS; ++i ) {
-            _heroes.emplace_back( std::make_unique<Heroes>( Heroes::UNKNOWN, Race::KNGT ) );
-        }
-    }
+    _heroes.emplace_back( std::make_unique<Heroes>( Heroes::BRAX, Race::BARB, 5000 ) );
 
     if ( IS_DEVEL() ) {
         _heroes.emplace_back( std::make_unique<Heroes>( Heroes::DEBUG_HERO, Race::WRLK ) );

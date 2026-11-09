@@ -33,21 +33,17 @@
 
 namespace
 {
-    fheroes2::AGGFile heroes2_agg;
-    fheroes2::AGGFile heroes2x_agg;
+    fheroes2::AGGFile heroes_agg;
 }
 
-std::vector<uint8_t> AGG::getDataFromAggFile( const std::string & key, const bool ignoreExpansion )
+std::vector<uint8_t> AGG::getDataFromAggFile( const std::string & key, const bool /*ignoreExpansion*/ )
 {
-    if ( !ignoreExpansion && heroes2x_agg.isGood() ) {
-        // Make sure that the below container is not const and not a reference
-        // so returning it from the function will invoke a move constructor instead of copy constructor.
-        std::vector<uint8_t> buf = heroes2x_agg.read( key );
-        if ( !buf.empty() )
-            return buf;
-    }
+    return heroes_agg.read( key );
+}
 
-    return heroes2_agg.read( key );
+std::vector<std::string> AGG::getHoMM1MapNames()
+{
+    return heroes_agg.getFileNamesWithExtension( ".MAP" );
 }
 
 AGG::AGGInitializer::AGGInitializer()
@@ -66,58 +62,37 @@ bool AGG::AGGInitializer::init()
         return false;
     }
 
-    const std::string heroes2AggFileName( "heroes2.agg" );
-    std::string heroes2AggFilePath;
-    std::string aggLowerCaseFilePath;
+    const std::string heroesAggFileName( "heroes.agg" );
+    std::string heroesAggFilePath;
 
     for ( const std::string & path : aggFileNames ) {
-        if ( path.size() < heroes2AggFileName.size() ) {
-            // Obviously this is not a correct file.
+        if ( path.size() < heroesAggFileName.size() ) {
             continue;
         }
 
-        std::string tempPath = StringLower( path );
+        const std::string tempPath = StringLower( path );
 
-        if ( tempPath.compare( tempPath.size() - heroes2AggFileName.size(), heroes2AggFileName.size(), heroes2AggFileName ) == 0 ) {
-            heroes2AggFilePath = path;
-            aggLowerCaseFilePath = std::move( tempPath );
+        if ( tempPath.compare( tempPath.size() - heroesAggFileName.size(), heroesAggFileName.size(), heroesAggFileName ) == 0 ) {
+            heroesAggFilePath = path;
             break;
         }
     }
 
-    if ( heroes2AggFilePath.empty() ) {
+    if ( heroesAggFilePath.empty() ) {
         // The main game resource file was not found.
         return false;
     }
 
-    if ( !heroes2_agg.open( heroes2AggFilePath ) ) {
+    if ( !heroes_agg.open( heroesAggFilePath ) ) {
         return false;
     }
 
-    _originalAGGFilePath = std::move( heroes2AggFilePath );
-
-    // Find "heroes2x.agg" file.
-    std::string heroes2XAggFilePath;
-    fheroes2::replaceStringEnding( aggLowerCaseFilePath, ".agg", "x.agg" );
-
-    for ( const std::string & path : aggFileNames ) {
-        const std::string tempPath = StringLower( path );
-        if ( tempPath == aggLowerCaseFilePath ) {
-            heroes2XAggFilePath = path;
-            break;
-        }
-    }
-
-    if ( !heroes2XAggFilePath.empty() && heroes2x_agg.open( heroes2XAggFilePath ) ) {
-        _expansionAGGFilePath = std::move( heroes2XAggFilePath );
-    }
-
-    Settings::Get().EnablePriceOfLoyaltySupport( heroes2x_agg.isGood() );
+    _originalAGGFilePath = std::move( heroesAggFilePath );
 
     return true;
 }
 
 bool AGG::isPoLResourceFilePresent()
 {
-    return heroes2x_agg.isGood();
+    return false;
 }

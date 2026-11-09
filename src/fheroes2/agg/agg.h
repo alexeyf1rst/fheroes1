@@ -43,19 +43,15 @@ namespace AGG
             return _originalAGGFilePath;
         }
 
-        const std::string & getExpansionAGGFilePath() const
-        {
-            return _expansionAGGFilePath;
-        }
-
     private:
         bool init();
 
         std::string _originalAGGFilePath;
-        std::string _expansionAGGFilePath;
     };
 
     std::vector<uint8_t> getDataFromAggFile( const std::string & key, const bool ignoreExpansion );
+
+    std::vector<std::string> getHoMM1MapNames();
 
     // Only for internal usage within AGG namespace.
     bool isPoLResourceFilePresent();

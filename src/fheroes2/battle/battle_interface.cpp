@@ -395,10 +395,6 @@ namespace
             return Battle::SORCERESS;
         case Race::WRLK:
             return Battle::WARLOCK;
-        case Race::WZRD:
-            return Battle::WIZARD;
-        case Race::NECR:
-            return Battle::NECROMANCER;
         default:
             break;
         }
@@ -1004,12 +1000,6 @@ Battle::OpponentSprite::OpponentSprite( const fheroes2::Rect & area, HeroBase * 
     case Race::WRLK:
         _heroIcnId = isCaptain ? ICN::CMBTCAPW : ICN::CMBTHROW;
         break;
-    case Race::WZRD:
-        _heroIcnId = isCaptain ? ICN::CMBTCAPZ : ICN::CMBTHROZ;
-        break;
-    case Race::NECR:
-        _heroIcnId = isCaptain ? ICN::CMBTCAPN : ICN::CMBTHRON;
-        break;
     default:
         // Did you add a new faction? Add the logic here.
         assert( 0 );
@@ -1073,14 +1063,6 @@ fheroes2::Point Battle::OpponentSprite::GetCastPosition() const
     case Race::WRLK:
         offset.x = isCaptain ? 2 : 9;
         offset.y = isCaptain ? 5 : -11;
-        break;
-    case Race::WZRD:
-        offset.x = isCaptain ? 5 : 1;
-        offset.y = isCaptain ? 8 : -9;
-        break;
-    case Race::NECR:
-        offset.x = isCaptain ? 5 : 13;
-        offset.y = isCaptain ? 6 : -7;
         break;
     default:
         break;
@@ -2463,17 +2445,11 @@ void Battle::Interface::_redrawBattleGround()
         case Race::KNGT:
             castleBackgroundIcnId = ICN::CASTBKGK;
             break;
-        case Race::NECR:
-            castleBackgroundIcnId = ICN::CASTBKGN;
-            break;
         case Race::SORC:
             castleBackgroundIcnId = ICN::CASTBKGS;
             break;
         case Race::WRLK:
             castleBackgroundIcnId = ICN::CASTBKGW;
-            break;
-        case Race::WZRD:
-            castleBackgroundIcnId = ICN::CASTBKGZ;
             break;
         default:
             // Did you add a new race? Add the appropriate logic for it.
@@ -3972,7 +3948,7 @@ void Battle::Interface::RedrawMissileAnimation( const fheroes2::Point & startPos
     LocalEvent & le = LocalEvent::Get();
 
     const bool reverse = startPos.x > endPos.x;
-    const bool isMage = ( monsterID == Monster::MAGE || monsterID == Monster::ARCHMAGE );
+    const bool isMage = false; // Mage/Archmage removed in HoMM1 scope
 
     fheroes2::Sprite missile;
     fheroes2::Point endPosShift{ 0, 0 };
@@ -3995,7 +3971,7 @@ void Battle::Interface::RedrawMissileAnimation( const fheroes2::Point & startPos
     std::vector<fheroes2::Point>::const_iterator pnt = points.begin();
 
     // For most shooting creatures we do not render the first missile position to better imitate start position change depending on shooting angle.
-    if ( !isMage && ( monsterID != Monster::TROLL ) && ( monsterID != Monster::WAR_TROLL ) ) {
+    if ( !isMage && ( monsterID != Monster::TROLL ) ) {
         ++pnt;
     }
 

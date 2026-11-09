@@ -78,163 +78,84 @@ namespace
     const int32_t initialHighScoreEntryOffsetY = 72;
     const int32_t highScoreEntryStepY = 40;
 
-    const int32_t playerNameOffset = 88;
-    const int32_t scenarioNameOffset = 244;
-    const int32_t dayCountOffset = 403;
-    const int32_t ratingOffset = 484;
-    const int32_t monsterOffsetX = 554;
-    const int32_t monsterOffsetY = 91;
-
-    // Calculate the mini monster sprites ROI.
-    fheroes2::Rect getAnimationRoi( const fheroes2::Point & position, const bool isCampaign )
+    // Returns true when both HoMM1 high-score files exist on disk.
+    bool hoMM1ScoreFilesExist( std::string & outStandard, std::string & outCampaign )
     {
-        fheroes2::Rect roi;
-        std::vector<uint32_t> animationIndex;
-
-        if ( isCampaign ) {
-            const std::vector<fheroes2::HighscoreData> & highScoreData = highScoreDataContainer.getHighScoresCampaign();
-
-            animationIndex.reserve( highScoreData.size() );
-
-            for ( const fheroes2::HighscoreData & data : highScoreData ) {
-                animationIndex.push_back( fheroes2::HighScoreDataContainer::getMonsterByDay( data.rating ).GetSpriteIndex() * 9 );
-            }
-        }
-        else {
-            const std::vector<fheroes2::HighscoreData> & highScoreData = highScoreDataContainer.getHighScoresStandard();
-
-            animationIndex.reserve( highScoreData.size() );
-
-            for ( const fheroes2::HighscoreData & data : highScoreData ) {
-                animationIndex.push_back( fheroes2::HighScoreDataContainer::getMonsterByRating( data.rating ).GetSpriteIndex() * 9 );
-            }
-        }
-
-        // Animation frames: 0 - static part, 1-6 - animation, 7 and 8 - attacking sprite. We analyze and render here only 0-6 frames.
-        for ( uint32_t i = 0; i < 7; ++i ) {
-            const fheroes2::Sprite & topMonsterSprite = fheroes2::AGG::GetICN( ICN::MINIMON, animationIndex.front() + i );
-            const fheroes2::Sprite & bottomMonsterSprite = fheroes2::AGG::GetICN( ICN::MINIMON, animationIndex.back() + i );
-
-            // We search for the most top sprite offset of the top monster sprite, the most bottom offset of the bottom monster.
-            int32_t offset = topMonsterSprite.y();
-            if ( offset < roi.y ) {
-                roi.y = offset;
-            }
-
-            // The offset of the sprite right border from the render point.
-            offset = bottomMonsterSprite.y() + bottomMonsterSprite.height();
-            if ( offset > roi.height ) {
-                roi.height = offset;
-            }
-
-            for ( const uint32_t index : animationIndex ) {
-                const fheroes2::Sprite & monsterSprite = fheroes2::AGG::GetICN( ICN::MINIMON, index + i );
-
-                offset = monsterSprite.x();
-                if ( offset < roi.x ) {
-                    roi.x = offset;
-                }
-
-                offset += monsterSprite.width();
-                if ( offset > roi.width ) {
-                    roi.width = offset;
-                }
-            }
-        }
-
-        // We have 10 high score records and should take into account 9 intervals between each record.
-        roi.height += highScoreEntryStepY * 9 - roi.y;
-        roi.width -= roi.x;
-
-        // We take into account the High Scores windows position and first monster sprite offset.
-        roi.x += position.x + monsterOffsetX;
-        roi.y += position.y + monsterOffsetY;
-
-        return roi;
+        return Settings::findFile( "data", "standard.hs", outStandard )
+               && Settings::findFile( "data", "campaign.hs", outCampaign );
     }
 
-    void redrawMonstersAnimation( const fheroes2::Point & position, uint32_t & monsterAnimationFrameId, const std::vector<fheroes2::HighscoreData> & highScores,
-                                  const std::function<Monster( size_t )> & getMonster )
-    {
-        ++monsterAnimationFrameId;
+    // HoMM1 high scores layout (positions within the 640×480 HISCORE.BMP screen).
+    // Row numbers 1-10 are already drawn as gold lettering in the BMP — do NOT draw them in font.
+    // The "STANDARD" / "CAMPAIGN" labels are provided by HISCORE.ICN — do NOT draw them in font.
+    constexpr int32_t h1EntryStartY = 68;  // y of the first entry row (aligned to gold lettering in BMP)
+    constexpr int32_t h1EntryStepY  = 40;  // vertical spacing between rows
+    constexpr int32_t h1ColPlayer   = 88;  // player name column
+    constexpr int32_t h1ColLand     = 248; // scenario/land column
+    constexpr int32_t h1ColScore    = 388; // score/rating column
+    constexpr int32_t h1ColTitle    = 450; // creature title column
 
-        fheroes2::Display & display = fheroes2::Display::instance();
+    // HISCORE.ICN button layout (28×134 vertical side buttons):
+    //   frames 0/1  — Standard  tab (released / pressed)
+    //   frames 2/3  — Campaign  tab (released / pressed)
+    //   frames 4/5  — Exit      button (released / pressed)
+    constexpr int32_t h1BtnStandardX = 2;    // left edge, Standard tab
+    constexpr int32_t h1BtnStandardY = 172;  // top of Standard tab
+    constexpr int32_t h1BtnCampaignX = 2;    // left edge, Campaign tab (below Standard)
+    constexpr int32_t h1BtnCampaignY = 310;  // top of Campaign tab
+    constexpr int32_t h1BtnExitX     = 610;  // right edge, Exit button
+    constexpr int32_t h1BtnExitY     = 172;  // top of Exit button
 
-        const std::array<uint8_t, 15> & monsterAnimationSequence = fheroes2::getMonsterAnimationSequence();
-        int32_t offsetY = position.y;
-
-        for ( const fheroes2::HighscoreData & data : highScores ) {
-            // Animation frame of a creature is based on its position on screen and common animation frame ID.
-            const uint32_t monsterAnimationId
-                = monsterAnimationSequence[( position.x + offsetY + data.dayCount + monsterAnimationFrameId ) % monsterAnimationSequence.size()];
-            const uint32_t secondaryMonsterAnimationIndex = getMonster( data.rating ).GetSpriteIndex() * 9 + 1 + monsterAnimationId;
-            const fheroes2::Sprite & secondaryMonsterSprite = fheroes2::AGG::GetICN( ICN::MINIMON, secondaryMonsterAnimationIndex );
-            fheroes2::Blit( secondaryMonsterSprite, display, secondaryMonsterSprite.x() + position.x + monsterOffsetX,
-                            secondaryMonsterSprite.y() + offsetY + monsterOffsetY );
-
-            offsetY += highScoreEntryStepY;
-        }
-    }
-
-    void redrawHighScoreAnimation( const fheroes2::Point & position, uint32_t & monsterAnimationFrameId, const bool isCampaign )
-    {
-        if ( isCampaign ) {
-            redrawMonstersAnimation( position, monsterAnimationFrameId, highScoreDataContainer.getHighScoresCampaign(),
-                                     fheroes2::HighScoreDataContainer::getMonsterByDay );
-        }
-        else {
-            redrawMonstersAnimation( position, monsterAnimationFrameId, highScoreDataContainer.getHighScoresStandard(),
-                                     fheroes2::HighScoreDataContainer::getMonsterByRating );
-        }
-    }
-
-    void redrawHighScoreScreen( const fheroes2::Point & position, const int32_t selectedScoreIndex, const std::vector<fheroes2::HighscoreData> & highScores,
-                                const uint32_t titleImageIndex, const std::function<Monster( size_t )> & getMonster )
+    void redrawHoMM1HighScoreScreen( const int32_t selectedScoreIndex, const std::vector<fheroes2::HighscoreData> & highScores, const bool isCampaign )
     {
         fheroes2::Display & display = fheroes2::Display::instance();
 
-        // Draw background.
-        const fheroes2::Sprite & background = fheroes2::AGG::GetICN( ICN::HSBKG, 0 );
-        fheroes2::Copy( background, 0, 0, display, position.x, position.y, background.width(), background.height() );
-        fheroes2::Blit( fheroes2::AGG::GetICN( ICN::HISCORE, titleImageIndex ), display, position.x + 50, position.y + 31 );
+        // Draw the full-screen HoMM1 high scores background (includes gold row numbers and column headers).
+        const fheroes2::Sprite & bg = fheroes2::AGG::GetICN( ICN::H1HISCORE_BMP, 0 );
+        if ( !bg.empty() ) {
+            fheroes2::Copy( bg, 0, 0, display, 0, 0, bg.width(), bg.height() );
+        }
+        else {
+            display.fill( 0 );
+        }
 
+        // Draw score entries — white text aligned to the gold row numbers in the BMP.
+        // Row numbers and section titles are NOT drawn here (they are in the BMP/ICN art).
         fheroes2::Text text( "", fheroes2::FontType::normalWhite() );
 
         int32_t scoreIndex = 0;
-        int32_t offsetY = position.y;
-
         for ( const fheroes2::HighscoreData & data : highScores ) {
-            const fheroes2::FontType font = ( scoreIndex == selectedScoreIndex ) ? fheroes2::FontType::normalYellow() : fheroes2::FontType::normalWhite();
+            const fheroes2::FontType font
+                = ( scoreIndex == selectedScoreIndex ) ? fheroes2::FontType::normalYellow() : fheroes2::FontType::normalWhite();
+            const int32_t rowY = h1EntryStartY + scoreIndex * h1EntryStepY;
 
-            // TODO: scenario name can have its own independent language.
-            const fheroes2::SupportedLanguage language = fheroes2::getLanguageFromAbbreviation( data.languageAbbreviation );
+            // Player name.
+            text.set( data.playerName, font );
+            text.fitToOneRow( h1ColLand - h1ColPlayer - 4 );
+            text.draw( h1ColPlayer, rowY, display );
 
-            text.set( data.playerName, font, language );
-            text.fitToOneRow( scenarioNameOffset - playerNameOffset );
-            text.draw( position.x + playerNameOffset, offsetY + initialHighScoreEntryOffsetY, display );
+            // Scenario/land name.
+            text.set( data.scenarioName, font );
+            text.fitToOneRow( h1ColScore - h1ColLand - 4 );
+            text.draw( h1ColLand, rowY, display );
 
-            text.set( data.scenarioName, font, language );
-            text.fitToOneRow( dayCountOffset - scenarioNameOffset );
-            text.draw( position.x + scenarioNameOffset, offsetY + initialHighScoreEntryOffsetY, display );
+            // Score (rating for standard, days for campaign).
+            const uint32_t scoreValue = isCampaign ? data.dayCount : data.rating;
+            text.set( std::to_string( scoreValue ), font );
+            text.draw( h1ColScore, rowY, display );
 
-            text.set( std::to_string( data.dayCount ), font );
-            text.draw( position.x + dayCountOffset, offsetY + initialHighScoreEntryOffsetY, display );
+            // Creature title name.
+            const Monster monster = isCampaign ? fheroes2::HighScoreDataContainer::getMonsterByDay( data.rating )
+                                               : fheroes2::HighScoreDataContainer::getMonsterByRating( data.rating );
+            text.set( monster.GetName(), font );
+            text.fitToOneRow( 640 - h1ColTitle - 4 );
+            text.draw( h1ColTitle, rowY, display );
 
-            text.set( std::to_string( data.rating ), font );
-            text.draw( position.x + ratingOffset, offsetY + initialHighScoreEntryOffsetY, display );
-
-            // Render static part of monster animation.
-            const Monster monster = getMonster( data.rating );
-            const uint32_t baseMonsterAnimationIndex = monster.GetSpriteIndex() * 9;
-            const fheroes2::Sprite & baseMonsterSprite = fheroes2::AGG::GetICN( ICN::MINIMON, baseMonsterAnimationIndex );
-            fheroes2::Blit( baseMonsterSprite, display, baseMonsterSprite.x() + position.x + 554, baseMonsterSprite.y() + offsetY + 91 );
-
-            offsetY += highScoreEntryStepY;
             ++scoreIndex;
         }
     }
 
-    fheroes2::GameMode openHighScores( const bool isCampaign, const bool isInternalUpdate, const fheroes2::StandardWindow & window )
+    fheroes2::GameMode openHighScores( const bool isCampaign, const bool isInternalUpdate, const fheroes2::StandardWindow & /*window*/ )
     {
         GameOver::Result & gameResult = GameOver::Result::Get();
 
@@ -258,12 +179,18 @@ namespace
 
         // Try to load High Scores only once. If a player switches between modes we shouldn't reload the game file again and again.
         if ( !isInternalUpdate ) {
-            const std::string highScoreDataPath = System::concatPath( Game::GetSaveDir(), highScoreFileName );
-            if ( !highScoreDataContainer.load( highScoreDataPath ) ) {
-                // Unable to load the file. Let's populate with the default values.
-                highScoreDataContainer.clear();
-                highScoreDataContainer.populateStandardDefaultHighScores();
-                highScoreDataContainer.populateCampaignDefaultHighScores();
+            std::string standardPath, campaignPath;
+            if ( hoMM1ScoreFilesExist( standardPath, campaignPath ) ) {
+                highScoreDataContainer.loadHoMM1( standardPath, campaignPath );
+            }
+            else {
+                const std::string highScoreDataPath = System::concatPath( Game::GetSaveDir(), highScoreFileName );
+                if ( !highScoreDataContainer.load( highScoreDataPath ) ) {
+                    // Unable to load the file. Let's populate with the default values.
+                    highScoreDataContainer.clear();
+                    highScoreDataContainer.populateStandardDefaultHighScores();
+                    highScoreDataContainer.populateCampaignDefaultHighScores();
+                }
             }
         }
 
@@ -329,8 +256,14 @@ namespace
                     { std::move( lang ), playerName, conf.getCurrentMapInfo().name, completionTime, daysPassed, rating, world.GetMapSeed() } );
             }
 
-            const std::string highScoreDataPath = System::concatPath( Game::GetSaveDir(), highScoreFileName );
-            highScoreDataContainer.save( highScoreDataPath );
+            std::string standardPath, campaignPath;
+            if ( hoMM1ScoreFilesExist( standardPath, campaignPath ) ) {
+                highScoreDataContainer.saveHoMM1( standardPath, campaignPath );
+            }
+            else {
+                const std::string highScoreDataPath = System::concatPath( Game::GetSaveDir(), highScoreFileName );
+                highScoreDataContainer.save( highScoreDataPath );
+            }
 
             gameResult.ResetResult();
 
@@ -343,107 +276,44 @@ namespace
 
         const CursorRestorer cursorRestorer( true, Cursor::POINTER );
 
-        const fheroes2::Sprite & back = fheroes2::AGG::GetICN( ICN::HSBKG, 0 );
+        const std::vector<fheroes2::HighscoreData> & scores
+            = isCampaign ? highScoreDataContainer.getHighScoresCampaign() : highScoreDataContainer.getHighScoresStandard();
 
-        const fheroes2::Point top{ ( display.width() - back.width() ) / 2, ( display.height() - back.height() ) / 2 };
+        // HISCORE.ICN buttons: Standard (0/1), Campaign (2/3), Exit (4/5).
+        fheroes2::Button btnStandard( h1BtnStandardX, h1BtnStandardY, ICN::H1HISCORE_ICN, 0, 1 );
+        fheroes2::Button btnCampaign( h1BtnCampaignX, h1BtnCampaignY, ICN::H1HISCORE_ICN, 2, 3 );
+        fheroes2::Button btnExit    ( h1BtnExitX,     h1BtnExitY,     ICN::H1HISCORE_ICN, 4, 5 );
 
-        uint32_t monsterAnimationFrameId = 0;
-        if ( isCampaign ) {
-            redrawHighScoreScreen( top, selectedEntryIndex, highScoreDataContainer.getHighScoresCampaign(), 7, fheroes2::HighScoreDataContainer::getMonsterByDay );
-        }
-        else {
-            redrawHighScoreScreen( top, selectedEntryIndex, highScoreDataContainer.getHighScoresStandard(), 6, fheroes2::HighScoreDataContainer::getMonsterByRating );
-        }
+        redrawHoMM1HighScoreScreen( selectedEntryIndex, scores, isCampaign );
+        btnStandard.draw();
+        btnCampaign.draw();
+        btnExit.draw();
 
-        const fheroes2::Rect animationRoi = getAnimationRoi( top, isCampaign );
-
-        // Make a copy of static monsters animation part with background to restore it during animations.
-        fheroes2::ImageRestorer backgroundCopy( display, animationRoi.x, animationRoi.y, animationRoi.width, animationRoi.height );
-
-        // Render first animation frame.
-        redrawHighScoreAnimation( top, monsterAnimationFrameId, isCampaign );
-
-        const bool isEvilInterface = conf.isEvilInterfaceEnabled();
-        int buttonOtherIcnId = ICN::UNKNOWN;
-        if ( isEvilInterface ) {
-            buttonOtherIcnId = isCampaign ? ICN::BUTTON_HSCORES_VERTICAL_CAMPAIGN_EVIL : ICN::BUTTON_HSCORES_VERTICAL_STANDARD_EVIL;
-        }
-        else {
-            buttonOtherIcnId = isCampaign ? ICN::BUTTON_HSCORES_VERTICAL_CAMPAIGN_GOOD : ICN::BUTTON_HSCORES_VERTICAL_STANDARD_GOOD;
-        }
-
-        fheroes2::Button buttonOtherHighScore( top.x + 8, top.y + 315, buttonOtherIcnId, 0, 1 );
-        fheroes2::Button buttonExit( top.x + back.width() - 36, top.y + 315,
-                                     isEvilInterface ? ICN::BUTTON_HSCORES_VERTICAL_EXIT_EVIL : ICN::BUTTON_HSCORES_VERTICAL_EXIT_GOOD, 0, 1 );
-
-        if ( !Game::isSuccessionWarsCampaignPresent() ) {
-            // Disable the game mode switch button if The Succession Wars campaign files are not present.
-            buttonOtherHighScore.disable();
-        }
-
-        buttonOtherHighScore.draw();
-        buttonExit.draw();
-
-        // Fade-in High Scores screen.
-        if ( isAfterGameCompletion ) {
+        if ( Game::validateDisplayFadeIn() ) {
             fheroes2::fadeInDisplay();
         }
         else {
-            if ( !isDefaultScreenSize ) {
-                // We need to expand the ROI for the next render to properly render window borders and shadow.
-                display.updateNextRenderRoi( window.totalArea() );
-            }
-
-            if ( !isInternalUpdate ) {
-                fheroes2::fadeInDisplay( window.activeArea(), !isDefaultScreenSize );
-            }
+            display.render();
         }
 
         LocalEvent & le = LocalEvent::Get();
         while ( le.HandleEvents() ) {
-            if ( le.MouseClickLeft( buttonExit.area() ) || Game::HotKeyCloseWindow() ) {
-                if ( isAfterGameCompletion || isDefaultScreenSize ) {
-                    fheroes2::fadeOutDisplay();
-                    Game::setDisplayFadeIn();
-                }
-                else {
-                    fheroes2::fadeOutDisplay( window.activeArea(), true );
-                }
+            btnStandard.drawOnState( le.isMouseLeftButtonPressedInArea( btnStandard.area() ) );
+            btnCampaign.drawOnState( le.isMouseLeftButtonPressedInArea( btnCampaign.area() ) );
+            btnExit.drawOnState( le.isMouseLeftButtonPressedInArea( btnExit.area() ) );
 
+            if ( le.MouseClickLeft( btnExit.area() ) || Game::HotKeyCloseWindow() ) {
+                fheroes2::fadeOutDisplay();
+                Game::setDisplayFadeIn();
                 return fheroes2::GameMode::MAIN_MENU;
             }
 
-            if ( buttonOtherHighScore.isEnabled() && le.MouseClickLeft( buttonOtherHighScore.area() ) ) {
-                return isCampaign ? fheroes2::GameMode::HIGHSCORES_STANDARD : fheroes2::GameMode::HIGHSCORES_CAMPAIGN;
+            if ( le.MouseClickLeft( btnStandard.area() ) ) {
+                return fheroes2::GameMode::HIGHSCORES_STANDARD;
             }
 
-            if ( buttonOtherHighScore.isEnabled() ) {
-                buttonOtherHighScore.drawOnState( le.isMouseLeftButtonPressedAndHeldInArea( buttonOtherHighScore.area() ) );
-            }
-
-            buttonExit.drawOnState( le.isMouseLeftButtonPressedAndHeldInArea( buttonExit.area() ) );
-
-            if ( le.isMouseRightButtonPressedInArea( buttonExit.area() ) ) {
-                fheroes2::showStandardTextMessage( _( "Exit" ), _( "Exit this menu." ), Dialog::ZERO );
-            }
-            else if ( le.isMouseRightButtonPressedInArea( buttonOtherHighScore.area() ) ) {
-                if ( isCampaign ) {
-                    fheroes2::showStandardTextMessage( _( "Standard" ), _( "View High Scores for Standard Maps." ), Dialog::ZERO );
-                }
-                else {
-                    fheroes2::showStandardTextMessage( _( "Campaign" ), _( "View High Scores for Campaigns." ), Dialog::ZERO );
-                }
-            }
-
-            if ( Game::validateAnimationDelay( Game::DelayType::MAPS_DELAY ) ) {
-                // Restore background with static monster animation part.
-                backgroundCopy.restore();
-
-                redrawHighScoreAnimation( top, monsterAnimationFrameId, isCampaign );
-
-                buttonOtherHighScore.draw();
-                buttonExit.draw();
-                display.render( animationRoi );
+            if ( le.MouseClickLeft( btnCampaign.area() ) ) {
+                return fheroes2::GameMode::HIGHSCORES_CAMPAIGN;
             }
         }
 

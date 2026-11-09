@@ -134,23 +134,19 @@ namespace
     void populateMonsterData()
     {
         const int monsterIcnIds[Monster::MONSTER_COUNT]
-            = { ICN::UNKNOWN,  ICN::PEASANT,  ICN::ARCHER,   ICN::ARCHER2,  ICN::PIKEMAN,  ICN::PIKEMAN2, ICN::SWORDSMN, ICN::SWORDSM2, ICN::CAVALRYR,
-                ICN::CAVALRYB, ICN::PALADIN,  ICN::PALADIN2, ICN::GOBLIN,   ICN::ORC,      ICN::ORC2,     ICN::WOLF,     ICN::OGRE,     ICN::OGRE2,
-                ICN::TROLL,    ICN::TROLL2,   ICN::CYCLOPS,  ICN::SPRITE,   ICN::DWARF,    ICN::DWARF2,   ICN::ELF,      ICN::ELF2,     ICN::DRUID,
-                ICN::DRUID2,   ICN::UNICORN,  ICN::PHOENIX,  ICN::CENTAUR,  ICN::GARGOYLE, ICN::GRIFFIN,  ICN::MINOTAUR, ICN::MINOTAU2, ICN::HYDRA,
-                ICN::DRAGGREE, ICN::DRAGRED,  ICN::DRAGBLAK, ICN::HALFLING, ICN::BOAR,     ICN::GOLEM,    ICN::GOLEM2,   ICN::ROC,      ICN::MAGE1,
-                ICN::MAGE2,    ICN::TITANBLU, ICN::TITANBLA, ICN::SKELETON, ICN::ZOMBIE,   ICN::ZOMBIE2,  ICN::MUMMYW,   ICN::MUMMY2,   ICN::VAMPIRE,
-                ICN::VAMPIRE2, ICN::LICH,     ICN::LICH2,    ICN::DRAGBONE, ICN::ROGUE,    ICN::NOMAD,    ICN::GHOST,    ICN::GENIE,    ICN::MEDUSA,
+            = { ICN::UNKNOWN,  ICN::PEASANT,  ICN::ARCHER,   ICN::PIKEMAN,  ICN::SWORDSMN, ICN::CAVALRYR, ICN::PALADIN,
+                ICN::GOBLIN,   ICN::ORC,      ICN::WOLF,     ICN::OGRE,     ICN::TROLL,    ICN::CYCLOPS,
+                ICN::SPRITE,   ICN::DWARF,    ICN::ELF,      ICN::DRUID,    ICN::UNICORN,  ICN::PHOENIX,
+                ICN::CENTAUR,  ICN::GARGOYLE, ICN::GRIFFIN,  ICN::MINOTAUR, ICN::HYDRA,    ICN::DRAGGREE,
+                ICN::ROGUE,    ICN::NOMAD,    ICN::GHOST,    ICN::GENIE,    ICN::MEDUSA,
                 ICN::EELEM,    ICN::AELEM,    ICN::FELEM,    ICN::WELEM,    ICN::UNKNOWN,  ICN::UNKNOWN,  ICN::UNKNOWN,  ICN::UNKNOWN,  ICN::UNKNOWN };
 
         const char * binFileName[Monster::MONSTER_COUNT]
-            = { "UNKNOWN",      "PEAS_FRM.BIN", "ARCHRFRM.BIN", "ARCHRFRM.BIN", "PIKMNFRM.BIN", "PIKMNFRM.BIN", "SWRDSFRM.BIN", "SWRDSFRM.BIN", "CVLRYFRM.BIN",
-                "CVLR2FRM.BIN", "PALADFRM.BIN", "PALADFRM.BIN", "GOBLNFRM.BIN", "ORC__FRM.BIN", "ORC__FRM.BIN", "WOLF_FRM.BIN", "OGRE_FRM.BIN", "OGRE_FRM.BIN",
-                "TROLLFRM.BIN", "TROLLFRM.BIN", "CYCLOFRM.BIN", "SPRITFRM.BIN", "DWARFFRM.BIN", "DWARFFRM.BIN", "ELF__FRM.BIN", "ELF__FRM.BIN", "DRUIDFRM.BIN",
-                "DRUIDFRM.BIN", "UNICOFRM.BIN", "PHOENFRM.BIN", "CENTRFRM.BIN", "GARGLFRM.BIN", "GRIFFFRM.BIN", "MINOTFRM.BIN", "MINOTFRM.BIN", "HYDRAFRM.BIN",
-                "DRAGGFRM.BIN", "DRAGRFRM.BIN", "DRAGBFRM.BIN", "HALFLFRM.BIN", "BOAR_FRM.BIN", "GOLEMFRM.BIN", "GOLEMFRM.BIN", "ROC__FRM.BIN", "MAGE1FRM.BIN",
-                "MAGE1FRM.BIN", "TITANFRM.BIN", "TITA2FRM.BIN", "SKEL_FRM.BIN", "ZOMB_FRM.BIN", "ZOMB_FRM.BIN", "MUMMYFRM.BIN", "MUMMYFRM.BIN", "VAMPIFRM.BIN",
-                "VAMPIFRM.BIN", "LICH_FRM.BIN", "LICH_FRM.BIN", "DRABNFRM.BIN", "ROGUEFRM.BIN", "NOMADFRM.BIN", "GHOSTFRM.BIN", "GENIEFRM.BIN", "MEDUSFRM.BIN",
+            = { "UNKNOWN",      "PEAS_FRM.BIN", "ARCHRFRM.BIN", "PIKMNFRM.BIN", "SWRDSFRM.BIN", "CVLRYFRM.BIN", "PALADFRM.BIN",
+                "GOBLNFRM.BIN", "ORC__FRM.BIN", "WOLF_FRM.BIN", "OGRE_FRM.BIN", "TROLLFRM.BIN", "CYCLOFRM.BIN",
+                "SPRITFRM.BIN", "DWARFFRM.BIN", "ELF__FRM.BIN", "DRUIDFRM.BIN", "UNICOFRM.BIN", "PHOENFRM.BIN",
+                "CENTRFRM.BIN", "GARGLFRM.BIN", "GRIFFFRM.BIN", "MINOTFRM.BIN", "HYDRAFRM.BIN", "DRAGGFRM.BIN",
+                "ROGUEFRM.BIN", "NOMADFRM.BIN", "GHOSTFRM.BIN", "GENIEFRM.BIN", "MEDUSFRM.BIN",
                 "FELEMFRM.BIN", "FELEMFRM.BIN", "FELEMFRM.BIN", "FELEMFRM.BIN", "UNKNOWN",      "UNKNOWN",      "UNKNOWN",      "UNKNOWN",      "UNKNOWN" };
 
         const fheroes2::MonsterSound monsterSounds[Monster::MONSTER_COUNT] = {
@@ -158,61 +154,28 @@ namespace
             { M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Unknown Monster
             { M82::PSNTATTK, M82::PSNTKILL, M82::PSNTMOVE, M82::PSNTWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Peasant
             { M82::ARCHATTK, M82::ARCHKILL, M82::ARCHMOVE, M82::ARCHWNCE, M82::ARCHSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Archer
-            { M82::ARCHATTK, M82::ARCHKILL, M82::ARCHMOVE, M82::ARCHWNCE, M82::ARCHSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Ranger
             { M82::PIKEATTK, M82::PIKEKILL, M82::PIKEMOVE, M82::PIKEWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Pikeman
-            { M82::PIKEATTK, M82::PIKEKILL, M82::PIKEMOVE, M82::PIKEWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Veteran Pikeman
             { M82::SWDMATTK, M82::SWDMKILL, M82::SWDMMOVE, M82::SWDMWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Swordsman
-            { M82::SWDMATTK, M82::SWDMKILL, M82::SWDMMOVE, M82::SWDMWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Master Swordsman
             { M82::CAVLATTK, M82::CAVLKILL, M82::CAVLMOVE, M82::CAVLWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Cavalry
-            { M82::CAVLATTK, M82::CAVLKILL, M82::CAVLMOVE, M82::CAVLWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Champion
             { M82::PLDNATTK, M82::PLDNKILL, M82::PLDNMOVE, M82::PLDNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Paladin
-            { M82::PLDNATTK, M82::PLDNKILL, M82::PLDNMOVE, M82::PLDNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Crusader
             { M82::GBLNATTK, M82::GBLNKILL, M82::GBLNMOVE, M82::GBLNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Goblin
             { M82::ORC_ATTK, M82::ORC_KILL, M82::ORC_MOVE, M82::ORC_WNCE, M82::ORC_SHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Orc
-            { M82::ORC_ATTK, M82::ORC_KILL, M82::ORC_MOVE, M82::ORC_WNCE, M82::ORC_SHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Orc Chief
             { M82::WOLFATTK, M82::WOLFKILL, M82::WOLFMOVE, M82::WOLFWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Wolf
             { M82::OGREATTK, M82::OGREKILL, M82::OGREMOVE, M82::OGREWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Ogre
-            { M82::OGREATTK, M82::OGREKILL, M82::OGREMOVE, M82::OGREWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Ogre Lord
             { M82::TRLLATTK, M82::TRLLKILL, M82::TRLLMOVE, M82::TRLLWNCE, M82::TRLLSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Troll
-            { M82::TRLLATTK, M82::TRLLKILL, M82::TRLLMOVE, M82::TRLLWNCE, M82::TRLLSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // War Troll
             { M82::CYCLATTK, M82::CYCLKILL, M82::CYCLMOVE, M82::CYCLWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Cyclops
             { M82::SPRTATTK, M82::SPRTKILL, M82::SPRTMOVE, M82::SPRTWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Sprite
             { M82::DWRFATTK, M82::DWRFKILL, M82::DWRFMOVE, M82::DWRFWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Dwarf
-            { M82::DWRFATTK, M82::DWRFKILL, M82::DWRFMOVE, M82::DWRFWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Battle Dwarf
             { M82::ELF_ATTK, M82::ELF_KILL, M82::ELF_MOVE, M82::ELF_WNCE, M82::ELF_SHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Elf
-            { M82::ELF_ATTK, M82::ELF_KILL, M82::ELF_MOVE, M82::ELF_WNCE, M82::ELF_SHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Grand Elf
             { M82::DRUIATTK, M82::DRUIKILL, M82::DRUIMOVE, M82::DRUIWNCE, M82::DRUISHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Druid
-            { M82::DRUIATTK, M82::DRUIKILL, M82::DRUIMOVE, M82::DRUIWNCE, M82::DRUISHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Greater Druid
             { M82::UNICATTK, M82::UNICKILL, M82::UNICMOVE, M82::UNICWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Unicorn
             { M82::PHOEATTK, M82::PHOEKILL, M82::PHOEMOVE, M82::PHOEWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Phoenix
             { M82::CNTRATTK, M82::CNTRKILL, M82::CNTRMOVE, M82::CNTRWNCE, M82::CNTRSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Centaur
             { M82::GARGATTK, M82::GARGKILL, M82::GARGMOVE, M82::GARGWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Gargoyle
             { M82::GRIFATTK, M82::GRIFKILL, M82::GRIFMOVE, M82::GRIFWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Griffin
             { M82::MINOATTK, M82::MINOKILL, M82::MINOMOVE, M82::MINOWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Minotaur
-            { M82::MINOATTK, M82::MINOKILL, M82::MINOMOVE, M82::MINOWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Minotaur King
             { M82::HYDRATTK, M82::HYDRKILL, M82::HYDRMOVE, M82::HYDRWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Hydra
             { M82::DRGNATTK, M82::DRGNKILL, M82::DRGNMOVE, M82::DRGNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Green Dragon
-            { M82::DRGNATTK, M82::DRGNKILL, M82::DRGNMOVE, M82::DRGNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Red Dragon
-            { M82::DRGNATTK, M82::DRGNKILL, M82::DRGNMOVE, M82::DRGNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Black Dragon
-            { M82::HALFATTK, M82::HALFKILL, M82::HALFMOVE, M82::HALFWNCE, M82::HALFSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Halfling
-            { M82::BOARATTK, M82::BOARKILL, M82::BOARMOVE, M82::BOARWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Boar
-            { M82::GOLMATTK, M82::GOLMKILL, M82::GOLMMOVE, M82::GOLMWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Iron Golem
-            { M82::GOLMATTK, M82::GOLMKILL, M82::GOLMMOVE, M82::GOLMWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Steel Golem
-            { M82::ROC_ATTK, M82::ROC_KILL, M82::ROC_MOVE, M82::ROC_WNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Roc
-            { M82::MAGEATTK, M82::MAGEKILL, M82::MAGEMOVE, M82::MAGEWNCE, M82::MAGESHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Mage
-            { M82::MAGEATTK, M82::MAGEKILL, M82::MAGEMOVE, M82::MAGEWNCE, M82::MAGESHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Archmage
-            { M82::TITNATTK, M82::TITNKILL, M82::TITNMOVE, M82::TITNWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Giant
-            { M82::TITNATTK, M82::TITNKILL, M82::TITNMOVE, M82::TITNWNCE, M82::TITNSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Titan
-            { M82::SKELATTK, M82::SKELKILL, M82::SKELMOVE, M82::SKELWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Skeleton
-            { M82::ZOMBATTK, M82::ZOMBKILL, M82::ZOMBMOVE, M82::ZOMBWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Zombie
-            { M82::ZOMBATTK, M82::ZOMBKILL, M82::ZOMBMOVE, M82::ZOMBWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Mutant Zombie
-            { M82::MUMYATTK, M82::MUMYKILL, M82::MUMYMOVE, M82::MUMYWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Mummy
-            { M82::MUMYATTK, M82::MUMYKILL, M82::MUMYMOVE, M82::MUMYWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Royal Mummy
-            { M82::VAMPATTK, M82::VAMPKILL, M82::VAMPMOVE, M82::VAMPWNCE, M82::UNKNOWN, M82::VAMPEXT1, M82::VAMPEXT2, M82::UNKNOWN }, // Vampire
-            { M82::VAMPATTK, M82::VAMPKILL, M82::VAMPMOVE, M82::VAMPWNCE, M82::UNKNOWN, M82::VAMPEXT1, M82::VAMPEXT2, M82::UNKNOWN }, // Vampire Lord
-            { M82::LICHATTK, M82::LICHKILL, M82::LICHMOVE, M82::LICHWNCE, M82::LICHSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::LICHEXPL }, // Lich
-            { M82::LICHATTK, M82::LICHKILL, M82::LICHMOVE, M82::LICHWNCE, M82::LICHSHOT, M82::UNKNOWN, M82::UNKNOWN, M82::LICHEXPL }, // Power Lich
-            { M82::BONEATTK, M82::BONEKILL, M82::BONEMOVE, M82::BONEWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Bone Dragon
             { M82::ROGUATTK, M82::ROGUKILL, M82::ROGUMOVE, M82::ROGUWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Rogue
             { M82::NMADATTK, M82::NMADKILL, M82::NMADMOVE, M82::NMADWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Nomad
             { M82::GHSTATTK, M82::GHSTKILL, M82::GHSTMOVE, M82::GHSTWNCE, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN, M82::UNKNOWN }, // Ghost
@@ -235,61 +198,28 @@ namespace
             { 0, 0, 0, 0, 0, Speed::VERYSLOW, 0, 0, {}, {} }, // Unknown Monster
             { 1, 1, 1, 1, 1, Speed::VERYSLOW, 0, 0, {}, {} }, // Peasant
             { 5, 3, 2, 3, 10, Speed::VERYSLOW, 12, 0, {}, {} }, // Archer
-            { 5, 3, 2, 3, 10, Speed::AVERAGE, 24, 0, {}, {} }, // Ranger
             { 5, 9, 3, 4, 15, Speed::AVERAGE, 0, 0, {}, {} }, // Pikeman
-            { 5, 9, 3, 4, 20, Speed::FAST, 0, 0, {}, {} }, // Veteran Pikeman
             { 7, 9, 4, 6, 25, Speed::AVERAGE, 0, 0, {}, {} }, // Swordsman
-            { 7, 9, 4, 6, 30, Speed::FAST, 0, 0, {}, {} }, // Master Swordsman
             { 10, 9, 5, 10, 30, Speed::VERYFAST, 0, 0, {}, {} }, // Cavalry
-            { 10, 9, 5, 10, 40, Speed::ULTRAFAST, 0, 0, {}, {} }, // Champion
             { 11, 12, 10, 20, 50, Speed::FAST, 0, 0, {}, {} }, // Paladin
-            { 11, 12, 10, 20, 65, Speed::VERYFAST, 0, 0, {}, {} }, // Crusader
             { 3, 1, 1, 2, 3, Speed::AVERAGE, 0, 0, {}, {} }, // Goblin
             { 3, 4, 2, 3, 10, Speed::VERYSLOW, 8, 0, {}, {} }, // Orc
-            { 3, 4, 3, 4, 15, Speed::SLOW, 16, 0, {}, {} }, // Orc Chief
             { 6, 2, 3, 5, 20, Speed::VERYFAST, 0, 0, {}, {} }, // Wolf
             { 9, 5, 4, 6, 40, Speed::VERYSLOW, 0, 0, {}, {} }, // Ogre
-            { 9, 5, 5, 7, 60, Speed::AVERAGE, 0, 0, {}, {} }, // Ogre Lord
             { 10, 5, 5, 7, 40, Speed::AVERAGE, 8, 0, {}, {} }, // Troll
-            { 10, 5, 7, 9, 40, Speed::FAST, 16, 0, {}, {} }, // War Troll
             { 12, 9, 12, 24, 80, Speed::FAST, 0, 0, {}, {} }, // Cyclops
             { 4, 2, 1, 2, 2, Speed::AVERAGE, 0, 0, {}, {} }, // Sprite
             { 6, 5, 2, 4, 20, Speed::VERYSLOW, 0, 0, {}, {} }, // Dwarf
-            { 6, 6, 2, 4, 20, Speed::AVERAGE, 0, 0, {}, {} }, // Battle Dwarf
             { 4, 3, 2, 3, 15, Speed::AVERAGE, 24, 0, {}, {} }, // Elf
-            { 5, 5, 2, 3, 15, Speed::VERYFAST, 24, 0, {}, {} }, // Grand Elf
             { 7, 5, 5, 8, 25, Speed::FAST, 8, 0, {}, {} }, // Druid
-            { 7, 7, 5, 8, 25, Speed::VERYFAST, 16, 0, {}, {} }, // Greater Druid
             { 10, 9, 7, 14, 40, Speed::FAST, 0, 0, {}, {} }, // Unicorn
             { 12, 10, 20, 40, 100, Speed::ULTRAFAST, 0, 0, {}, {} }, // Phoenix
             { 3, 1, 1, 2, 5, Speed::AVERAGE, 8, 0, {}, {} }, // Centaur
             { 4, 7, 2, 3, 15, Speed::VERYFAST, 0, 0, {}, {} }, // Gargoyle
             { 6, 6, 3, 5, 25, Speed::AVERAGE, 0, 0, {}, {} }, // Griffin
             { 9, 8, 5, 10, 35, Speed::AVERAGE, 0, 0, {}, {} }, // Minotaur
-            { 9, 8, 5, 10, 45, Speed::VERYFAST, 0, 0, {}, {} }, // Minotaur King
             { 8, 9, 6, 12, 75, Speed::VERYSLOW, 0, 0, {}, {} }, // Hydra
             { 12, 12, 25, 50, 200, Speed::AVERAGE, 0, 0, {}, {} }, // Green Dragon
-            { 13, 13, 25, 50, 250, Speed::FAST, 0, 0, {}, {} }, // Red Dragon
-            { 14, 14, 25, 50, 300, Speed::VERYFAST, 0, 0, {}, {} }, // Black Dragon
-            { 2, 1, 1, 3, 3, Speed::SLOW, 12, 0, {}, {} }, // Halfling
-            { 5, 4, 2, 3, 15, Speed::VERYFAST, 0, 0, {}, {} }, // Boar
-            { 5, 10, 4, 5, 30, Speed::VERYSLOW, 0, 0, {}, {} }, // Iron Golem
-            { 7, 10, 4, 5, 35, Speed::SLOW, 0, 0, {}, {} }, // Steel Golem
-            { 7, 7, 4, 8, 40, Speed::AVERAGE, 0, 0, {}, {} }, // Roc
-            { 11, 7, 7, 9, 30, Speed::FAST, 12, 0, {}, {} }, // Mage
-            { 12, 8, 7, 9, 35, Speed::VERYFAST, 24, 0, {}, {} }, // Archmage
-            { 13, 10, 20, 30, 150, Speed::AVERAGE, 0, 0, {}, {} }, // Giant
-            { 15, 15, 20, 30, 300, Speed::VERYFAST, 24, 0, {}, {} }, // Titan
-            { 4, 3, 2, 3, 4, Speed::AVERAGE, 0, 0, {}, {} }, // Skeleton
-            { 5, 2, 2, 3, 15, Speed::VERYSLOW, 0, 0, {}, {} }, // Zombie
-            { 5, 2, 2, 3, 20, Speed::AVERAGE, 0, 0, {}, {} }, // Mutant Zombie
-            { 6, 6, 3, 4, 25, Speed::AVERAGE, 0, 0, {}, {} }, // Mummy
-            { 6, 6, 3, 4, 30, Speed::FAST, 0, 0, {}, {} }, // Royal Mummy
-            { 8, 6, 5, 7, 30, Speed::AVERAGE, 0, 0, {}, {} }, // Vampire
-            { 8, 6, 5, 7, 40, Speed::FAST, 0, 0, {}, {} }, // Vampire Lord
-            { 7, 12, 8, 10, 25, Speed::FAST, 12, 0, {}, {} }, // Lich
-            { 7, 13, 8, 10, 35, Speed::VERYFAST, 24, 0, {}, {} }, // Power Lich
-            { 11, 9, 25, 45, 150, Speed::AVERAGE, 0, 0, {}, {} }, // Bone Dragon
             { 6, 1, 1, 2, 4, Speed::FAST, 0, 0, {}, {} }, // Rogue
             { 7, 6, 2, 5, 20, Speed::VERYFAST, 0, 0, {}, {} }, // Nomad
             { 8, 7, 4, 6, 20, Speed::FAST, 0, 0, {}, {} }, // Ghost
@@ -311,61 +241,28 @@ namespace
                 { gettext_noop( "Unknown Monster" ), gettext_noop( "Unknown Monsters" ), 0, Race::NONE, 0, { 0, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Peasant" ), gettext_noop( "Peasants" ), 12, Race::KNGT, 1, { 20, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Archer" ), gettext_noop( "Archers" ), 8, Race::KNGT, 2, { 150, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Ranger" ), gettext_noop( "Rangers" ), 8, Race::KNGT, 2, { 200, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Pikeman" ), gettext_noop( "Pikemen" ), 5, Race::KNGT, 3, { 200, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Veteran Pikeman" ), gettext_noop( "Veteran Pikemen" ), 5, Race::KNGT, 3, { 250, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Swordsman" ), gettext_noop( "Swordsmen" ), 4, Race::KNGT, 4, { 250, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Master Swordsman" ), gettext_noop( "Master Swordsmen" ), 4, Race::KNGT, 4, { 300, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Cavalry" ), gettext_noop( "Cavalries" ), 3, Race::KNGT, 5, { 300, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Champion" ), gettext_noop( "Champions" ), 3, Race::KNGT, 5, { 375, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Paladin" ), gettext_noop( "Paladins" ), 2, Race::KNGT, 6, { 600, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Crusader" ), gettext_noop( "Crusaders" ), 2, Race::KNGT, 6, { 1000, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Goblin" ), gettext_noop( "Goblins" ), 10, Race::BARB, 1, { 40, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Orc" ), gettext_noop( "Orcs" ), 8, Race::BARB, 2, { 140, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Orc Chief" ), gettext_noop( "Orc Chiefs" ), 8, Race::BARB, 2, { 175, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Wolf" ), gettext_noop( "Wolves" ), 5, Race::BARB, 3, { 200, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Ogre" ), gettext_noop( "Ogres" ), 4, Race::BARB, 4, { 300, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Ogre Lord" ), gettext_noop( "Ogre Lords" ), 4, Race::BARB, 4, { 500, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Troll" ), gettext_noop( "Trolls" ), 3, Race::BARB, 5, { 600, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "War Troll" ), gettext_noop( "War Trolls" ), 3, Race::BARB, 5, { 700, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Cyclops" ), gettext_noop( "Cyclopes" ), 2, Race::BARB, 6, { 750, 0, 0, 0, 0, 1, 0 } },
                 { gettext_noop( "Sprite" ), gettext_noop( "Sprites" ), 8, Race::SORC, 1, { 50, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Dwarf" ), gettext_noop( "Dwarves" ), 6, Race::SORC, 2, { 200, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Battle Dwarf" ), gettext_noop( "Battle Dwarves" ), 6, Race::SORC, 2, { 250, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Elf" ), gettext_noop( "Elves" ), 4, Race::SORC, 3, { 250, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Grand Elf" ), gettext_noop( "Grand Elves" ), 4, Race::SORC, 3, { 300, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Druid" ), gettext_noop( "Druids" ), 3, Race::SORC, 4, { 350, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Greater Druid" ), gettext_noop( "Greater Druids" ), 3, Race::SORC, 4, { 400, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Unicorn" ), gettext_noop( "Unicorns" ), 2, Race::SORC, 5, { 500, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Phoenix" ), gettext_noop( "Phoenixes" ), 1, Race::SORC, 6, { 1500, 0, 1, 0, 0, 0, 0 } },
                 { gettext_noop( "Centaur" ), gettext_noop( "Centaurs" ), 8, Race::WRLK, 1, { 60, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Gargoyle" ), gettext_noop( "Gargoyles" ), 6, Race::WRLK, 2, { 200, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Griffin" ), gettext_noop( "Griffins" ), 4, Race::WRLK, 3, { 300, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Minotaur" ), gettext_noop( "Minotaurs" ), 3, Race::WRLK, 4, { 400, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Minotaur King" ), gettext_noop( "Minotaur Kings" ), 3, Race::WRLK, 4, { 500, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Hydra" ), gettext_noop( "Hydras" ), 2, Race::WRLK, 5, { 800, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Green Dragon" ), gettext_noop( "Green Dragons" ), 1, Race::WRLK, 6, { 3000, 0, 0, 0, 1, 0, 0 } },
-                { gettext_noop( "Red Dragon" ), gettext_noop( "Red Dragons" ), 1, Race::WRLK, 6, { 3500, 0, 0, 0, 1, 0, 0 } },
-                { gettext_noop( "Black Dragon" ), gettext_noop( "Black Dragons" ), 1, Race::WRLK, 6, { 4000, 0, 0, 0, 2, 0, 0 } },
-                { gettext_noop( "Halfling" ), gettext_noop( "Halflings" ), 8, Race::WZRD, 1, { 50, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Boar" ), gettext_noop( "Boars" ), 6, Race::WZRD, 2, { 150, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Iron Golem" ), gettext_noop( "Iron Golems" ), 4, Race::WZRD, 3, { 300, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Steel Golem" ), gettext_noop( "Steel Golems" ), 4, Race::WZRD, 3, { 350, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Roc" ), gettext_noop( "Rocs" ), 3, Race::WZRD, 4, { 400, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Mage" ), gettext_noop( "Magi" ), 2, Race::WZRD, 5, { 600, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Archmage" ), gettext_noop( "Archmagi" ), 2, Race::WZRD, 5, { 700, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Giant" ), gettext_noop( "Giants" ), 1, Race::WZRD, 6, { 2000, 0, 0, 0, 0, 0, 1 } },
-                { gettext_noop( "Titan" ), gettext_noop( "Titans" ), 1, Race::WZRD, 6, { 5000, 0, 0, 0, 0, 0, 2 } },
-                { gettext_noop( "Skeleton" ), gettext_noop( "Skeletons" ), 8, Race::NECR, 1, { 75, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Zombie" ), gettext_noop( "Zombies" ), 6, Race::NECR, 2, { 150, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Mutant Zombie" ), gettext_noop( "Mutant Zombies" ), 6, Race::NECR, 2, { 200, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Mummy" ), gettext_noop( "Mummies" ), 4, Race::NECR, 3, { 250, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Royal Mummy" ), gettext_noop( "Royal Mummies" ), 4, Race::NECR, 3, { 300, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Vampire" ), gettext_noop( "Vampires" ), 3, Race::NECR, 4, { 500, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Vampire Lord" ), gettext_noop( "Vampire Lords" ), 3, Race::NECR, 4, { 650, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Lich" ), gettext_noop( "Liches" ), 2, Race::NECR, 5, { 750, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Power Lich" ), gettext_noop( "Power Liches" ), 2, Race::NECR, 5, { 900, 0, 0, 0, 0, 0, 0 } },
-                { gettext_noop( "Bone Dragon" ), gettext_noop( "Bone Dragons" ), 1, Race::NECR, 6, { 1500, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Rogue" ), gettext_noop( "Rogues" ), 8, Race::NONE, 1, { 50, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Nomad" ), gettext_noop( "Nomads" ), 4, Race::NONE, 2, { 200, 0, 0, 0, 0, 0, 0 } },
                 { gettext_noop( "Ghost" ), gettext_noop( "Ghosts" ), 3, Race::NONE, 3, { 1000, 0, 0, 0, 0, 0, 0 } },
@@ -388,25 +285,14 @@ namespace
         }
 
         // Add monster abilities and weaknesses.
-        monsterData[Monster::RANGER].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_SHOOTING );
-
         monsterData[Monster::CAVALRY].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
 
-        monsterData[Monster::CHAMPION].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
-
         monsterData[Monster::PALADIN].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_MELEE_ATTACK );
-
-        monsterData[Monster::CRUSADER].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_MELEE_ATTACK );
-        monsterData[Monster::CRUSADER].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_DAMAGE_TO_UNDEAD );
-        monsterData[Monster::CRUSADER].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::IMMUNE_TO_CERTAIN_SPELL, 100, Spell::CURSE );
-        monsterData[Monster::CRUSADER].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::IMMUNE_TO_CERTAIN_SPELL, 100, Spell::MASSCURSE );
 
         monsterData[Monster::WOLF].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
         monsterData[Monster::WOLF].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_MELEE_ATTACK );
 
         monsterData[Monster::TROLL].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::HP_REGENERATION );
-
-        monsterData[Monster::WAR_TROLL].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::HP_REGENERATION );
 
         monsterData[Monster::CYCLOPS].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::TWO_CELL_MELEE_ATTACK );
         monsterData[Monster::CYCLOPS].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::SPELL_CASTER, 20, Spell::PARALYZE );
@@ -416,11 +302,7 @@ namespace
 
         monsterData[Monster::DWARF].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MAGIC_RESISTANCE, 25, 0 );
 
-        monsterData[Monster::BATTLE_DWARF].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MAGIC_RESISTANCE, 25, 0 );
-
         monsterData[Monster::ELF].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_SHOOTING );
-
-        monsterData[Monster::GRAND_ELF].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_SHOOTING );
 
         monsterData[Monster::UNICORN].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
         monsterData[Monster::UNICORN].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::SPELL_CASTER, 20, Spell::BLIND );
@@ -447,72 +329,6 @@ namespace
         monsterData[Monster::GREEN_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
         monsterData[Monster::GREEN_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MAGIC_RESISTANCE, 100, 0 );
         monsterData[Monster::GREEN_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::TWO_CELL_MELEE_ATTACK );
-
-        monsterData[Monster::RED_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DRAGON );
-        monsterData[Monster::RED_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
-        monsterData[Monster::RED_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
-        monsterData[Monster::RED_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MAGIC_RESISTANCE, 100, 0 );
-        monsterData[Monster::RED_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::TWO_CELL_MELEE_ATTACK );
-
-        monsterData[Monster::BLACK_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DRAGON );
-        monsterData[Monster::BLACK_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
-        monsterData[Monster::BLACK_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
-        monsterData[Monster::BLACK_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MAGIC_RESISTANCE, 100, 0 );
-        monsterData[Monster::BLACK_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::TWO_CELL_MELEE_ATTACK );
-
-        monsterData[Monster::BOAR].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
-
-        monsterData[Monster::IRON_GOLEM].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::ELEMENTAL_SPELL_DAMAGE_REDUCTION, 50, 0 );
-        monsterData[Monster::IRON_GOLEM].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::CERTAIN_SPELL_DAMAGE_REDUCTION, 50, Spell::ARMAGEDDON );
-
-        monsterData[Monster::STEEL_GOLEM].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::ELEMENTAL_SPELL_DAMAGE_REDUCTION, 50, 0 );
-        monsterData[Monster::STEEL_GOLEM].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::CERTAIN_SPELL_DAMAGE_REDUCTION, 50, Spell::ARMAGEDDON );
-
-        monsterData[Monster::ROC].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
-        monsterData[Monster::ROC].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
-
-        monsterData[Monster::MAGE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::NO_MELEE_PENALTY );
-
-        monsterData[Monster::ARCHMAGE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::NO_MELEE_PENALTY );
-        monsterData[Monster::ARCHMAGE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::SPELL_CASTER, 20, Spell::DISPEL );
-
-        monsterData[Monster::GIANT].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MIND_SPELL_IMMUNITY );
-
-        monsterData[Monster::TITAN].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::NO_MELEE_PENALTY );
-        monsterData[Monster::TITAN].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MIND_SPELL_IMMUNITY );
-
-        monsterData[Monster::SKELETON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-
-        monsterData[Monster::ZOMBIE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-
-        monsterData[Monster::MUTANT_ZOMBIE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-
-        monsterData[Monster::MUMMY].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::MUMMY].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::SPELL_CASTER, 20, Spell::CURSE );
-
-        monsterData[Monster::ROYAL_MUMMY].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::ROYAL_MUMMY].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::SPELL_CASTER, 30, Spell::CURSE );
-
-        monsterData[Monster::VAMPIRE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::VAMPIRE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
-        monsterData[Monster::VAMPIRE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::NO_ENEMY_RETALIATION );
-
-        monsterData[Monster::VAMPIRE_LORD].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::VAMPIRE_LORD].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
-        monsterData[Monster::VAMPIRE_LORD].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::NO_ENEMY_RETALIATION );
-        monsterData[Monster::VAMPIRE_LORD].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::HP_DRAIN );
-
-        monsterData[Monster::LICH].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::LICH].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::AREA_SHOT );
-
-        monsterData[Monster::POWER_LICH].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::POWER_LICH].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::AREA_SHOT );
-
-        monsterData[Monster::BONE_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::UNDEAD );
-        monsterData[Monster::BONE_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DRAGON );
-        monsterData[Monster::BONE_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::DOUBLE_HEX_SIZE );
-        monsterData[Monster::BONE_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::FLYING );
-        monsterData[Monster::BONE_DRAGON].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::MORAL_DECREMENT, 100, 1 );
 
         monsterData[Monster::ROGUE].battleStats.abilities.emplace_back( fheroes2::MonsterAbilityType::NO_ENEMY_RETALIATION );
 

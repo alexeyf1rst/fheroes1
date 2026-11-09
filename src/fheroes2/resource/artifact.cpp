@@ -278,71 +278,18 @@ double Artifact::getArtifactValue() const
         case fheroes2::ArtifactBonusType::GOLD_INCOME:
             artifactValue += static_cast<double>( bonus.value ) / 800.0;
             break;
-        case fheroes2::ArtifactBonusType::SEA_MOBILITY:
-            artifactValue += static_cast<double>( bonus.value ) / 500.0;
-            break;
-        case fheroes2::ArtifactBonusType::LAND_MOBILITY:
-            artifactValue += static_cast<double>( bonus.value ) / 200.0;
-            break;
-        case fheroes2::ArtifactBonusType::CURSE_SPELL_COST_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::BLESS_SPELL_COST_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::SUMMONING_SPELL_COST_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::MIND_INFLUENCE_SPELL_COST_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::COLD_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::FIRE_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::LIGHTNING_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::ELEMENTAL_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case fheroes2::ArtifactBonusType::HYPNOTIZE_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case fheroes2::ArtifactBonusType::COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case fheroes2::ArtifactBonusType::FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case fheroes2::ArtifactBonusType::LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case fheroes2::ArtifactBonusType::RESURRECT_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case fheroes2::ArtifactBonusType::SUMMONING_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-            artifactValue += static_cast<double>( bonus.value ) / 50.0;
-            break;
-        case fheroes2::ArtifactBonusType::NECROMANCY_SKILL:
-        case fheroes2::ArtifactBonusType::SURRENDER_COST_REDUCTION_PERCENT:
-            artifactValue += static_cast<double>( bonus.value ) / 10.0;
-            break;
-        case fheroes2::ArtifactBonusType::EVERY_COMBAT_SPELL_DURATION:
-        case fheroes2::ArtifactBonusType::SPELL_POINTS_DAILY_GENERATION:
-            artifactValue += static_cast<double>( bonus.value ) / 2.0;
-            break;
-        case fheroes2::ArtifactBonusType::CURSE_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::HYPNOTIZE_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::DEATH_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::BERSERK_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::BLIND_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::PARALYZE_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::HOLY_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::DISPEL_SPELL_IMMUNITY:
-        case fheroes2::ArtifactBonusType::ENDLESS_AMMUNITION:
-        case fheroes2::ArtifactBonusType::NO_SHOOTING_PENALTY:
-        case fheroes2::ArtifactBonusType::VIEW_MONSTER_INFORMATION:
-        case fheroes2::ArtifactBonusType::ADD_SPELL:
-        case fheroes2::ArtifactBonusType::EXTRA_CATAPULT_SHOTS:
-            artifactValue += 1;
-            break;
-        case fheroes2::ArtifactBonusType::MAXIMUM_MORALE:
-        case fheroes2::ArtifactBonusType::DISABLE_ALL_SPELL_COMBAT_CASTING:
-        case fheroes2::ArtifactBonusType::MAXIMUM_LUCK:
-            artifactValue += 3;
-            break;
         case fheroes2::ArtifactBonusType::KNOWLEDGE_SKILL:
         case fheroes2::ArtifactBonusType::ATTACK_SKILL:
         case fheroes2::ArtifactBonusType::DEFENCE_SKILL:
         case fheroes2::ArtifactBonusType::SPELL_POWER_SKILL:
         case fheroes2::ArtifactBonusType::MORALE:
         case fheroes2::ArtifactBonusType::LUCK:
-        case fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE:
         case fheroes2::ArtifactBonusType::CRYSTAL_INCOME:
         case fheroes2::ArtifactBonusType::MERCURY_INCOME:
         case fheroes2::ArtifactBonusType::ORE_INCOME:
         case fheroes2::ArtifactBonusType::GEMS_INCOME:
         case fheroes2::ArtifactBonusType::WOOD_INCOME:
         case fheroes2::ArtifactBonusType::SULFUR_INCOME:
-        case fheroes2::ArtifactBonusType::SEA_BATTLE_LUCK_BOOST:
-        case fheroes2::ArtifactBonusType::SEA_BATTLE_MORALE_BOOST:
             artifactValue += bonus.value;
             break;
         case fheroes2::ArtifactBonusType::NONE:
@@ -358,14 +305,6 @@ double Artifact::getArtifactValue() const
         switch ( curse.type ) {
         case fheroes2::ArtifactCurseType::GOLD_PENALTY:
             artifactValue -= static_cast<double>( curse.value ) / 200.0;
-            break;
-        case fheroes2::ArtifactCurseType::COLD_SPELL_EXTRA_DAMAGE_PERCENT:
-        case fheroes2::ArtifactCurseType::FIRE_SPELL_EXTRA_DAMAGE_PERCENT:
-            artifactValue -= static_cast<double>( curse.value ) / 100.0;
-            break;
-        case fheroes2::ArtifactCurseType::NO_JOINING_ARMIES:
-        case fheroes2::ArtifactCurseType::UNDEAD_MORALE_PENALTY:
-            artifactValue -= 1;
             break;
         case fheroes2::ArtifactCurseType::MORALE:
         case fheroes2::ArtifactCurseType::SPELL_POWER_SKILL:
@@ -391,7 +330,7 @@ void Artifact::SetSpell( const int v )
 
     switch ( v ) {
     case Spell::RANDOM:
-        ext = Spell::getRandomSpell( static_cast<int>( Rand::Get( 1, 5 ) ) ).GetID();
+        ext = Spell::getRandomSpell( static_cast<int>( Rand::Get( 1, 4 ) ) ).GetID();
         break;
     case Spell::RANDOM1:
         ext = Spell::getRandomSpell( 1 ).GetID();
@@ -403,10 +342,9 @@ void Artifact::SetSpell( const int v )
         ext = Spell::getRandomSpell( 3 ).GetID();
         break;
     case Spell::RANDOM4:
-        ext = Spell::getRandomSpell( 4 ).GetID();
-        break;
     case Spell::RANDOM5:
-        ext = Spell::getRandomSpell( 5 ).GetID();
+        // HoMM1 only has 4 spell levels; treat level 5 as level 4
+        ext = Spell::getRandomSpell( 4 ).GetID();
         break;
     default:
         ext = v;
@@ -416,18 +354,6 @@ void Artifact::SetSpell( const int v )
 
 int32_t Artifact::getSpellId() const
 {
-    const std::vector<fheroes2::ArtifactBonus> & bonuses = fheroes2::getArtifactData( id ).bonuses;
-    for ( const fheroes2::ArtifactBonus & bonus : bonuses ) {
-        if ( bonus.type == fheroes2::ArtifactBonusType::ADD_SPELL ) {
-            int32_t spellId = bonus.value;
-            if ( spellId == Spell::NONE ) {
-                spellId = ext;
-            }
-            assert( spellId > Spell::NONE && spellId < Spell::SPELL_COUNT );
-            return spellId;
-        }
-    }
-
     return Spell::NONE;
 }
 
@@ -915,50 +841,6 @@ void BagArtifacts::exchangeArtifacts( Heroes & taker, Heroes & giver )
     // Pure cursed artifacts (artifacts with no bonuses but only curses) should definitely go to another bag.
     transferArtifactsByCondition( combined, giverBag, isPureCursedArtifact );
 
-    if ( !taker.HasSecondarySkill( Skill::Secondary::NECROMANCY ) && giver.HasSecondarySkill( Skill::Secondary::NECROMANCY ) ) {
-        const auto isNecromancyArtifact = []( const Artifact & artifact ) {
-            const fheroes2::ArtifactData & data = fheroes2::getArtifactData( artifact.GetID() );
-            if ( data.bonuses.empty() ) {
-                return false;
-            }
-
-            for ( const fheroes2::ArtifactBonus & bonus : data.bonuses ) {
-                if ( bonus.type != fheroes2::ArtifactBonusType::NECROMANCY_SKILL ) {
-                    return false;
-                }
-            }
-
-            return true;
-        };
-
-        // Giver hero has Necromancy skill so it would be more useful for him to use Necromancy related artifacts.
-        transferArtifactsByCondition( combined, giverBag, isNecromancyArtifact );
-    }
-
-    // Scrolls are effective if they contain spells which are not present in the book.
-    if ( taker.HaveSpellBook() ) {
-        const auto isScrollSpellDuplicated = [&taker]( const Artifact & artifact ) {
-            const fheroes2::ArtifactData & data = fheroes2::getArtifactData( artifact.GetID() );
-            if ( data.bonuses.empty() ) {
-                return false;
-            }
-
-            for ( const fheroes2::ArtifactBonus & bonus : data.bonuses ) {
-                if ( bonus.type != fheroes2::ArtifactBonusType::ADD_SPELL ) {
-                    return false;
-                }
-            }
-
-            const SpellStorage & magicBookSpells = taker.getMagicBookSpells();
-            const int32_t spellId = artifact.getSpellId();
-            assert( spellId != Spell::NONE );
-
-            return std::find( magicBookSpells.begin(), magicBookSpells.end(), Spell( spellId ) ) != magicBookSpells.end();
-        };
-
-        transferArtifactsByCondition( combined, giverBag, isScrollSpellDuplicated );
-    }
-
     // A unique artifact is an artifact with no curses and all its bonuses are unique.
     const auto isUniqueArtifact = []( const Artifact & artifact ) {
         const fheroes2::ArtifactData & data = fheroes2::getArtifactData( artifact.GetID() );
@@ -983,13 +865,6 @@ void BagArtifacts::exchangeArtifacts( Heroes & taker, Heroes & giver )
 
         for ( auto iter = mainIter + 1; iter != combined.end(); ) {
             if ( *iter != *mainIter ) {
-                ++iter;
-                continue;
-            }
-
-            // Scrolls are considered as unique artifacts but their internal value might be different.
-            // If they contain different spells then we should not interpret them as the same.
-            if ( ( iter->GetID() == Artifact::SPELL_SCROLL ) && ( iter->getSpellId() != mainIter->getSpellId() ) ) {
                 ++iter;
                 continue;
             }

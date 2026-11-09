@@ -172,8 +172,8 @@ namespace Editor
     bool openSpellSelectionWindow( std::string title, int32_t & spellLevel, std::vector<int32_t> & selectedSpells, const bool isMultiLevelSelectionEnabled,
                                    const int32_t minimumEnabledSpells, const bool pickDisabledSpells )
     {
-        if ( spellLevel < 1 || spellLevel > 5 ) {
-            // What are you trying to achieve?!
+        if ( spellLevel < 1 || spellLevel > 4 ) {
+            // HoMM1 only has 4 spell levels.
             assert( 0 );
             return false;
         }
@@ -244,7 +244,7 @@ namespace Editor
             const int32_t levelSelectionStepX{ 62 };
             const int32_t levelOffsetY{ 410 };
             const int32_t widthInBetweenButtons{ buttonCancel.area().x - buttonOk.area().x - buttonOk.area().width };
-            const int32_t spellSelectionButtonOffsetX{ buttonOk.area().x + buttonOk.area().width + ( widthInBetweenButtons - levelSelectionStepX * 5 ) / 2 };
+            const int32_t spellSelectionButtonOffsetX{ buttonOk.area().x + buttonOk.area().width + ( widthInBetweenButtons - levelSelectionStepX * 4 ) / 2 };
 
             levelSelection.createButton( spellSelectionButtonOffsetX, activeArea.y + levelOffsetY, isEvilInterface ? ICN::BUTTON_1_EVIL : ICN::BUTTON_1_GOOD, 0, 1, 1 );
             levelSelection.createButton( spellSelectionButtonOffsetX + levelSelectionStepX, activeArea.y + levelOffsetY,
@@ -253,8 +253,6 @@ namespace Editor
                                          isEvilInterface ? ICN::BUTTON_3_EVIL : ICN::BUTTON_3_GOOD, 0, 1, 3 );
             levelSelection.createButton( spellSelectionButtonOffsetX + levelSelectionStepX * 3, activeArea.y + levelOffsetY,
                                          isEvilInterface ? ICN::BUTTON_4_EVIL : ICN::BUTTON_4_GOOD, 0, 1, 4 );
-            levelSelection.createButton( spellSelectionButtonOffsetX + levelSelectionStepX * 4, activeArea.y + levelOffsetY,
-                                         isEvilInterface ? ICN::BUTTON_5_EVIL : ICN::BUTTON_5_GOOD, 0, 1, 5 );
 
             levelSelection.drawShadows( display );
 

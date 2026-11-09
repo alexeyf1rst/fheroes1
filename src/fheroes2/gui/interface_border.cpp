@@ -73,6 +73,16 @@ void Interface::GameBorderRedraw( const bool viewWorldMode )
     if ( conf.isHideInterfaceEnabled() && !viewWorldMode )
         return;
 
+    // HoMM1: use BORD.BMP as the full-screen adventure map border
+    {
+        const fheroes2::Sprite & bord = fheroes2::AGG::GetICN( ICN::H1BORD_BMP, 0 );
+        if ( bord.width() > 0 ) {
+            fheroes2::Display & display = fheroes2::Display::instance();
+            fheroes2::Blit( bord, 0, 0, display, 0, 0, bord.width(), bord.height() );
+            return;
+        }
+    }
+
     const bool isEvilInterface = conf.isEvilInterfaceEnabled();
 
     fheroes2::Display & display = fheroes2::Display::instance();

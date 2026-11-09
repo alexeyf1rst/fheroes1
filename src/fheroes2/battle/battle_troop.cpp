@@ -68,31 +68,6 @@ namespace
             return { Artifact::UNKNOWN };
         }
 
-        switch ( spell.GetID() ) {
-        case Spell::CURSE:
-        case Spell::MASSCURSE:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::CURSE_SPELL_IMMUNITY );
-        case Spell::HYPNOTIZE:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::HYPNOTIZE_SPELL_IMMUNITY );
-        case Spell::DEATHRIPPLE:
-        case Spell::DEATHWAVE:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::DEATH_SPELL_IMMUNITY );
-        case Spell::BERSERKER:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::BERSERK_SPELL_IMMUNITY );
-        case Spell::BLIND:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::BLIND_SPELL_IMMUNITY );
-        case Spell::PARALYZE:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::PARALYZE_SPELL_IMMUNITY );
-        case Spell::HOLYWORD:
-        case Spell::HOLYSHOUT:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::HOLY_SPELL_IMMUNITY );
-        case Spell::DISPEL:
-        case Spell::MASSDISPEL:
-            return hero->GetBagArtifacts().getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::DISPEL_SPELL_IMMUNITY );
-        default:
-            break;
-        }
-
         return { Artifact::UNKNOWN };
     }
 }
@@ -280,8 +255,8 @@ int Battle::Unit::GetMorale() const
 
     int armyTroopMorale = ArmyTroop::GetMorale();
 
-    // enemy Bone dragons affect morale
-    if ( isAffectedByMorale() && arena->getEnemyForce( GetArmyColor() ).HasMonster( Monster::BONE_DRAGON ) && armyTroopMorale > Morale::TREASON ) {
+    // enemy Green Dragons affect morale (HoMM1: no Bone Dragon)
+    if ( isAffectedByMorale() && arena->getEnemyForce( GetArmyColor() ).HasMonster( Monster::GREEN_DRAGON ) && armyTroopMorale > Morale::TREASON ) {
         --armyTroopMorale;
     }
 
@@ -945,7 +920,7 @@ void Battle::Unit::PostAttackAction( const Unit & enemy )
     if ( isArchers() && !isHandFighting( *this, enemy ) ) {
         const HeroBase * hero = GetCommander();
 
-        if ( hero == nullptr || !hero->GetBagArtifacts().isArtifactBonusPresent( fheroes2::ArtifactBonusType::ENDLESS_AMMUNITION ) ) {
+        {
             assert( !Modes( CAP_TOWER ) && _shotsLeft > 0 );
 
             --_shotsLeft;
@@ -1173,10 +1148,6 @@ int Battle::Unit::GetControl() const
 
 void Battle::Unit::_spellModesAction( const Spell & spell, uint32_t duration, const HeroBase * applyingHero )
 {
-    if ( applyingHero ) {
-        duration += applyingHero->GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::EVERY_COMBAT_SPELL_DURATION );
-    }
-
     switch ( spell.GetID() ) {
     case Spell::BLESS:
     case Spell::MASSBLESS:
@@ -1319,106 +1290,22 @@ uint32_t Battle::Unit::CalculateSpellDamage( const Spell & spell, uint32_t spell
     }
 
     if ( applyingHero ) {
-        const HeroBase * defendingHero = GetCommander();
-        const bool useDefendingHeroArts = defendingHero && !ignoreDefendingHero;
-
-        switch ( spell.GetID() ) {
-        case Spell::COLDRAY:
-        case Spell::COLDRING: {
-            std::vector<int32_t> extraDamagePercent
-                = applyingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT );
-            for ( const int32_t value : extraDamagePercent ) {
-                dmg = dmg * ( 100 + value ) / 100;
+        if ( spell.GetID() == Spell::CHAINLIGHTNING ) {
+            switch ( targetDamage ) {
+            case 0:
+                break;
+            case 1:
+                dmg /= 2;
+                break;
+            case 2:
+                dmg /= 4;
+                break;
+            case 3:
+                dmg /= 8;
+                break;
+            default:
+                break;
             }
-
-            if ( useDefendingHeroArts ) {
-                const std::vector<int32_t> damageReductionPercent
-                    = defendingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::COLD_SPELL_DAMAGE_REDUCTION_PERCENT );
-                for ( const int32_t value : damageReductionPercent ) {
-                    dmg = dmg * ( 100 - value ) / 100;
-                }
-
-                extraDamagePercent = defendingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactCurseType::COLD_SPELL_EXTRA_DAMAGE_PERCENT );
-                for ( const int32_t value : extraDamagePercent ) {
-                    dmg = dmg * ( 100 + value ) / 100;
-                }
-            }
-
-            break;
-        }
-        case Spell::FIREBALL:
-        case Spell::FIREBLAST: {
-            std::vector<int32_t> extraDamagePercent
-                = applyingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT );
-            for ( const int32_t value : extraDamagePercent ) {
-                dmg = dmg * ( 100 + value ) / 100;
-            }
-
-            if ( useDefendingHeroArts ) {
-                const std::vector<int32_t> damageReductionPercent
-                    = defendingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::FIRE_SPELL_DAMAGE_REDUCTION_PERCENT );
-                for ( const int32_t value : damageReductionPercent ) {
-                    dmg = dmg * ( 100 - value ) / 100;
-                }
-
-                extraDamagePercent = defendingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactCurseType::FIRE_SPELL_EXTRA_DAMAGE_PERCENT );
-                for ( const int32_t value : extraDamagePercent ) {
-                    dmg = dmg * ( 100 + value ) / 100;
-                }
-            }
-
-            break;
-        }
-        case Spell::LIGHTNINGBOLT:
-        case Spell::CHAINLIGHTNING: {
-            const std::vector<int32_t> extraDamagePercent
-                = applyingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT );
-            for ( const int32_t value : extraDamagePercent ) {
-                dmg = dmg * ( 100 + value ) / 100;
-            }
-
-            if ( useDefendingHeroArts ) {
-                const std::vector<int32_t> damageReductionPercent
-                    = defendingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::LIGHTNING_SPELL_DAMAGE_REDUCTION_PERCENT );
-                for ( const int32_t value : damageReductionPercent ) {
-                    dmg = dmg * ( 100 - value ) / 100;
-                }
-            }
-
-            if ( spell.GetID() == Spell::CHAINLIGHTNING ) {
-                switch ( targetDamage ) {
-                case 0:
-                    break;
-                case 1:
-                    dmg /= 2;
-                    break;
-                case 2:
-                    dmg /= 4;
-                    break;
-                case 3:
-                    dmg /= 8;
-                    break;
-                default:
-                    break;
-                }
-            }
-
-            break;
-        }
-        case Spell::ELEMENTALSTORM:
-        case Spell::ARMAGEDDON: {
-            if ( useDefendingHeroArts ) {
-                const std::vector<int32_t> damageReductionPercent
-                    = defendingHero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::ELEMENTAL_SPELL_DAMAGE_REDUCTION_PERCENT );
-                for ( const int32_t value : damageReductionPercent ) {
-                    dmg = dmg * ( 100 - value ) / 100;
-                }
-            }
-
-            break;
-        }
-        default:
-            break;
         }
     }
 

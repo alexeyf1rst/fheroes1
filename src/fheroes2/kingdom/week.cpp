@@ -78,7 +78,7 @@ namespace
         uint32_t monsterSeed = seed;
         Rand::combineSeedWithValueHash( monsterSeed, 886473 ); // Salt
 
-        return Rand::GetWithSeed( Monster::PEASANT, Monster::BONE_DRAGON, monsterSeed );
+        return Rand::GetWithSeed( Monster::PEASANT, Monster::GREEN_DRAGON, monsterSeed );
     }
 
     Monster::MonsterType RandomMonsterMonthOf( const uint32_t seed )
@@ -106,11 +106,11 @@ namespace
         case 9:
             return Monster::GARGOYLE;
         case 10:
-            return Monster::ROC;
+            return Monster::HYDRA;
         case 11:
-            return Monster::VAMPIRE;
+            return Monster::PHOENIX;
         case 12:
-            return Monster::LICH;
+            return Monster::GREEN_DRAGON;
         default:
             assert( 0 );
         }

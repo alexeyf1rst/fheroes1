@@ -43,7 +43,8 @@ enum class GameVersion : int32_t
 {
     SUCCESSION_WARS = 0,
     PRICE_OF_LOYALTY = 1,
-    RESURRECTION = 2
+    RESURRECTION = 2,
+    HOMM1 = 3
 };
 
 namespace Maps
@@ -79,6 +80,8 @@ namespace Maps
         bool readResurrectionMap( std::string filePath, const bool isForEditor, const fheroes2::SupportedLanguage currentLanguage );
 
         bool loadResurrectionMap( const Map_Format::BaseMapFormat & map, std::string filePath );
+
+        bool readHoMM1MapFromBytes( std::vector<uint8_t> data, std::string virtualPath );
 
         PlayerColorsSet AllowCompHumanColors() const
         {

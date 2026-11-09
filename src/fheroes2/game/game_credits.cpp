@@ -699,6 +699,26 @@ namespace
 
 void Game::ShowCredits( const bool keepMainMenuBorders )
 {
+    // HoMM1: show CREDITS.BMP full-screen and wait for any key/click.
+    {
+        const fheroes2::Sprite & credits = fheroes2::AGG::GetICN( ICN::H1CREDITS_BMP, 0 );
+        if ( credits.width() > 0 && credits.height() > 0 ) {
+            fheroes2::Display & display = fheroes2::Display::instance();
+            const CursorRestorer cursorRestorer( false );
+
+            fheroes2::Copy( credits, 0, 0, display, 0, 0, credits.width(), credits.height() );
+            display.render();
+
+            LocalEvent & le = LocalEvent::Get();
+            while ( le.HandleEvents() ) {
+                if ( le.isAnyKeyPressed() || le.MouseClickLeft() || le.MouseClickMiddle() || le.MouseClickRight() ) {
+                    break;
+                }
+            }
+            return;
+        }
+    }
+
     // Credits are shown in the place of Main Menu background which is correctly resized.
     // We get the Main Menu background ROI to use it for credits ROI and leave borders unchanged.
     const fheroes2::Sprite & mainMenuBackground = fheroes2::AGG::GetICN( ICN::HEROES, 0 );

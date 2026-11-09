@@ -69,22 +69,14 @@ namespace
         case DWELLING_MONSTER1:
             return { { 192, 163, 69, 52 } };
         case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
             return { { 135, 149, 73, 32 } };
         case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
             return { { 240, 166, 91, 66 } };
         case DWELLING_MONSTER4:
             return { { 323, 174, 74, 74 }, { 397, 185, 28, 63 } };
-        case DWELLING_UPGRADE4:
-            return { { 323, 174, 74, 74 }, { 397, 185, 58, 71 } };
         case DWELLING_MONSTER5:
             return { { 0, 198, 152, 58 }, { 44, 176, 29, 22 } };
-        case DWELLING_UPGRADE5:
-            return { { 0, 198, 152, 58 }, { 44, 176, 91, 22 } };
         case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
             return { { 445, 50, 195, 157 } };
         case BUILD_LEFTTURRET:
             return { { 7, 33, 0, 0 } };
@@ -139,20 +131,14 @@ namespace
         case DWELLING_MONSTER1:
             return { { 290, 138, 58, 45 } };
         case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
             return { { 145, 195, 76, 52 } };
         case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
             return { { 557, 48, 83, 83 } };
         case DWELLING_MONSTER4:
-        case DWELLING_UPGRADE4:
             return { { 496, 136, 138, 64 } };
         case DWELLING_MONSTER5:
-        case DWELLING_UPGRADE5:
             return { { 318, 174, 131, 54 } };
         case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
             return { { 407, 0, 113, 106 } };
         case BUILD_LEFTTURRET:
             return { { 5, 50, 0, 0 } };
@@ -204,20 +190,14 @@ namespace
         case DWELLING_MONSTER1:
             return { { 472, 59, 111, 92 } };
         case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
             return { { 338, 146, 93, 61 } };
         case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
             return { { 51, 164, 106, 40 } };
         case DWELLING_MONSTER4:
-        case DWELLING_UPGRADE4:
             return { { 198, 178, 143, 71 } };
         case DWELLING_MONSTER5:
-        case DWELLING_UPGRADE5:
             return { { 263, 226, 296, 30 } };
         case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
             return { { 179, 0, 84, 119 } };
         case BUILD_LEFTTURRET:
             return { { 98, 99, 0, 0 } };
@@ -272,161 +252,19 @@ namespace
         case DWELLING_MONSTER1:
             return { { 0, 64, 48, 50 } };
         case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
             return { { 237, 168, 78, 79 } };
         case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
             return { { 492, 50, 53, 39 } };
         case DWELLING_MONSTER4:
-        case DWELLING_UPGRADE4:
             return { { 139, 163, 190, 83 } };
         case DWELLING_MONSTER5:
-        case DWELLING_UPGRADE5:
             return { { 82, 92, 178, 68 } };
         case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
             return { { 92, 0, 64, 255 } };
         case BUILD_LEFTTURRET:
             return { { 311, 84, 0, 0 } };
         case BUILD_RIGHTTURRET:
             return { { 359, 83, 0, 0 } };
-        default:
-            break;
-        }
-
-        // Did you add a new building but forgot to add its area?
-        assert( 0 );
-        return {};
-    }
-
-    std::vector<fheroes2::Rect> getWizardBuildingArea( const BuildingType buildingId )
-    {
-        switch ( buildingId ) {
-        case BUILD_THIEVESGUILD:
-            return { { 505, 50, 51, 49 } };
-        case BUILD_TAVERN:
-            return { { 0, 149, 118, 76 } };
-        case BUILD_SHIPYARD:
-            return { { 0, 206, 206, 49 } };
-        case BUILD_WELL:
-            return { { 249, 139, 28, 33 } };
-        case BUILD_STATUE:
-            return { { 464, 45, 24, 72 } };
-        case BUILD_MARKETPLACE:
-            return { { 255, 163, 108, 53 } };
-        case BUILD_WEL2:
-            return { { 237, 208, 137, 39 } };
-        case BUILD_MOAT:
-            return { { 0, 90, 223, 14 } };
-        case BUILD_SPEC:
-            return { { 297, 95, 109, 78 } };
-        case BUILD_CASTLE:
-            return { { 0, 0, 200, 99 } };
-        case BUILD_CAPTAIN:
-            return { { 210, 52, 28, 35 } };
-        case BUILD_MAGEGUILD1:
-            return { { 585, 73, 54, 48 } };
-        case BUILD_MAGEGUILD2:
-            return { { 585, 69, 54, 50 } };
-        case BUILD_MAGEGUILD3:
-            return { { 585, 44, 54, 78 } };
-        case BUILD_MAGEGUILD4:
-            return { { 585, 20, 54, 102 } };
-        case BUILD_MAGEGUILD5:
-            return { { 585, 0, 54, 122 } };
-        case BUILD_TENT:
-            return { { 58, 60, 49, 42 } };
-        case DWELLING_MONSTER1:
-            return { { 467, 181, 38, 30 } };
-        case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
-            return { { 231, 68, 192, 36 } };
-        case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
-            return { { 152, 130, 96, 60 } };
-        case DWELLING_MONSTER4:
-        case DWELLING_UPGRADE4:
-            return { { 593, 184, 46, 31 } };
-        case DWELLING_MONSTER5:
-        case DWELLING_UPGRADE5:
-            return { { 411, 0, 49, 167 } };
-        case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
-            return { { 160, 0, 178, 67 } };
-        case BUILD_LEFTTURRET:
-            return { { 30, 17, 0, 0 } };
-        case BUILD_RIGHTTURRET:
-            return { { 127, 17, 0, 0 } };
-        default:
-            break;
-        }
-
-        // Did you add a new building but forgot to add its area?
-        assert( 0 );
-        return {};
-    }
-
-    std::vector<fheroes2::Rect> getNecromancerBuildingArea( const BuildingType buildingId )
-    {
-        switch ( buildingId ) {
-        case BUILD_THIEVESGUILD:
-            return { { 275, 124, 62, 77 } };
-        case BUILD_SHRINE:
-            return { { 455, 39, 51, 103 } };
-        case BUILD_SHIPYARD:
-            return { { 500, 220, 139, 36 } };
-        case BUILD_WELL:
-            return { { 215, 213, 29, 39 } };
-        case BUILD_STATUE:
-            return { { 365, 154, 41, 93 } };
-        case BUILD_MARKETPLACE:
-            return { { 412, 214, 20, 28 }, { 432, 195, 78, 58 } };
-        case BUILD_WEL2:
-            return { { 263, 181, 90, 65 } };
-        case BUILD_MOAT:
-            return { { 258, 171, 193, 19 } };
-        case BUILD_SPEC:
-            return { { 0, 0, 640, 63 } };
-        case BUILD_CASTLE:
-            return { { 289, 10, 134, 164 } };
-        case BUILD_CAPTAIN:
-            return { { 441, 77, 22, 99 } };
-        case BUILD_MAGEGUILD1:
-            return { { 565, 131, 73, 74 } };
-        case BUILD_MAGEGUILD2:
-            return { { 568, 102, 62, 104 } };
-        case BUILD_MAGEGUILD3:
-            return { { 570, 79, 56, 130 } };
-        case BUILD_MAGEGUILD4:
-            return { { 570, 61, 60, 146 } };
-        case BUILD_MAGEGUILD5:
-            return { { 570, 45, 61, 162 } };
-        case BUILD_TENT:
-            return { { 333, 115, 47, 70 } };
-        case DWELLING_MONSTER1:
-            return { { 396, 177, 71, 35 } };
-        case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
-            return { { 110, 174, 141, 45 } };
-        case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
-            return { { 0, 28, 241, 142 } };
-        case DWELLING_MONSTER4:
-        case DWELLING_UPGRADE4:
-            return { { 0, 107, 140, 129 } };
-        case DWELLING_MONSTER5:
-        case DWELLING_UPGRADE5:
-            return { { 221, 127, 66, 84 } };
-        case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
-            return { { 464, 72, 105, 124 } };
-        case BUILD_LEFTTURRET:
-            return { { 330, 47, 0, 0 } };
-        case BUILD_RIGHTTURRET:
-            return { { 360, 46, 0, 0 } };
         default:
             break;
         }
@@ -447,24 +285,14 @@ namespace
             return _( "Thatched Hut" );
         case DWELLING_MONSTER2:
             return _( "Archery Range" );
-        case DWELLING_UPGRADE2:
-            return _( "Upg. Archery Range" );
         case DWELLING_MONSTER3:
             return _( "Blacksmith" );
-        case DWELLING_UPGRADE3:
-            return _( "Upg. Blacksmith" );
         case DWELLING_MONSTER4:
             return _( "Armory" );
-        case DWELLING_UPGRADE4:
-            return _( "Upg. Armory" );
         case DWELLING_MONSTER5:
             return _( "Jousting Arena" );
-        case DWELLING_UPGRADE5:
-            return _( "Upg. Jousting Arena" );
         case DWELLING_MONSTER6:
             return _( "Cathedral" );
-        case DWELLING_UPGRADE6:
-            return _( "Upg. Cathedral" );
         default:
             break;
         }
@@ -485,18 +313,12 @@ namespace
             return _( "Hut" );
         case DWELLING_MONSTER2:
             return _( "Stick Hut" );
-        case DWELLING_UPGRADE2:
-            return _( "Upg. Stick Hut" );
         case DWELLING_MONSTER3:
             return _( "Den" );
         case DWELLING_MONSTER4:
             return _( "Adobe" );
-        case DWELLING_UPGRADE4:
-            return _( "Upg. Adobe" );
         case DWELLING_MONSTER5:
             return _( "Bridge" );
-        case DWELLING_UPGRADE5:
-            return _( "Upg. Bridge" );
         case DWELLING_MONSTER6:
             return _( "Pyramid" );
         default:
@@ -519,16 +341,10 @@ namespace
             return _( "Treehouse" );
         case DWELLING_MONSTER2:
             return _( "Cottage" );
-        case DWELLING_UPGRADE2:
-            return _( "Upg. Cottage" );
         case DWELLING_MONSTER3:
             return _( "Archery Range" );
-        case DWELLING_UPGRADE3:
-            return _( "Upg. Archery Range" );
         case DWELLING_MONSTER4:
             return _( "Stonehenge" );
-        case DWELLING_UPGRADE4:
-            return _( "Upg. Stonehenge" );
         case DWELLING_MONSTER5:
             return _( "Fenced Meadow" );
         case DWELLING_MONSTER6:
@@ -557,88 +373,10 @@ namespace
             return _( "Nest" );
         case DWELLING_MONSTER4:
             return _( "Maze" );
-        case DWELLING_UPGRADE4:
-            return _( "Upg. Maze" );
         case DWELLING_MONSTER5:
             return _( "Swamp" );
         case DWELLING_MONSTER6:
             return _( "Green Tower" );
-        case DWELLING_UPGRADE6:
-            return _( "warlock|Red Tower" );
-        case DWELLING_UPGRADE7:
-            return _( "Black Tower" );
-        default:
-            break;
-        }
-
-        // Did you add a new building?
-        assert( 0 );
-        return nullptr;
-    }
-
-    const char * getWizardBuildingName( const BuildingType buildingId )
-    {
-        switch ( buildingId ) {
-        case BUILD_SPEC:
-            return _( "Library" );
-        case BUILD_WEL2:
-            return _( "Orchard" );
-        case DWELLING_MONSTER1:
-            return _( "Habitat" );
-        case DWELLING_MONSTER2:
-            return _( "Pen" );
-        case DWELLING_MONSTER3:
-            return _( "Foundry" );
-        case DWELLING_UPGRADE3:
-            return _( "Upg. Foundry" );
-        case DWELLING_MONSTER4:
-            return _( "Cliff Nest" );
-        case DWELLING_MONSTER5:
-            return _( "Ivory Tower" );
-        case DWELLING_UPGRADE5:
-            return _( "Upg. Ivory Tower" );
-        case DWELLING_MONSTER6:
-            return _( "Cloud Castle" );
-        case DWELLING_UPGRADE6:
-            return _( "Upg. Cloud Castle" );
-        default:
-            break;
-        }
-
-        // Did you add a new building?
-        assert( 0 );
-        return nullptr;
-    }
-
-    const char * getNecromancerBuildingName( const BuildingType buildingId )
-    {
-        switch ( buildingId ) {
-        case BUILD_SPEC:
-            return _( "Storm" );
-        case BUILD_WEL2:
-            return _( "Skull Pile" );
-        case DWELLING_MONSTER1:
-            return _( "Excavation" );
-        case DWELLING_MONSTER2:
-            return _( "Graveyard" );
-        case DWELLING_UPGRADE2:
-            return _( "Upg. Graveyard" );
-        case DWELLING_MONSTER3:
-            return _( "Pyramid" );
-        case DWELLING_UPGRADE3:
-            return _( "Upg. Pyramid" );
-        case DWELLING_MONSTER4:
-            return _( "Mansion" );
-        case DWELLING_UPGRADE4:
-            return _( "Upg. Mansion" );
-        case DWELLING_MONSTER5:
-            return _( "Mausoleum" );
-        case DWELLING_UPGRADE5:
-            return _( "Upg. Mausoleum" );
-        case DWELLING_MONSTER6:
-            return _( "Laboratory" );
-        case BUILD_SHRINE:
-            return _( "Shrine" );
         default:
             break;
         }
@@ -659,26 +397,14 @@ namespace
             return _( "Dwelling 1" );
         case DWELLING_MONSTER2:
             return _( "Dwelling 2" );
-        case DWELLING_UPGRADE2:
-            return _( "Upg. Dwelling 2" );
         case DWELLING_MONSTER3:
             return _( "Dwelling 3" );
-        case DWELLING_UPGRADE3:
-            return _( "Upg. Dwelling 3" );
         case DWELLING_MONSTER4:
             return _( "Dwelling 4" );
-        case DWELLING_UPGRADE4:
-            return _( "Upg. Dwelling 4" );
         case DWELLING_MONSTER5:
             return _( "Dwelling 5" );
-        case DWELLING_UPGRADE5:
-            return _( "Upg. Dwelling 5" );
         case DWELLING_MONSTER6:
             return _( "Dwelling 6" );
-        case DWELLING_UPGRADE6:
-            return _( "Upg. Dwelling 6" );
-        case DWELLING_UPGRADE7:
-            return _( "2x Upg. Dwelling 6" );
         default:
             break;
         }
@@ -752,38 +478,6 @@ namespace
         return nullptr;
     }
 
-    const char * getWizardBuildingDescription( const BuildingType buildingId )
-    {
-        switch ( buildingId ) {
-        case BUILD_SPEC:
-            return _( "The Library increases the number of spells in the Guild by one for each level of the guild." );
-        case BUILD_WEL2:
-            return _( "The Orchard increases production of Halflings by %{count} per week." );
-        default:
-            break;
-        }
-
-        // Did you add a new building?
-        assert( 0 );
-        return nullptr;
-    }
-
-    const char * getNecromancerBuildingDescription( const BuildingType buildingId )
-    {
-        switch ( buildingId ) {
-        case BUILD_SPEC:
-            return _( "The Storm adds +2 to the power of spells of a defending spell caster." );
-        case BUILD_WEL2:
-            return _( "The Skull Pile increases production of Skeletons by %{count} per week." );
-        default:
-            break;
-        }
-
-        // Did you add a new building?
-        assert( 0 );
-        return nullptr;
-    }
-
     const char * getRandomBuildingDescription( const BuildingType buildingId )
     {
         switch ( buildingId ) {
@@ -819,10 +513,6 @@ namespace fheroes2
             return getSorceressBuildingArea( buildingId );
         case Race::WRLK:
             return getWarlockBuildingArea( buildingId );
-        case Race::WZRD:
-            return getWizardBuildingArea( buildingId );
-        case Race::NECR:
-            return getNecromancerBuildingArea( buildingId );
         default:
             break;
         }
@@ -889,10 +579,6 @@ namespace fheroes2
             return getSorceressBuildingName( buildingId );
         case Race::WRLK:
             return getWarlockBuildingName( buildingId );
-        case Race::WZRD:
-            return getWizardBuildingName( buildingId );
-        case Race::NECR:
-            return getNecromancerBuildingName( buildingId );
         case Race::RAND:
             return getRandomBuildingName( buildingId );
         default:
@@ -913,8 +599,6 @@ namespace fheroes2
         }
 
         switch ( buildingId ) {
-        case BUILD_SHRINE:
-            return _( "The Shrine increases the necromancy skill of all your necromancers by 10 percent." );
         case BUILD_THIEVESGUILD:
             return _(
                 "The Thieves' Guild provides information on enemy players. Thieves' Guilds can also provide scouting information on enemy towns. Additional Guilds provide more information." );
@@ -961,10 +645,6 @@ namespace fheroes2
             return getSorceressBuildingDescription( buildingId );
         case Race::WRLK:
             return getWarlockBuildingDescription( buildingId );
-        case Race::WZRD:
-            return getWizardBuildingDescription( buildingId );
-        case Race::NECR:
-            return getNecromancerBuildingDescription( buildingId );
         case Race::RAND:
             return getRandomBuildingDescription( buildingId );
         default:
@@ -977,7 +657,7 @@ namespace fheroes2
         return nullptr;
     }
 
-    BuildingType getUpgradeForBuilding( const int race, const BuildingType buildingId )
+    BuildingType getUpgradeForBuilding( const int /*race*/, const BuildingType buildingId )
     {
         switch ( buildingId ) {
         case BUILD_TENT:
@@ -994,103 +674,7 @@ namespace fheroes2
             break;
         }
 
-        if ( race == Race::BARB ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER2:
-                return DWELLING_UPGRADE2;
-            case DWELLING_MONSTER4:
-                return DWELLING_UPGRADE4;
-            case DWELLING_MONSTER5:
-                return DWELLING_UPGRADE5;
-            default:
-                break;
-            }
-        }
-        else if ( race == Race::KNGT ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER2:
-                return DWELLING_UPGRADE2;
-            case DWELLING_MONSTER3:
-                return DWELLING_UPGRADE3;
-            case DWELLING_MONSTER4:
-                return DWELLING_UPGRADE4;
-            case DWELLING_MONSTER5:
-                return DWELLING_UPGRADE5;
-            case DWELLING_MONSTER6:
-                return DWELLING_UPGRADE6;
-            default:
-                break;
-            }
-        }
-        else if ( race == Race::NECR ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER2:
-                return DWELLING_UPGRADE2;
-            case DWELLING_MONSTER3:
-                return DWELLING_UPGRADE3;
-            case DWELLING_MONSTER4:
-                return DWELLING_UPGRADE4;
-            case DWELLING_MONSTER5:
-                return DWELLING_UPGRADE5;
-            default:
-                break;
-            }
-        }
-        else if ( race == Race::SORC ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER2:
-                return DWELLING_UPGRADE2;
-            case DWELLING_MONSTER3:
-                return DWELLING_UPGRADE3;
-            case DWELLING_MONSTER4:
-                return DWELLING_UPGRADE4;
-            default:
-                break;
-            }
-        }
-        else if ( race == Race::WRLK ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER4:
-                return DWELLING_UPGRADE4;
-            case DWELLING_MONSTER6:
-                return DWELLING_UPGRADE6;
-            case DWELLING_UPGRADE6:
-                return DWELLING_UPGRADE7;
-            default:
-                break;
-            }
-        }
-        else if ( race == Race::WZRD ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER3:
-                return DWELLING_UPGRADE3;
-            case DWELLING_MONSTER5:
-                return DWELLING_UPGRADE5;
-            case DWELLING_MONSTER6:
-                return DWELLING_UPGRADE6;
-            default:
-                break;
-            }
-        }
-        else if ( race == Race::RAND ) {
-            switch ( buildingId ) {
-            case DWELLING_MONSTER2:
-                return DWELLING_UPGRADE2;
-            case DWELLING_MONSTER3:
-                return DWELLING_UPGRADE3;
-            case DWELLING_MONSTER4:
-                return DWELLING_UPGRADE4;
-            case DWELLING_MONSTER5:
-                return DWELLING_UPGRADE5;
-            case DWELLING_MONSTER6:
-                return DWELLING_UPGRADE6;
-            case DWELLING_UPGRADE6:
-                return DWELLING_UPGRADE7;
-            default:
-                break;
-            }
-        }
-
+        // HoMM1 has no dwelling upgrades.
         return buildingId;
     }
 
@@ -1099,19 +683,11 @@ namespace fheroes2
         uint32_t requirement = 0;
 
         switch ( building ) {
-        case BUILD_SPEC:
-            if ( race == Race::WZRD ) {
-                requirement |= BUILD_MAGEGUILD1;
-            }
-            break;
-
         case DWELLING_MONSTER2:
             switch ( race ) {
             case Race::KNGT:
             case Race::BARB:
-            case Race::WZRD:
             case Race::WRLK:
-            case Race::NECR:
                 requirement |= DWELLING_MONSTER1;
                 break;
 
@@ -1134,9 +710,7 @@ namespace fheroes2
 
             case Race::BARB:
             case Race::SORC:
-            case Race::WZRD:
             case Race::WRLK:
-            case Race::NECR:
                 requirement |= DWELLING_MONSTER1;
                 break;
 
@@ -1161,14 +735,8 @@ namespace fheroes2
                 requirement |= BUILD_MAGEGUILD1;
                 break;
 
-            case Race::WZRD:
             case Race::WRLK:
                 requirement |= DWELLING_MONSTER2;
-                break;
-
-            case Race::NECR:
-                requirement |= DWELLING_MONSTER3;
-                requirement |= BUILD_THIEVESGUILD;
                 break;
 
             default:
@@ -1193,16 +761,6 @@ namespace fheroes2
                 requirement |= DWELLING_MONSTER3;
                 break;
 
-            case Race::WZRD:
-                requirement |= DWELLING_MONSTER3;
-                requirement |= BUILD_MAGEGUILD1;
-                break;
-
-            case Race::NECR:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= BUILD_MAGEGUILD1;
-                break;
-
             default:
                 break;
             }
@@ -1218,12 +776,10 @@ namespace fheroes2
 
             case Race::BARB:
             case Race::SORC:
-            case Race::NECR:
                 requirement |= DWELLING_MONSTER5;
                 break;
 
             case Race::WRLK:
-            case Race::WZRD:
                 requirement |= DWELLING_MONSTER4;
                 requirement |= DWELLING_MONSTER5;
                 break;
@@ -1231,115 +787,6 @@ namespace fheroes2
             default:
                 break;
             }
-            break;
-
-        case DWELLING_UPGRADE2:
-            switch ( race ) {
-            case Race::KNGT:
-            case Race::BARB:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= DWELLING_MONSTER3;
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::SORC:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= BUILD_WELL;
-                break;
-
-            case Race::NECR:
-                requirement |= DWELLING_MONSTER2;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_UPGRADE3:
-            switch ( race ) {
-            case Race::KNGT:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= DWELLING_MONSTER3;
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::SORC:
-                requirement |= DWELLING_MONSTER3;
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::WZRD:
-                requirement |= DWELLING_MONSTER3;
-                requirement |= BUILD_WELL;
-                break;
-
-            case Race::NECR:
-                requirement |= DWELLING_MONSTER3;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_UPGRADE4:
-            switch ( race ) {
-            case Race::KNGT:
-            case Race::BARB:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= DWELLING_MONSTER3;
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::SORC:
-            case Race::WRLK:
-            case Race::NECR:
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_UPGRADE5:
-            switch ( race ) {
-            case Race::KNGT:
-            case Race::BARB:
-                requirement |= DWELLING_MONSTER5;
-                break;
-
-            case Race::WZRD:
-                requirement |= BUILD_SPEC;
-                requirement |= DWELLING_MONSTER5;
-                break;
-
-            case Race::NECR:
-                requirement |= BUILD_MAGEGUILD2;
-                requirement |= DWELLING_MONSTER5;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_UPGRADE6:
-            switch ( race ) {
-            case Race::KNGT:
-            case Race::WRLK:
-            case Race::WZRD:
-                requirement |= DWELLING_MONSTER6;
-                break;
-
-            default:
-                break;
-            }
-            break;
-        case DWELLING_UPGRADE7:
-            if ( race == Race::WRLK )
-                requirement |= DWELLING_UPGRADE6;
             break;
 
         default:
@@ -1385,18 +832,6 @@ namespace fheroes2
             return 23;
         case DWELLING_MONSTER6:
             return 24;
-        case DWELLING_UPGRADE2:
-            return 25;
-        case DWELLING_UPGRADE3:
-            return 26;
-        case DWELLING_UPGRADE4:
-            return 27;
-        case DWELLING_UPGRADE5:
-            return 28;
-        case DWELLING_UPGRADE6:
-            return 29;
-        case DWELLING_UPGRADE7:
-            return 30;
         case BUILD_MAGEGUILD1:
         case BUILD_MAGEGUILD2:
         case BUILD_MAGEGUILD3:
@@ -1405,7 +840,6 @@ namespace fheroes2
             return 0;
         case BUILD_THIEVESGUILD:
             return 1;
-        case BUILD_SHRINE:
         case BUILD_TAVERN:
             return 2;
         case BUILD_SHIPYARD:
@@ -1437,7 +871,7 @@ namespace fheroes2
         return 0;
     }
 
-    std::vector<BuildingType> getBuildingDrawingPriorities( const int race, const GameVersion version )
+    std::vector<BuildingType> getBuildingDrawingPriorities( const int race, const GameVersion /* version */ )
     {
         std::vector<BuildingType> priorities;
         priorities.reserve( 32 );
@@ -1454,7 +888,6 @@ namespace fheroes2
             priorities.emplace_back( BUILD_MOAT );
             priorities.emplace_back( BUILD_MARKETPLACE );
             priorities.emplace_back( DWELLING_MONSTER2 );
-            priorities.emplace_back( DWELLING_UPGRADE2 );
             priorities.emplace_back( BUILD_THIEVESGUILD );
             priorities.emplace_back( BUILD_TAVERN );
             priorities.emplace_back( BUILD_MAGEGUILD1 );
@@ -1463,16 +896,11 @@ namespace fheroes2
             priorities.emplace_back( BUILD_MAGEGUILD4 );
             priorities.emplace_back( BUILD_MAGEGUILD5 );
             priorities.emplace_back( DWELLING_MONSTER5 );
-            priorities.emplace_back( DWELLING_UPGRADE5 );
             priorities.emplace_back( DWELLING_MONSTER6 );
-            priorities.emplace_back( DWELLING_UPGRADE6 );
             priorities.emplace_back( DWELLING_MONSTER1 );
             priorities.emplace_back( DWELLING_MONSTER3 );
-            priorities.emplace_back( DWELLING_UPGRADE3 );
             priorities.emplace_back( DWELLING_MONSTER4 );
-            priorities.emplace_back( DWELLING_UPGRADE4 );
             priorities.emplace_back( BUILD_WELL );
-            priorities.emplace_back( BUILD_SHIPYARD );
             priorities.emplace_back( BUILD_STATUE );
             break;
         case Race::BARB:
@@ -1495,15 +923,11 @@ namespace fheroes2
             priorities.emplace_back( DWELLING_MONSTER1 );
             priorities.emplace_back( BUILD_MARKETPLACE );
             priorities.emplace_back( DWELLING_MONSTER2 );
-            priorities.emplace_back( DWELLING_UPGRADE2 );
             priorities.emplace_back( BUILD_TAVERN );
             priorities.emplace_back( DWELLING_MONSTER4 );
-            priorities.emplace_back( DWELLING_UPGRADE4 );
             priorities.emplace_back( DWELLING_MONSTER5 );
-            priorities.emplace_back( DWELLING_UPGRADE5 );
             priorities.emplace_back( BUILD_WELL );
             priorities.emplace_back( BUILD_STATUE );
-            priorities.emplace_back( BUILD_SHIPYARD );
             break;
         case Race::SORC:
             priorities.emplace_back( BUILD_SPEC );
@@ -1520,18 +944,14 @@ namespace fheroes2
             priorities.emplace_back( BUILD_RIGHTTURRET );
             priorities.emplace_back( BUILD_MOAT );
             priorities.emplace_back( DWELLING_MONSTER3 );
-            priorities.emplace_back( DWELLING_UPGRADE3 );
-            priorities.emplace_back( BUILD_SHIPYARD );
             priorities.emplace_back( BUILD_MARKETPLACE );
             priorities.emplace_back( DWELLING_MONSTER2 );
-            priorities.emplace_back( DWELLING_UPGRADE2 );
             priorities.emplace_back( BUILD_THIEVESGUILD );
             priorities.emplace_back( DWELLING_MONSTER1 );
             priorities.emplace_back( BUILD_TAVERN );
             priorities.emplace_back( BUILD_STATUE );
             priorities.emplace_back( BUILD_WEL2 );
             priorities.emplace_back( DWELLING_MONSTER4 );
-            priorities.emplace_back( DWELLING_UPGRADE4 );
             priorities.emplace_back( BUILD_WELL );
             priorities.emplace_back( DWELLING_MONSTER5 );
             break;
@@ -1544,7 +964,6 @@ namespace fheroes2
             priorities.emplace_back( BUILD_RIGHTTURRET );
             priorities.emplace_back( BUILD_MOAT );
             priorities.emplace_back( BUILD_CAPTAIN );
-            priorities.emplace_back( BUILD_SHIPYARD );
             priorities.emplace_back( BUILD_MAGEGUILD1 );
             priorities.emplace_back( BUILD_MAGEGUILD2 );
             priorities.emplace_back( BUILD_MAGEGUILD3 );
@@ -1558,74 +977,8 @@ namespace fheroes2
             priorities.emplace_back( BUILD_WEL2 );
             priorities.emplace_back( BUILD_SPEC );
             priorities.emplace_back( DWELLING_MONSTER4 );
-            priorities.emplace_back( DWELLING_UPGRADE4 );
             priorities.emplace_back( DWELLING_MONSTER2 );
             priorities.emplace_back( DWELLING_MONSTER6 );
-            priorities.emplace_back( DWELLING_UPGRADE6 );
-            priorities.emplace_back( DWELLING_UPGRADE7 );
-            priorities.emplace_back( BUILD_WELL );
-            break;
-        case Race::WZRD:
-            priorities.emplace_back( DWELLING_MONSTER6 );
-            priorities.emplace_back( DWELLING_UPGRADE6 );
-            priorities.emplace_back( BUILD_TENT );
-            priorities.emplace_back( BUILD_CASTLE );
-            priorities.emplace_back( BUILD_LEFTTURRET );
-            priorities.emplace_back( BUILD_RIGHTTURRET );
-            priorities.emplace_back( BUILD_MOAT );
-            priorities.emplace_back( BUILD_CAPTAIN );
-            priorities.emplace_back( DWELLING_MONSTER2 );
-            priorities.emplace_back( BUILD_THIEVESGUILD );
-            priorities.emplace_back( BUILD_TAVERN );
-            priorities.emplace_back( BUILD_SHIPYARD );
-            priorities.emplace_back( BUILD_WELL );
-            priorities.emplace_back( DWELLING_MONSTER3 );
-            priorities.emplace_back( DWELLING_UPGRADE3 );
-            priorities.emplace_back( DWELLING_MONSTER5 );
-            priorities.emplace_back( DWELLING_UPGRADE5 );
-            priorities.emplace_back( BUILD_MAGEGUILD1 );
-            priorities.emplace_back( BUILD_MAGEGUILD2 );
-            priorities.emplace_back( BUILD_MAGEGUILD3 );
-            priorities.emplace_back( BUILD_MAGEGUILD4 );
-            priorities.emplace_back( BUILD_MAGEGUILD5 );
-            priorities.emplace_back( BUILD_SPEC );
-            priorities.emplace_back( BUILD_STATUE );
-            priorities.emplace_back( DWELLING_MONSTER1 );
-            priorities.emplace_back( DWELLING_MONSTER4 );
-            priorities.emplace_back( BUILD_MARKETPLACE );
-            priorities.emplace_back( BUILD_WEL2 );
-            break;
-        case Race::NECR:
-            priorities.emplace_back( BUILD_SPEC );
-            if ( version == GameVersion::PRICE_OF_LOYALTY || version == GameVersion::RESURRECTION ) {
-                priorities.emplace_back( BUILD_SHRINE );
-            }
-            priorities.emplace_back( BUILD_TENT );
-            priorities.emplace_back( BUILD_CASTLE );
-            priorities.emplace_back( BUILD_LEFTTURRET );
-            priorities.emplace_back( BUILD_RIGHTTURRET );
-            priorities.emplace_back( BUILD_MOAT );
-            priorities.emplace_back( BUILD_CAPTAIN );
-            priorities.emplace_back( DWELLING_MONSTER6 );
-            priorities.emplace_back( DWELLING_MONSTER1 );
-            priorities.emplace_back( BUILD_THIEVESGUILD );
-            priorities.emplace_back( DWELLING_MONSTER3 );
-            priorities.emplace_back( DWELLING_UPGRADE3 );
-            priorities.emplace_back( DWELLING_MONSTER5 );
-            priorities.emplace_back( DWELLING_UPGRADE5 );
-            priorities.emplace_back( DWELLING_MONSTER2 );
-            priorities.emplace_back( DWELLING_UPGRADE2 );
-            priorities.emplace_back( DWELLING_MONSTER4 );
-            priorities.emplace_back( DWELLING_UPGRADE4 );
-            priorities.emplace_back( BUILD_MAGEGUILD1 );
-            priorities.emplace_back( BUILD_MAGEGUILD2 );
-            priorities.emplace_back( BUILD_MAGEGUILD3 );
-            priorities.emplace_back( BUILD_MAGEGUILD4 );
-            priorities.emplace_back( BUILD_MAGEGUILD5 );
-            priorities.emplace_back( BUILD_SHIPYARD );
-            priorities.emplace_back( BUILD_WEL2 );
-            priorities.emplace_back( BUILD_MARKETPLACE );
-            priorities.emplace_back( BUILD_STATUE );
             priorities.emplace_back( BUILD_WELL );
             break;
         default:

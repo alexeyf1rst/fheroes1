@@ -330,8 +330,8 @@ void MageGuild::initialize( const int race, const bool hasLibrary, const std::ma
 
         std::vector<int32_t> allSpellsOfLevel = Spell::getAllSpellIdsSuitableForSpellBook( fheroes2::checkedCast<int>( level ).value(), spellsInUse );
 
-        while ( freeSlots > 0 ) {
-            assert( !allSpellsOfLevel.empty() );
+        // HoMM1 only has 4 spell levels; higher levels have no available spells.
+        while ( freeSlots > 0 && !allSpellsOfLevel.empty() ) {
 
             const uint32_t spellIdx = Rand::Get( 0, fheroes2::checkedCast<uint32_t>( allSpellsOfLevel.size() - 1 ).value() );
             const Spell spell( allSpellsOfLevel[spellIdx] );

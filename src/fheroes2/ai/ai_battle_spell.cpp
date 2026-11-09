@@ -64,7 +64,7 @@ namespace
     {
         assert( hero != nullptr );
 
-        return hero->GetPower() + hero->GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::EVERY_COMBAT_SPELL_DURATION );
+        return hero->GetPower();
     }
 }
 

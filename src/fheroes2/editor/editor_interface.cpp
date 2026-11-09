@@ -3203,7 +3203,7 @@ namespace Interface
             return;
         }
 
-        const std::string dataPath = System::GetDataDirectory( "fheroes2" );
+        const std::string dataPath = System::GetDataDirectory( "fheroes1" );
         if ( dataPath.empty() ) {
             fheroes2::showStandardTextMessage( _( "Error" ), _( "Unable to locate data directory to save the map." ), Dialog::OK );
             return;

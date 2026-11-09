@@ -133,7 +133,7 @@ namespace Logging
     {                                                                                                                                                                    \
         std::ostringstream _log_strstream; /* The name was chosen on purpose to avoid name collisions with outer code blocks. */                                         \
         _log_strstream << x;                                                                                                                                             \
-        __android_log_print( ANDROID_LOG_INFO, "fheroes2", "%s", _log_strstream.str().c_str() );                                                                         \
+        __android_log_print( ANDROID_LOG_INFO, "fheroes", "%s", _log_strstream.str().c_str() );                                                                         \
     }
 #elif defined( __EMSCRIPTEN__ )
 #include <emscripten/console.h>

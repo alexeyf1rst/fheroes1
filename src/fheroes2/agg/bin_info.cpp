@@ -135,7 +135,7 @@ namespace Bin_Info
 
         // We change all projectile start positions to match the last projectile position in shooting animation,
         // this position will be used to calculate the projectile path, but will not be used in rendering.
-        if ( monsterID == Monster::ARCHER || monsterID == Monster::RANGER ) {
+        if ( monsterID == Monster::ARCHER ) {
             projectileOffset[0].x -= 30;
             projectileOffset[0].y += 5;
             projectileOffset[1].x -= 46;
@@ -144,14 +144,14 @@ namespace Bin_Info
             projectileOffset[2].y -= 40;
         }
 
-        if ( monsterID == Monster::ORC || monsterID == Monster::ORC_CHIEF ) {
+        if ( monsterID == Monster::ORC ) {
             for ( fheroes2::Point & offset : projectileOffset ) {
                 offset.x -= 20;
                 offset.y = -36;
             }
         }
 
-        if ( monsterID == Monster::TROLL || monsterID == Monster::WAR_TROLL ) {
+        if ( monsterID == Monster::TROLL ) {
             projectileOffset[0].x -= 30;
             projectileOffset[0].y -= 5;
             projectileOffset[1].x -= 14;
@@ -160,7 +160,7 @@ namespace Bin_Info
             projectileOffset[2].y -= 19;
         }
 
-        if ( monsterID == Monster::ELF || monsterID == Monster::GRAND_ELF ) {
+        if ( monsterID == Monster::ELF ) {
             projectileOffset[0].x -= 19;
             projectileOffset[0].y += 22;
             projectileOffset[1].x -= 40;
@@ -170,7 +170,7 @@ namespace Bin_Info
             projectileOffset[2].y = -54;
         }
 
-        if ( monsterID == Monster::DRUID || monsterID == Monster::GREATER_DRUID ) {
+        if ( monsterID == Monster::DRUID ) {
             projectileOffset[0].x -= 12;
             projectileOffset[0].y += 23;
             projectileOffset[1].x -= 20;
@@ -185,38 +185,6 @@ namespace Bin_Info
             projectileOffset[1].y += 2;
             projectileOffset[2].x -= 24;
             projectileOffset[2].y -= 27;
-        }
-
-        if ( monsterID == Monster::HALFLING ) {
-            projectileOffset[0].x -= 7;
-            projectileOffset[0].y += 11;
-            projectileOffset[1].x -= 21;
-            projectileOffset[1].y += 10;
-            projectileOffset[2].x -= 9;
-            projectileOffset[2].y -= 14;
-        }
-
-        if ( monsterID == Monster::MAGE || monsterID == Monster::ARCHMAGE ) {
-            projectileOffset[0].y -= 2;
-            projectileOffset[2].y += 2;
-        }
-
-        if ( monsterID == Monster::TITAN ) {
-            projectileOffset[0].x -= 10;
-            projectileOffset[0].y += 22;
-            projectileOffset[1].x -= 20;
-            projectileOffset[1].y += 8;
-            projectileOffset[2].x -= 15;
-            projectileOffset[2].y -= 22;
-        }
-
-        if ( monsterID == Monster::LICH || monsterID == Monster::POWER_LICH ) {
-            projectileOffset[0].x -= 5;
-            projectileOffset[0].y += 6;
-            projectileOffset[1].x -= 16;
-            projectileOffset[1].y -= 9;
-            projectileOffset[2].x -= 9;
-            projectileOffset[2].y -= 7;
         }
 
         uint8_t projectileCount = data[186];
@@ -256,7 +224,7 @@ namespace Bin_Info
             }
         }
 
-        if ( ( monsterID == Monster::DWARF || monsterID == Monster::BATTLE_DWARF ) && animationFrames[DEATH].size() == 8 ) {
+        if ( monsterID == Monster::DWARF && animationFrames[DEATH].size() == 8 ) {
             // Dwarves and Battle Dwarves have incorrect death animation.
             animationFrames[DEATH].clear();
 
@@ -265,29 +233,9 @@ namespace Bin_Info
             }
         }
 
-        // Modify AnimInfo for upgraded monsters without own FRM file
+        // Modify AnimInfo for elemental monsters (no own FRM file - use Fire Element as base)
         int speedDiff = 0;
         switch ( monsterID ) {
-        case Monster::RANGER:
-        case Monster::VETERAN_PIKEMAN:
-        case Monster::MASTER_SWORDSMAN:
-        case Monster::CHAMPION:
-        case Monster::CRUSADER:
-        case Monster::ORC_CHIEF:
-        case Monster::OGRE_LORD:
-        case Monster::WAR_TROLL:
-        case Monster::BATTLE_DWARF:
-        case Monster::GRAND_ELF:
-        case Monster::GREATER_DRUID:
-        case Monster::MINOTAUR_KING:
-        case Monster::STEEL_GOLEM:
-        case Monster::ARCHMAGE:
-        case Monster::MUTANT_ZOMBIE:
-        case Monster::ROYAL_MUMMY:
-        case Monster::VAMPIRE_LORD:
-        case Monster::POWER_LICH:
-            speedDiff = static_cast<int>( Monster( monsterID ).GetSpeed() ) - Monster( monsterID - 1 ).GetSpeed();
-            break;
         case Monster::EARTH_ELEMENT:
         case Monster::AIR_ELEMENT:
         case Monster::WATER_ELEMENT:
@@ -299,13 +247,7 @@ namespace Bin_Info
 
         if ( std::abs( speedDiff ) > 0 ) {
             moveSpeed = static_cast<uint32_t>( ( 1 - MOVE_SPEED_UPGRADE * speedDiff ) * moveSpeed );
-            // Ranger is special since he gets double attack on upgrade
-            if ( monsterID == Monster::RANGER ) {
-                shootSpeed = static_cast<uint32_t>( shootSpeed * RANGER_SHOOT_SPEED );
-            }
-            else {
-                shootSpeed = static_cast<uint32_t>( ( 1 - SHOOT_SPEED_UPGRADE * speedDiff ) * shootSpeed );
-            }
+            shootSpeed = static_cast<uint32_t>( ( 1 - SHOOT_SPEED_UPGRADE * speedDiff ) * shootSpeed );
         }
 
         if ( frameXOffset[MOVE_STOP][0] == 0 && frameXOffset[MOVE_TILE_END][0] != 0 ) {
@@ -328,47 +270,15 @@ namespace Bin_Info
             }
         }
 
-        // Movement animation fix for Iron and Steel Golem. Also check that the data sizes are correct.
-        if ( ( monsterID == Monster::IRON_GOLEM || monsterID == Monster::STEEL_GOLEM )
-             && ( frameXOffset[MOVE_START].size() == 4 && frameXOffset[MOVE_MAIN].size() == 7 && animationFrames[MOVE_MAIN].size() == 7 ) ) { // the original golem info
-            frameXOffset[MOVE_START][0] = 0;
-            frameXOffset[MOVE_START][1] = Battle::Cell::widthPx * 1 / 8;
-            frameXOffset[MOVE_START][2] = Battle::Cell::widthPx * 2 / 8 + 3;
-            frameXOffset[MOVE_START][3] = Battle::Cell::widthPx * 3 / 8;
-
-            // 'MOVE_MAIN' animation is missing 1/4 of animation start. 'MOVE_START' (for first and one cell move) has this 1/4 of animation,
-            // but 'MOVE_TILE_START` (for movement after the first cell) is empty, so we move all frames except the last frame from 'MOVE_MAIN'
-            // to the end of 'MOVE_START' animationFrames. And prepare 'MOVE_TILE_START' for new animation frame IDs.
-            animationFrames[MOVE_TILE_START].resize( animationFrames[MOVE_TILE_START].size() + animationFrames[MOVE_MAIN].size() - 1 );
-            animationFrames[MOVE_START].insert( animationFrames[MOVE_START].end(), animationFrames[MOVE_MAIN].begin(), animationFrames[MOVE_MAIN].end() - 1 );
-            animationFrames[MOVE_MAIN].erase( animationFrames[MOVE_MAIN].begin(), animationFrames[MOVE_MAIN].end() - 1 );
-            // Do the same for 'x' offset vector and make a copy to 'MOVE_TILE_START'.
-            frameXOffset[MOVE_START].insert( frameXOffset[MOVE_START].end(), frameXOffset[MOVE_MAIN].begin(), frameXOffset[MOVE_MAIN].end() - 1 );
-            frameXOffset[MOVE_TILE_START] = frameXOffset[MOVE_MAIN];
-            frameXOffset[MOVE_TILE_START].pop_back();
-            frameXOffset[MOVE_MAIN].erase( frameXOffset[MOVE_MAIN].begin(), frameXOffset[MOVE_MAIN].end() - 1 );
-
-            // Correct the 'x' offset by half of cell.
-            frameXOffset[MOVE_MAIN][0] += Battle::Cell::widthPx / 2;
-            for ( size_t id = 0; id < frameXOffset[MOVE_TILE_START].size(); ++id ) {
-                frameXOffset[MOVE_START][id + 4] += Battle::Cell::widthPx / 2;
-                // For 'MOVE_TILE_START' also include the correction, made in "agg_image.cpp".
-                frameXOffset[MOVE_TILE_START][id] += Battle::Cell::widthPx / 2 - ( 6 - static_cast<int32_t>( id ) ) * Battle::Cell::widthPx / 28;
-                // For 'MOVE_TILE_START' animation frames IDs use new frames, made in "agg_image.cpp", which starts from ID = 40.
-                animationFrames[MOVE_TILE_START][id] = 40 + static_cast<int32_t>( id );
-            }
-        }
-
         // The Ogre has a duplicate frame of the 'STATIC' animation at the start of the 'MOVE_MAIN' animation, making him to move non-smoothly.
-        if ( ( monsterID == Monster::OGRE || monsterID == Monster::OGRE_LORD ) && frameXOffset[MOVE_MAIN].size() == 9 && animationFrames[MOVE_MAIN].size() == 9 ) {
+        if ( monsterID == Monster::OGRE && frameXOffset[MOVE_MAIN].size() == 9 && animationFrames[MOVE_MAIN].size() == 9 ) {
             animationFrames[MOVE_MAIN].erase( animationFrames[MOVE_MAIN].begin() );
             frameXOffset[MOVE_MAIN].erase( frameXOffset[MOVE_MAIN].begin() );
         }
 
         // Some creatures needs their 'x' offset in moving animations to be bigger by 3px to avoid sprite shift in Well and during diagonal movement.
-        if ( monsterID == Monster::ORC || monsterID == Monster::ORC_CHIEF || monsterID == Monster::OGRE || monsterID == Monster::OGRE_LORD || monsterID == Monster::DWARF
-             || monsterID == Monster::BATTLE_DWARF || monsterID == Monster::UNICORN || monsterID == Monster::CENTAUR || monsterID == Monster::BOAR
-             || monsterID == Monster::LICH || monsterID == Monster::POWER_LICH || monsterID == Monster::ROGUE ) {
+        if ( monsterID == Monster::ORC || monsterID == Monster::OGRE || monsterID == Monster::DWARF
+             || monsterID == Monster::UNICORN || monsterID == Monster::CENTAUR || monsterID == Monster::ROGUE ) {
             for ( const int animType : { MOVE_START, MOVE_TILE_START, MOVE_MAIN, MOVE_TILE_END, MOVE_STOP, MOVE_ONE } ) {
                 for ( int & xOffset : frameXOffset[animType] ) {
                     xOffset += 3;
@@ -376,8 +286,8 @@ namespace Bin_Info
             }
         }
 
-        // Archers/Rangers needs their 'x' offset in moving animations to be bigger by 1px to avoid sprite shift in Well and during diagonal movement.
-        if ( monsterID == Monster::ARCHER || monsterID == Monster::RANGER ) {
+        // Archers needs their 'x' offset in moving animations to be bigger by 1px to avoid sprite shift in Well and during diagonal movement.
+        if ( monsterID == Monster::ARCHER ) {
             for ( const int animType : { MOVE_MAIN, MOVE_ONE } ) {
                 for ( int & xOffset : frameXOffset[animType] ) {
                     ++xOffset;
@@ -385,8 +295,8 @@ namespace Bin_Info
             }
         }
 
-        // Paladin/Crusader needs their 'x' offset in moving animations to be lower by 1px to avoid sprite shift in Well and during diagonal movement.
-        if ( ( monsterID == Monster::PALADIN || monsterID == Monster::CRUSADER ) && frameXOffset[MOVE_MAIN].size() == 8 && animationFrames[MOVE_MAIN].size() == 8 ) {
+        // Paladin needs their 'x' offset in moving animations to be lower by 1px to avoid sprite shift in Well and during diagonal movement.
+        if ( monsterID == Monster::PALADIN && frameXOffset[MOVE_MAIN].size() == 8 && animationFrames[MOVE_MAIN].size() == 8 ) {
             for ( const int animType : { MOVE_MAIN, MOVE_ONE } ) {
                 for ( int & xOffset : frameXOffset[animType] ) {
                     --xOffset;
@@ -408,7 +318,7 @@ namespace Bin_Info
         }
 
         // Trolls needs their 'x' offset in moving animations to be bigger by 2px to avoid sprite shift in Well and during diagonal movement.
-        if ( ( monsterID == Monster::TROLL || monsterID == Monster::WAR_TROLL ) && frameXOffset[MOVE_MAIN].size() == 14 && frameXOffset[MOVE_ONE].size() == 14 ) {
+        if ( monsterID == Monster::TROLL && frameXOffset[MOVE_MAIN].size() == 14 && frameXOffset[MOVE_ONE].size() == 14 ) {
             for ( const int animType : { MOVE_MAIN, MOVE_ONE } ) {
                 for ( int & xOffset : frameXOffset[animType] ) {
                     xOffset += 2;
@@ -417,17 +327,6 @@ namespace Bin_Info
                 // The 7th and 14th frames needs extra shift by 1 px.
                 ++frameXOffset[animType][6];
                 ++frameXOffset[animType][13];
-            }
-        }
-
-        // Giants/Titians needs their 'x' offset in moving animations to be corrected to avoid sprite shift in Well and during diagonal movement.
-        if ( ( monsterID == Monster::GIANT || monsterID == Monster::TITAN ) && frameXOffset[MOVE_MAIN].size() == 7 && frameXOffset[MOVE_ONE].size() == 7 ) {
-            for ( const int animType : { MOVE_MAIN, MOVE_ONE } ) {
-                frameXOffset[animType][0] += 3;
-                frameXOffset[animType][1] += 2;
-                frameXOffset[animType][2] += 2;
-                ++frameXOffset[animType][5];
-                ++frameXOffset[animType][6];
             }
         }
 
@@ -465,7 +364,7 @@ namespace Bin_Info
             }
         }
 
-        if ( monsterID == Monster::SWORDSMAN || monsterID == Monster::MASTER_SWORDSMAN ) {
+        if ( monsterID == Monster::SWORDSMAN ) {
             // X offset fix for Swordsman.
             if ( frameXOffset[MOVE_START].size() == 2 && frameXOffset[MOVE_STOP].size() == 1 ) {
                 frameXOffset[MOVE_START][0] = 0;

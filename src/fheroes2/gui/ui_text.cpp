@@ -350,6 +350,10 @@ namespace fheroes2
     // TODO: Properly handle strings with many text lines ('\n'). Now their widths are counted as if they're one line.
     int32_t Text::width() const
     {
+        if ( _text.empty() ) {
+            return 0;
+        }
+
         const auto languageSwitcher = getLanguageSwitcher( *this );
         const FontCharHandler charHandler( _fontType );
 
@@ -514,8 +518,14 @@ namespace fheroes2
             return;
         }
 
+        const int32_t truncationWidth = getTruncationSymbolWidth( _fontType );
+        if ( maxWidth <= truncationWidth ) {
+            _text.clear();
+            return;
+        }
+
         const int32_t maxCharacterCount = getMaxCharacterCount( reinterpret_cast<const uint8_t *>( _text.data() ), static_cast<int32_t>( _text.size() ), charHandler,
-                                                                maxWidth - getTruncationSymbolWidth( _fontType ) );
+                                                                maxWidth - truncationWidth );
 
         _text.resize( maxCharacterCount );
         _text += truncationSymbol;

@@ -278,16 +278,7 @@ void Castle::LoadFromMP2( const std::vector<uint8_t> & data )
             _constructedBuildings |= DWELLING_MONSTER5;
         if ( 0x0100 & existingDwellings )
             _constructedBuildings |= DWELLING_MONSTER6;
-        if ( 0x0200 & existingDwellings )
-            _constructedBuildings |= DWELLING_UPGRADE2 | DWELLING_MONSTER2;
-        if ( 0x0400 & existingDwellings )
-            _constructedBuildings |= DWELLING_UPGRADE3 | DWELLING_MONSTER3;
-        if ( 0x0800 & existingDwellings )
-            _constructedBuildings |= DWELLING_UPGRADE4 | DWELLING_MONSTER4;
-        if ( 0x1000 & existingDwellings )
-            _constructedBuildings |= DWELLING_UPGRADE5 | DWELLING_MONSTER5;
-        if ( 0x2000 & existingDwellings )
-            _constructedBuildings |= DWELLING_UPGRADE6 | DWELLING_MONSTER6;
+            // Upgrade dwellings from original HoMM2 maps are ignored in HoMM1 mode.
 
         // magic tower
         const uint8_t magicGuildLevel = dataStream.get();
@@ -358,12 +349,6 @@ void Castle::LoadFromMP2( const std::vector<uint8_t> & data )
     case 3:
         _race = Race::WRLK;
         break;
-    case 4:
-        _race = Race::WZRD;
-        break;
-    case 5:
-        _race = Race::NECR;
-        break;
     default: {
         const int kingdomRace = Players::GetPlayerRace( GetColor() );
         _race = ( PlayerColor::NONE != GetColor() && ( Race::ALL & kingdomRace ) ? kingdomRace : Race::Rand() );
@@ -427,70 +412,28 @@ void Castle::loadFromResurrectionMap( const Maps::Map_Format::CastleMetadata & m
 
 void Castle::_postLoad()
 {
-    // Fix dwelling upgrades dependent from race. (For random race towns.)
-    switch ( _race ) {
-    case Race::KNGT:
-        _constructedBuildings &= ~DWELLING_UPGRADE7;
-        break;
-    case Race::BARB:
-        _constructedBuildings &= ~( DWELLING_UPGRADE3 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7 );
-        break;
-    case Race::SORC:
-        _constructedBuildings &= ~( DWELLING_UPGRADE5 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7 );
-        break;
-    case Race::WRLK:
-        _constructedBuildings &= ~( DWELLING_UPGRADE2 | DWELLING_UPGRADE3 | DWELLING_UPGRADE5 );
-        break;
-    case Race::WZRD:
-        _constructedBuildings &= ~( DWELLING_UPGRADE2 | DWELLING_UPGRADE4 | DWELLING_UPGRADE7 );
-        break;
-    case Race::NECR:
-        _constructedBuildings &= ~( DWELLING_UPGRADE6 | DWELLING_UPGRADE7 );
-        break;
-    default:
-        break;
-    }
-
     // Fill built dwellings with weekly growth monsters.
     if ( _constructedBuildings & DWELLING_MONSTER1 ) {
         _dwelling[0] = Monster( _race, DWELLING_MONSTER1 ).GetGrown();
     }
 
-    if ( _constructedBuildings & DWELLING_UPGRADE2 ) {
-        _dwelling[1] = Monster( _race, DWELLING_UPGRADE2 ).GetGrown();
-    }
-    else if ( _constructedBuildings & DWELLING_MONSTER2 ) {
+    if ( _constructedBuildings & DWELLING_MONSTER2 ) {
         _dwelling[1] = Monster( _race, DWELLING_MONSTER2 ).GetGrown();
     }
 
-    if ( _constructedBuildings & DWELLING_UPGRADE3 ) {
-        _dwelling[2] = Monster( _race, DWELLING_UPGRADE3 ).GetGrown();
-    }
-    else if ( _constructedBuildings & DWELLING_MONSTER3 ) {
+    if ( _constructedBuildings & DWELLING_MONSTER3 ) {
         _dwelling[2] = Monster( _race, DWELLING_MONSTER3 ).GetGrown();
     }
 
-    if ( _constructedBuildings & DWELLING_UPGRADE4 ) {
-        _dwelling[3] = Monster( _race, DWELLING_UPGRADE4 ).GetGrown();
-    }
-    else if ( _constructedBuildings & DWELLING_MONSTER4 ) {
+    if ( _constructedBuildings & DWELLING_MONSTER4 ) {
         _dwelling[3] = Monster( _race, DWELLING_MONSTER4 ).GetGrown();
     }
 
-    if ( _constructedBuildings & DWELLING_UPGRADE5 ) {
-        _dwelling[4] = Monster( _race, DWELLING_UPGRADE5 ).GetGrown();
-    }
-    else if ( _constructedBuildings & DWELLING_MONSTER5 ) {
+    if ( _constructedBuildings & DWELLING_MONSTER5 ) {
         _dwelling[4] = Monster( _race, DWELLING_MONSTER5 ).GetGrown();
     }
 
-    if ( _constructedBuildings & DWELLING_UPGRADE7 ) {
-        _dwelling[5] = Monster( _race, DWELLING_UPGRADE7 ).GetGrown();
-    }
-    else if ( _constructedBuildings & DWELLING_UPGRADE6 ) {
-        _dwelling[5] = Monster( _race, DWELLING_UPGRADE6 ).GetGrown();
-    }
-    else if ( _constructedBuildings & DWELLING_MONSTER6 ) {
+    if ( _constructedBuildings & DWELLING_MONSTER6 ) {
         _dwelling[5] = Monster( _race, DWELLING_MONSTER6 ).GetGrown();
     }
 
@@ -514,16 +457,6 @@ void Castle::_postLoad()
     if ( !HasSeaAccess() ) {
         // Remove shipyard if no sea access.
         _constructedBuildings &= ~BUILD_SHIPYARD;
-    }
-
-    // remove tavern from necromancer castle
-    if ( Race::NECR == _race && ( _constructedBuildings & BUILD_TAVERN ) ) {
-        _constructedBuildings &= ~BUILD_TAVERN;
-        const GameVersion version = Settings::Get().getCurrentMapInfo().version;
-
-        if ( version == GameVersion::PRICE_OF_LOYALTY || version == GameVersion::RESURRECTION ) {
-            _constructedBuildings |= BUILD_SHRINE;
-        }
     }
 
     SetModes( ALLOW_TO_BUILD_TODAY );
@@ -563,19 +496,8 @@ void Castle::_setDefaultBuildings()
 
 uint32_t Castle::CountBuildings() const
 {
-    uint32_t tavern = BUILD_TAVERN;
-    if ( _race == Race::NECR ) {
-        const GameVersion version = Settings::Get().getCurrentMapInfo().version;
-        if ( version == GameVersion::PRICE_OF_LOYALTY || version == GameVersion::RESURRECTION ) {
-            tavern = BUILD_SHRINE;
-        }
-        else {
-            tavern = BUILD_NOTHING;
-        }
-    }
-
     return CountBits( _constructedBuildings
-                      & ( BUILD_THIEVESGUILD | tavern | BUILD_SHIPYARD | BUILD_WELL | BUILD_STATUE | BUILD_LEFTTURRET | BUILD_RIGHTTURRET | BUILD_MARKETPLACE | BUILD_WEL2
+                      & ( BUILD_THIEVESGUILD | BUILD_TAVERN | BUILD_SHIPYARD | BUILD_WELL | BUILD_STATUE | BUILD_LEFTTURRET | BUILD_RIGHTTURRET | BUILD_MARKETPLACE | BUILD_WEL2
                           | BUILD_MOAT | BUILD_SPEC | BUILD_CAPTAIN | BUILD_CASTLE | BUILD_MAGEGUILD1 | DWELLING_MONSTER1 | DWELLING_MONSTER2 | DWELLING_MONSTER3
                           | DWELLING_MONSTER4 | DWELLING_MONSTER5 | DWELLING_MONSTER6 ) );
 }
@@ -620,15 +542,6 @@ int Castle::getBuildingValue() const
 
     if ( isBuild( DWELLING_MONSTER6 ) )
         value += 6;
-
-    if ( _race == Race::WRLK && isBuild( DWELLING_UPGRADE7 ) )
-        value += 2;
-
-    // DWELLING_UPGRADE7 resolves to a negative, can't use <= operator
-    for ( uint32_t upgrade = DWELLING_UPGRADE2; upgrade <= DWELLING_UPGRADE6; upgrade <<= 1 ) {
-        if ( isBuild( upgrade ) )
-            ++value;
-    }
 
     int increase = 1;
     for ( uint32_t guild = BUILD_MAGEGUILD2; guild <= BUILD_MAGEGUILD5; guild <<= 1 ) {
@@ -762,41 +675,9 @@ bool Castle::_isExactBuildingBuilt( const uint32_t buildingToCheck ) const
         }
     }
 
-    if ( buildingToCheck & ( DWELLING_MONSTERS | DWELLING_UPGRADES ) ) {
-        switch ( buildingToCheck ) {
-        case DWELLING_MONSTER1:
-            // Level 1 dwellings have no upgrades
-            return true;
-        case DWELLING_MONSTER2:
-            return checkBuilding( DWELLING_MONSTER2, DWELLING_MONSTER2 | DWELLING_UPGRADE2 );
-        case DWELLING_MONSTER3:
-            return checkBuilding( DWELLING_MONSTER3, DWELLING_MONSTER3 | DWELLING_UPGRADE3 );
-        case DWELLING_MONSTER4:
-            return checkBuilding( DWELLING_MONSTER4, DWELLING_MONSTER4 | DWELLING_UPGRADE4 );
-        case DWELLING_MONSTER5:
-            return checkBuilding( DWELLING_MONSTER5, DWELLING_MONSTER5 | DWELLING_UPGRADE5 );
-        case DWELLING_MONSTER6:
-            // Take the Black Dragon upgrade (DWELLING_UPGRADE7) into account
-            return checkBuilding( DWELLING_MONSTER6, DWELLING_MONSTER6 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7 );
-
-        case DWELLING_UPGRADE2:
-            return checkBuilding( DWELLING_MONSTER2 | DWELLING_UPGRADE2, DWELLING_MONSTER2 | DWELLING_UPGRADE2 );
-        case DWELLING_UPGRADE3:
-            return checkBuilding( DWELLING_MONSTER3 | DWELLING_UPGRADE3, DWELLING_MONSTER3 | DWELLING_UPGRADE3 );
-        case DWELLING_UPGRADE4:
-            return checkBuilding( DWELLING_MONSTER4 | DWELLING_UPGRADE4, DWELLING_MONSTER4 | DWELLING_UPGRADE4 );
-        case DWELLING_UPGRADE5:
-            return checkBuilding( DWELLING_MONSTER5 | DWELLING_UPGRADE5, DWELLING_MONSTER5 | DWELLING_UPGRADE5 );
-        case DWELLING_UPGRADE6:
-            // Take the Black Dragon upgrade (DWELLING_UPGRADE7) into account
-            return checkBuilding( DWELLING_MONSTER6 | DWELLING_UPGRADE6, DWELLING_MONSTER6 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7 );
-        case DWELLING_UPGRADE7:
-            // Black Dragon upgrade
-            return checkBuilding( DWELLING_MONSTER6 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7, DWELLING_MONSTER6 | DWELLING_UPGRADE6 | DWELLING_UPGRADE7 );
-
-        default:
-            assert( 0 );
-        }
+    if ( buildingToCheck & DWELLING_MONSTERS ) {
+        // HoMM1 has no dwelling upgrades - all dwellings are considered "exactly built" if they are present
+        return true;
     }
 
     return true;
@@ -809,20 +690,14 @@ uint32_t * Castle::_getDwelling( const uint32_t buildingType )
         case DWELLING_MONSTER1:
             return &_dwelling[0];
         case DWELLING_MONSTER2:
-        case DWELLING_UPGRADE2:
             return &_dwelling[1];
         case DWELLING_MONSTER3:
-        case DWELLING_UPGRADE3:
             return &_dwelling[2];
         case DWELLING_MONSTER4:
-        case DWELLING_UPGRADE4:
             return &_dwelling[3];
         case DWELLING_MONSTER5:
-        case DWELLING_UPGRADE5:
             return &_dwelling[4];
         case DWELLING_MONSTER6:
-        case DWELLING_UPGRADE6:
-        case DWELLING_UPGRADE7:
             return &_dwelling[5];
         default:
             break;
@@ -842,9 +717,8 @@ void Castle::ActionNewWeek()
         return;
     }
 
-    static const std::array<uint32_t, 12> allDwellings
-        = { DWELLING_MONSTER1, DWELLING_MONSTER2, DWELLING_MONSTER3, DWELLING_MONSTER4, DWELLING_MONSTER5, DWELLING_MONSTER6,
-            DWELLING_UPGRADE2, DWELLING_UPGRADE3, DWELLING_UPGRADE4, DWELLING_UPGRADE5, DWELLING_UPGRADE6, DWELLING_UPGRADE7 };
+    static const std::array<uint32_t, 6> allDwellings
+        = { DWELLING_MONSTER1, DWELLING_MONSTER2, DWELLING_MONSTER3, DWELLING_MONSTER4, DWELLING_MONSTER5, DWELLING_MONSTER6 };
 
     const bool isNeutral = ( GetColor() == PlayerColor::NONE );
     const WeekName weekType = world.GetWeekType().GetType();
@@ -1033,24 +907,18 @@ bool Castle::RecruitMonster( const Troop & troop, bool showDialog )
     case DWELLING_MONSTER1:
         dwellingIndex = 0;
         break;
-    case DWELLING_UPGRADE2:
     case DWELLING_MONSTER2:
         dwellingIndex = 1;
         break;
-    case DWELLING_UPGRADE3:
     case DWELLING_MONSTER3:
         dwellingIndex = 2;
         break;
-    case DWELLING_UPGRADE4:
     case DWELLING_MONSTER4:
         dwellingIndex = 3;
         break;
-    case DWELLING_UPGRADE5:
     case DWELLING_MONSTER5:
         dwellingIndex = 4;
         break;
-    case DWELLING_UPGRADE7:
-    case DWELLING_UPGRADE6:
     case DWELLING_MONSTER6:
         dwellingIndex = 5;
         break;
@@ -1111,20 +979,14 @@ uint32_t Castle::getMonstersInDwelling( const uint32_t buildingType ) const
     case DWELLING_MONSTER1:
         return _dwelling[0];
     case DWELLING_MONSTER2:
-    case DWELLING_UPGRADE2:
         return _dwelling[1];
     case DWELLING_MONSTER3:
-    case DWELLING_UPGRADE3:
         return _dwelling[2];
     case DWELLING_MONSTER4:
-    case DWELLING_UPGRADE4:
         return _dwelling[3];
     case DWELLING_MONSTER5:
-    case DWELLING_UPGRADE5:
         return _dwelling[4];
     case DWELLING_MONSTER6:
-    case DWELLING_UPGRADE6:
-    case DWELLING_UPGRADE7:
         return _dwelling[5];
 
     default:
@@ -1149,16 +1011,6 @@ BuildingStatus Castle::CheckBuyBuilding( const uint32_t build ) const
     case BUILD_SHIPYARD:
         if ( !HasSeaAccess() ) {
             return BuildingStatus::SHIPYARD_NOT_ALLOWED;
-        }
-        break;
-    case BUILD_SHRINE:
-        if ( Race::NECR != GetRace() || ( Settings::Get().getCurrentMapInfo().version == GameVersion::SUCCESSION_WARS ) ) {
-            return BuildingStatus::BUILD_DISABLE;
-        }
-        break;
-    case BUILD_TAVERN:
-        if ( Race::NECR == GetRace() ) {
-            return BuildingStatus::BUILD_DISABLE;
         }
         break;
     default:
@@ -1186,36 +1038,6 @@ BuildingStatus Castle::CheckBuyBuilding( const uint32_t build ) const
         if ( build != BUILD_CASTLE ) {
             return BuildingStatus::NEED_CASTLE;
         }
-    }
-
-    switch ( build ) {
-    case DWELLING_UPGRADE2:
-        if ( ( Race::WRLK | Race::WZRD ) & _race )
-            return BuildingStatus::UNKNOWN_UPGRADE;
-        break;
-    case DWELLING_UPGRADE3:
-        if ( ( Race::BARB | Race::WRLK ) & _race )
-            return BuildingStatus::UNKNOWN_UPGRADE;
-        break;
-    case DWELLING_UPGRADE4:
-        if ( Race::WZRD & _race )
-            return BuildingStatus::UNKNOWN_UPGRADE;
-        break;
-    case DWELLING_UPGRADE5:
-        if ( ( Race::SORC | Race::WRLK ) & _race )
-            return BuildingStatus::UNKNOWN_UPGRADE;
-        break;
-    case DWELLING_UPGRADE6:
-        if ( ( Race::BARB | Race::SORC | Race::NECR ) & _race )
-            return BuildingStatus::UNKNOWN_UPGRADE;
-        break;
-    case DWELLING_UPGRADE7:
-        if ( Race::WRLK != _race )
-            return BuildingStatus::UNKNOWN_UPGRADE;
-        break;
-
-    default:
-        break;
     }
 
     const uint32_t requirement = fheroes2::getBuildingRequirement( _race, static_cast<BuildingType>( build ) );
@@ -1390,12 +1212,6 @@ void Castle::DrawImageCastle( const fheroes2::Point & pt ) const
     case Race::WRLK:
         index = 96;
         break;
-    case Race::WZRD:
-        index = 128;
-        break;
-    case Race::NECR:
-        index = 160;
-        break;
     default:
         break;
     }
@@ -1432,14 +1248,10 @@ int Castle::GetICNBoat( const int race )
         return ICN::TWNBBOAT;
     case Race::KNGT:
         return ICN::TWNKBOAT;
-    case Race::NECR:
-        return ICN::TWNNBOAT;
     case Race::SORC:
         return ICN::TWNSBOAT;
     case Race::WRLK:
         return ICN::TWNWBOAT;
-    case Race::WZRD:
-        return ICN::TWNZBOAT;
     default:
         break;
     }
@@ -1490,18 +1302,12 @@ int Castle::GetICNBuilding( const uint32_t buildingType, const int race )
             return ICN::TWNBDW_0;
         case DWELLING_MONSTER2:
             return ICN::TWNBDW_1;
-        case DWELLING_UPGRADE2:
-            return ICN::TWNBUP_1;
         case DWELLING_MONSTER3:
             return ICN::TWNBDW_2;
         case DWELLING_MONSTER4:
             return ICN::TWNBDW_3;
-        case DWELLING_UPGRADE4:
-            return ICN::TWNBUP_3;
         case DWELLING_MONSTER5:
             return ICN::TWNBDW_4;
-        case DWELLING_UPGRADE5:
-            return ICN::TWNBUP_4;
         case DWELLING_MONSTER6:
             return ICN::TWNBDW_5;
         default:
@@ -1547,86 +1353,15 @@ int Castle::GetICNBuilding( const uint32_t buildingType, const int race )
         case DWELLING_MONSTER1:
             return ICN::TWNKDW_0;
         case DWELLING_MONSTER2:
-            return ICN::TWNKUP_1;
-        case DWELLING_UPGRADE2:
             return ICN::TWNKDW_1;
         case DWELLING_MONSTER3:
             return ICN::TWNKDW_2;
-        case DWELLING_UPGRADE3:
-            return ICN::TWNKUP_2;
         case DWELLING_MONSTER4:
             return ICN::TWNKDW_3;
-        case DWELLING_UPGRADE4:
-            return ICN::TWNKUP_3;
         case DWELLING_MONSTER5:
             return ICN::TWNKDW_4;
-        case DWELLING_UPGRADE5:
-            return ICN::TWNKUP_4;
         case DWELLING_MONSTER6:
             return ICN::TWNKDW_5;
-        case DWELLING_UPGRADE6:
-            return ICN::TWNKUP_5;
-        default:
-            break;
-        }
-    }
-    else if ( Race::NECR == race ) {
-        switch ( buildingType ) {
-        case BUILD_CASTLE:
-            return ICN::TWNNCSTL;
-        case BUILD_TENT:
-            return ICN::TWNNTENT;
-        case BUILD_SPEC:
-            return ICN::TWNNSPEC;
-        case BUILD_CAPTAIN:
-            return ICN::NECROMANCER_CASTLE_STANDALONE_CAPTAIN_QUARTERS;
-        case BUILD_WEL2:
-            return ICN::TWNNWEL2;
-        case BUILD_LEFTTURRET:
-            return ICN::TWNNLTUR;
-        case BUILD_RIGHTTURRET:
-            return ICN::TWNNRTUR;
-        case BUILD_MOAT:
-            return ICN::TWNNMOAT;
-        case BUILD_MARKETPLACE:
-            return ICN::TWNNMARK;
-        case BUILD_THIEVESGUILD:
-            return ICN::TWNNTHIE;
-        // shrine
-        case BUILD_SHRINE:
-            return ICN::TWNNTVRN;
-        case BUILD_WELL:
-            return ICN::TWNNWELL;
-        case BUILD_STATUE:
-            return ICN::TWNNSTAT;
-        case BUILD_SHIPYARD:
-            return ICN::TWNNDOCK;
-        case BUILD_MAGEGUILD1:
-        case BUILD_MAGEGUILD2:
-        case BUILD_MAGEGUILD3:
-        case BUILD_MAGEGUILD4:
-        case BUILD_MAGEGUILD5:
-            return ICN::TWNNMAGE;
-        case DWELLING_MONSTER1:
-            return ICN::TWNNDW_0;
-        case DWELLING_MONSTER2:
-            return ICN::TWNNDW_1;
-        case DWELLING_UPGRADE2:
-            return ICN::TWNNUP_1;
-        case DWELLING_MONSTER3:
-            return ICN::TWNNDW_2;
-        case DWELLING_UPGRADE3:
-            return ICN::TWNNUP_2;
-        case DWELLING_MONSTER4:
-            return ICN::TWNNDW_3;
-        case DWELLING_UPGRADE4:
-            return ICN::TWNNUP_3;
-        case DWELLING_MONSTER5:
-            return ICN::TWNNDW_4;
-        case DWELLING_UPGRADE5:
-            return ICN::TWNNUP_4;
-        case DWELLING_MONSTER6:
-            return ICN::TWNNDW_5;
         default:
             break;
         }
@@ -1671,16 +1406,10 @@ int Castle::GetICNBuilding( const uint32_t buildingType, const int race )
             return ICN::TWNSDW_0;
         case DWELLING_MONSTER2:
             return ICN::TWNSDW_1;
-        case DWELLING_UPGRADE2:
-            return ICN::TWNSUP_1;
         case DWELLING_MONSTER3:
             return ICN::TWNSDW_2;
-        case DWELLING_UPGRADE3:
-            return ICN::TWNSUP_2;
         case DWELLING_MONSTER4:
             return ICN::TWNSDW_3;
-        case DWELLING_UPGRADE4:
-            return ICN::TWNSUP_3;
         case DWELLING_MONSTER5:
             return ICN::TWNSDW_4;
         case DWELLING_MONSTER6:
@@ -1733,74 +1462,10 @@ int Castle::GetICNBuilding( const uint32_t buildingType, const int race )
             return ICN::TWNWDW_2;
         case DWELLING_MONSTER4:
             return ICN::TWNWDW_3;
-        case DWELLING_UPGRADE4:
-            return ICN::TWNWUP_3;
         case DWELLING_MONSTER5:
             return ICN::TWNWDW_4;
         case DWELLING_MONSTER6:
             return ICN::TWNWDW_5;
-        case DWELLING_UPGRADE6:
-            return ICN::TWNWUP_5;
-        case DWELLING_UPGRADE7:
-            return ICN::TWNWUP5B;
-        default:
-            break;
-        }
-    }
-    else if ( Race::WZRD == race ) {
-        switch ( buildingType ) {
-        case BUILD_CASTLE:
-            return ICN::TWNZCSTL;
-        case BUILD_TENT:
-            return ICN::TWNZTENT;
-        case BUILD_SPEC:
-            return ICN::TWNZSPEC;
-        case BUILD_CAPTAIN:
-            return ICN::TWNZCAPT;
-        case BUILD_WEL2:
-            return ICN::TWNZWEL2;
-        case BUILD_LEFTTURRET:
-            return ICN::TWNZLTUR;
-        case BUILD_RIGHTTURRET:
-            return ICN::TWNZRTUR;
-        case BUILD_MOAT:
-            return ICN::TWNZMOAT;
-        case BUILD_MARKETPLACE:
-            return ICN::TWNZMARK;
-        case BUILD_THIEVESGUILD:
-            return ICN::TWNZTHIE;
-        case BUILD_TAVERN:
-            return ICN::TWNZTVRN;
-        case BUILD_WELL:
-            return ICN::TWNZWELL;
-        case BUILD_STATUE:
-            return ICN::TWNZSTAT;
-        case BUILD_SHIPYARD:
-            return ICN::TWNZDOCK;
-        case BUILD_MAGEGUILD1:
-        case BUILD_MAGEGUILD2:
-        case BUILD_MAGEGUILD3:
-        case BUILD_MAGEGUILD4:
-        case BUILD_MAGEGUILD5:
-            return ICN::TWNZMAGE;
-        case DWELLING_MONSTER1:
-            return ICN::TWNZDW_0;
-        case DWELLING_MONSTER2:
-            return ICN::TWNZDW_1;
-        case DWELLING_MONSTER3:
-            return ICN::TWNZDW_2;
-        case DWELLING_UPGRADE3:
-            return ICN::TWNZUP_2;
-        case DWELLING_MONSTER4:
-            return ICN::TWNZDW_3;
-        case DWELLING_MONSTER5:
-            return ICN::TWNZDW_4;
-        case DWELLING_UPGRADE5:
-            return ICN::TWNZUP_4;
-        case DWELLING_MONSTER6:
-            return ICN::TWNZDW_5;
-        case DWELLING_UPGRADE6:
-            return ICN::TWNZUP_5;
         default:
             break;
         }
@@ -1820,42 +1485,7 @@ Heroes * Castle::GetHero() const
 
 bool Castle::HasSeaAccess() const
 {
-    const fheroes2::Point possibleSeaTile{ center.x, center.y + 2 };
-    if ( !Maps::isValidAbsPoint( possibleSeaTile.x, possibleSeaTile.y ) ) {
-        // If a tile below doesn't exist then no reason to check other tiles.
-        return false;
-    }
-
-    auto doesTileAllowsToPutBoat = []( const Maps::Tile & tile ) {
-        if ( !tile.isWater() ) {
-            // No water, no boat.
-            return false;
-        }
-
-        if ( tile.getMainObjectPart().icnType == MP2::OBJ_ICN_TYPE_UNKNOWN ) {
-            // The main addon does not exist on this tile.
-            // This means that all objects on this tile are not primary objects (like shadows or some parts of objects).
-            return true;
-        }
-
-        // If this is an object's shadow or this is an action object that can be removed then it is possible to put a boat here.
-        const MP2::MapObjectType objectType = tile.getMainObjectType();
-        return MP2::isPickupObject( objectType ) || objectType == MP2::OBJ_BOAT || tile.isPassabilityTransparent();
-    };
-
-    const int32_t index = Maps::GetIndexFromAbsPoint( possibleSeaTile.x, possibleSeaTile.y );
-    if ( doesTileAllowsToPutBoat( world.getTile( index ) ) ) {
-        return true;
-    }
-
-    if ( Maps::isValidAbsPoint( possibleSeaTile.x - 1, possibleSeaTile.y ) && doesTileAllowsToPutBoat( world.getTile( index - 1 ) ) ) {
-        return true;
-    }
-
-    if ( Maps::isValidAbsPoint( possibleSeaTile.x + 1, possibleSeaTile.y ) && doesTileAllowsToPutBoat( world.getTile( index + 1 ) ) ) {
-        return true;
-    }
-
+    // HoMM1 has no naval mechanics - no castle has sea access.
     return false;
 }
 
@@ -1930,26 +1560,15 @@ int32_t Castle::getTileIndexToPlaceBoat() const
 
 uint32_t Castle::GetActualDwelling( const uint32_t buildId ) const
 {
+    // HoMM1 has no dwelling upgrades - return the building as-is
     switch ( buildId ) {
     case DWELLING_MONSTER1:
-    case DWELLING_UPGRADE2:
-    case DWELLING_UPGRADE3:
-    case DWELLING_UPGRADE4:
-    case DWELLING_UPGRADE5:
-    case DWELLING_UPGRADE7:
-        return buildId;
     case DWELLING_MONSTER2:
-        return _constructedBuildings & DWELLING_UPGRADE2 ? DWELLING_UPGRADE2 : buildId;
     case DWELLING_MONSTER3:
-        return _constructedBuildings & DWELLING_UPGRADE3 ? DWELLING_UPGRADE3 : buildId;
     case DWELLING_MONSTER4:
-        return _constructedBuildings & DWELLING_UPGRADE4 ? DWELLING_UPGRADE4 : buildId;
     case DWELLING_MONSTER5:
-        return _constructedBuildings & DWELLING_UPGRADE5 ? DWELLING_UPGRADE5 : buildId;
     case DWELLING_MONSTER6:
-        return _constructedBuildings & DWELLING_UPGRADE7 ? DWELLING_UPGRADE7 : ( _constructedBuildings & DWELLING_UPGRADE6 ? DWELLING_UPGRADE6 : buildId );
-    case DWELLING_UPGRADE6:
-        return _constructedBuildings & DWELLING_UPGRADE7 ? DWELLING_UPGRADE7 : buildId;
+        return buildId;
     default:
         break;
     }
@@ -1959,11 +1578,6 @@ uint32_t Castle::GetActualDwelling( const uint32_t buildId ) const
 
 uint32_t Castle::GetUpgradeBuilding( const uint32_t buildingId ) const
 {
-    if ( _race == Race::WRLK && buildingId == DWELLING_MONSTER6 && isBuild( DWELLING_UPGRADE6 ) ) {
-        // Warlock's dwelling 6 is a special case.
-        return fheroes2::getUpgradeForBuilding( _race, DWELLING_UPGRADE6 );
-    }
-
     return fheroes2::getUpgradeForBuilding( _race, static_cast<BuildingType>( buildingId ) );
 }
 
@@ -1976,15 +1590,9 @@ std::string Castle::String() const
        << "color           : " << Color::String( GetColor() ) << std::endl
        << "dwellings       : ";
 
-    for ( uint32_t level = 0; level < 7; ++level ) {
-        // there is no dwelling 7
-        if ( level != 6 && isBuild( DWELLING_MONSTER1 << level ) )
-            os << level + 1;
-
-        if ( level > 0 && isBuild( DWELLING_UPGRADE2 << ( level - 1 ) ) )
-            os << "U, ";
-        else
-            os << ", ";
+    for ( uint32_t level = 0; level < 6; ++level ) {
+        if ( isBuild( DWELLING_MONSTER1 << level ) )
+            os << level + 1 << ", ";
     }
     os << std::endl;
 
@@ -2000,18 +1608,9 @@ std::string Castle::String() const
     return os.str();
 }
 
-int Castle::GetPowerModificator( std::string * strs ) const
+int Castle::GetPowerModificator( std::string * /*strs*/ ) const
 {
     int result = 0;
-
-    if ( Race::NECR == _race && isBuild( BUILD_SPEC ) ) {
-        const int mod = 2;
-        result += mod;
-        if ( strs ) {
-            strs->append( GetStringBuilding( BUILD_SPEC, _race ) );
-            fheroes2::appendModifierToString( *strs, mod );
-        }
-    }
 
     return result;
 }
@@ -2122,46 +1721,16 @@ double Castle::GetGarrisonStrength( const Heroes * attackingHero ) const
     return totalStrength;
 }
 
-bool Castle::AllowBuyBoat( const bool checkPayment ) const
+bool Castle::AllowBuyBoat( const bool /*checkPayment*/ ) const
 {
-    if ( !isBuild( BUILD_SHIPYARD ) ) {
-        return false;
-    }
-
-    if ( checkPayment && !GetKingdom().AllowPayment( PaymentConditions::BuyBoat() ) ) {
-        return false;
-    }
-
-    if ( HasBoatNearby() ) {
-        return false;
-    }
-
-    return getTileIndexToPlaceBoat() >= 0;
+    // HoMM1 has no naval mechanics - buying boats is not allowed.
+    return false;
 }
 
 bool Castle::BuyBoat() const
 {
-    if ( !AllowBuyBoat( true ) ) {
-        return false;
-    }
-
-    // If this assertion blows up then you didn't even check conditions to build a shipyard!
-    assert( HasSeaAccess() );
-
-    const int32_t index = getTileIndexToPlaceBoat();
-    if ( index < 0 ) {
-        return false;
-    }
-
-    if ( isControlHuman() ) {
-        AudioManager::PlaySound( M82::BUILDTWN );
-    }
-
-    Kingdom & kingdom = GetKingdom();
-    kingdom.OddFundsResource( PaymentConditions::BuyBoat() );
-    world.getTile( index ).setBoat( Direction::RIGHT, kingdom.GetColor() );
-
-    return true;
+    // HoMM1 has no naval mechanics - buying boats is not allowed.
+    return false;
 }
 
 void Castle::setName( const std::set<std::string, std::less<>> & usedNames )

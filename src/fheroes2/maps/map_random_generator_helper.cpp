@@ -316,39 +316,36 @@ namespace Maps::Random_Generator
         if ( protectedObjectValue >= 13000 ) {
             // 227 -> 504 monster strength
             return { Monster::RANDOM_MONSTER_LEVEL_4,
-                     { Monster::GIANT, Monster::PHOENIX, Monster::BONE_DRAGON, Monster::GREEN_DRAGON, Monster::RED_DRAGON, Monster::TITAN, Monster::BLACK_DRAGON } };
+                     { Monster::PHOENIX, Monster::GREEN_DRAGON, Monster::CYCLOPS, Monster::HYDRA, Monster::PALADIN, Monster::GENIE } };
         }
         if ( protectedObjectValue >= 11500 ) {
             // 70 -> 240 monster strength
             return { Monster::RANDOM_MONSTER_LEVEL_4,
-                     { Monster::ARCHMAGE, Monster::POWER_LICH, Monster::PALADIN, Monster::CRUSADER, Monster::CYCLOPS, Monster::GENIE, Monster::GIANT, Monster::PHOENIX,
-                       Monster::BONE_DRAGON } };
+                     { Monster::PALADIN, Monster::CYCLOPS, Monster::GENIE, Monster::PHOENIX, Monster::GREEN_DRAGON, Monster::HYDRA } };
         }
         if ( protectedObjectValue >= 10000 ) {
             // 58 -> 171 monster strength
             return { Monster::RANDOM_MONSTER,
-                     { Monster::LICH, Monster::WAR_TROLL, Monster::MAGE, Monster::UNICORN, Monster::HYDRA, Monster::VAMPIRE_LORD, Monster::ARCHMAGE, Monster::POWER_LICH,
-                       Monster::GHOST, Monster::PALADIN, Monster::CRUSADER, Monster::CYCLOPS, Monster::GENIE } };
+                     { Monster::TROLL, Monster::UNICORN, Monster::HYDRA, Monster::GHOST, Monster::PALADIN, Monster::CYCLOPS, Monster::GENIE, Monster::PHOENIX,
+                       Monster::GREEN_DRAGON } };
         }
         if ( protectedObjectValue >= 8500 ) {
             // 39 -> 72 monster strength
             return { Monster::RANDOM_MONSTER_LEVEL_3,
-                     { Monster::GREATER_DRUID, Monster::OGRE_LORD, Monster::ROC, Monster::CAVALRY, Monster::VAMPIRE, Monster::MEDUSA, Monster::MINOTAUR_KING,
-                       Monster::TROLL, Monster::CHAMPION, Monster::LICH, Monster::WAR_TROLL, Monster::MAGE, Monster::VAMPIRE_LORD, Monster::ARCHMAGE, Monster::GHOST } };
+                     { Monster::DRUID, Monster::OGRE, Monster::CAVALRY, Monster::MEDUSA, Monster::MINOTAUR,
+                       Monster::TROLL, Monster::UNICORN, Monster::HYDRA, Monster::GHOST, Monster::PALADIN } };
         }
         if ( protectedObjectValue >= 7000 ) {
             // 27 -> 47 monster strength
             return { Monster::RANDOM_MONSTER_LEVEL_3,
-                     { Monster::GRIFFIN, Monster::MASTER_SWORDSMAN, Monster::EARTH_ELEMENT, Monster::AIR_ELEMENT, Monster::WATER_ELEMENT, Monster::FIRE_ELEMENT,
-                       Monster::DRUID, Monster::GREATER_DRUID, Monster::MINOTAUR, Monster::OGRE_LORD, Monster::ROC, Monster::CAVALRY, Monster::VAMPIRE, Monster::MEDUSA,
-                       Monster::MINOTAUR_KING } };
+                     { Monster::GRIFFIN, Monster::EARTH_ELEMENT, Monster::AIR_ELEMENT, Monster::WATER_ELEMENT, Monster::FIRE_ELEMENT,
+                       Monster::DRUID, Monster::MINOTAUR, Monster::OGRE, Monster::CAVALRY, Monster::MEDUSA } };
         }
         if ( protectedObjectValue >= 5500 ) {
             // 17 -> 31 monster strength
             return { Monster::RANDOM_MONSTER,
-                     { Monster::VETERAN_PIKEMAN, Monster::MUMMY, Monster::NOMAD, Monster::IRON_GOLEM, Monster::ELF, Monster::ROYAL_MUMMY, Monster::WOLF,
-                       Monster::GRAND_ELF, Monster::SWORDSMAN, Monster::OGRE, Monster::STEEL_GOLEM, Monster::GRIFFIN, Monster::MASTER_SWORDSMAN, Monster::EARTH_ELEMENT,
-                       Monster::AIR_ELEMENT, Monster::WATER_ELEMENT, Monster::FIRE_ELEMENT } };
+                     { Monster::NOMAD, Monster::ELF, Monster::WOLF, Monster::SWORDSMAN, Monster::OGRE, Monster::GRIFFIN,
+                       Monster::EARTH_ELEMENT, Monster::AIR_ELEMENT, Monster::WATER_ELEMENT, Monster::FIRE_ELEMENT } };
         }
         if ( protectedObjectValue >= 3500 ) {
             // 11 -> 18 monster strength

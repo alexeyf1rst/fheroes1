@@ -60,6 +60,12 @@ uint16_t Maps::Ground::getTerrainStartImageIndex( const int32_t groundId )
 
 int32_t Maps::Ground::getGroundByImageIndex( const uint16_t terrainImageIndex )
 {
+    if ( ( terrainImageIndex & homm1ImageFlag ) != 0 ) {
+        constexpr int32_t groundByGroup[homm1TerrainCount] = { WATER, GRASS, SNOW, SWAMP, LAVA, DESERT, DIRT };
+        const uint16_t group = ( terrainImageIndex & ~homm1ImageFlag ) / homm1TilesPerTerrain;
+        return group < homm1TerrainCount ? groundByGroup[group] : UNKNOWN;
+    }
+
     if ( GRASS_START_IMAGE_INDEX > terrainImageIndex ) {
         return Maps::Ground::WATER;
     }

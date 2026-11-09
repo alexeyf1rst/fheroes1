@@ -778,8 +778,7 @@ namespace
 
 namespace AudioManager
 {
-    AudioInitializer::AudioInitializer( const std::string & originalAGGFilePath, const std::string & expansionAGGFilePath, const ListFiles & midiSoundFonts,
-                                        const std::string & timidityCfgPath )
+    AudioInitializer::AudioInitializer( const std::string & originalAGGFilePath, const ListFiles & midiSoundFonts, const std::string & timidityCfgPath )
     {
         if ( Audio::isValid() ) {
             Mixer::SetChannels( 32 );
@@ -802,11 +801,7 @@ namespace AudioManager
 
         assert( !originalAGGFilePath.empty() );
         if ( !g_midiHeroes2AGG.open( originalAGGFilePath ) ) {
-            VERBOSE_LOG( "Failed to open HEROES2.AGG file for audio playback." )
-        }
-
-        if ( !expansionAGGFilePath.empty() && !g_midiHeroes2xAGG.open( expansionAGGFilePath ) ) {
-            VERBOSE_LOG( "Failed to open HEROES2X.AGG file for audio playback." )
+            VERBOSE_LOG( "Failed to open HEROES.AGG file for audio playback." )
         }
     }
 

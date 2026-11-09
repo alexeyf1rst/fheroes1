@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
 #include <cstring>
 #include <functional>
 #include <initializer_list>
@@ -34,6 +35,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "agg.h"
 #include "color.h"
 #include "difficulty.h"
 #include "dir.h"
@@ -187,6 +189,93 @@ void Maps::FileInfo::Reset()
     translations = {};
 
     creatorNotes = {};
+}
+
+bool Maps::FileInfo::readHoMM1MapFromBytes( std::vector<uint8_t> data, std::string virtualPath )
+{
+    Reset();
+
+    // HoMM1 .MAP disk format: magic = 0x03E8; name at offset 4 (15 bytes), description at offset 154 (121 bytes),
+    //   dimensions at secondary header offset 1364+2 (width) and 1364+4 (height).
+    // HoMM1 CAMP format:      magic = 0x1112; dimensions at offset 2 (width) and 4 (height); no name/description.
+    constexpr size_t kSecondaryHdr    = 1364;
+    constexpr size_t kMinSizeDiskFmt  = kSecondaryHdr + 6;
+
+    if ( data.size() < 6 ) {
+        return false;
+    }
+
+    const uint16_t magic = static_cast<uint16_t>( data[0] ) | ( static_cast<uint16_t>( data[1] ) << 8 );
+
+    uint16_t mapWidth  = 0;
+    uint16_t mapHeight = 0;
+
+    if ( magic == 0x03E8 ) {
+        if ( data.size() < kMinSizeDiskFmt ) {
+            return false;
+        }
+        mapWidth  = static_cast<uint16_t>( data[kSecondaryHdr + 2] ) | ( static_cast<uint16_t>( data[kSecondaryHdr + 3] ) << 8 );
+        mapHeight = static_cast<uint16_t>( data[kSecondaryHdr + 4] ) | ( static_cast<uint16_t>( data[kSecondaryHdr + 5] ) << 8 );
+
+        // Read English scenario name from offset 4 (first 15-byte language name slot, null-terminated).
+        {
+            const char * namePtr = reinterpret_cast<const char *>( data.data() + 4 );
+            const size_t nameLen = strnlen( namePtr, 15 );
+            name = std::string( namePtr, nameLen );
+        }
+
+        // Read English description from offset 154 (first 121-byte language description slot, null-terminated).
+        {
+            const char * descPtr = reinterpret_cast<const char *>( data.data() + 154 );
+            const size_t descLen = strnlen( descPtr, 121 );
+            description = std::string( descPtr, descLen );
+        }
+    }
+    else if ( magic == 0x1112 ) {
+        mapWidth  = static_cast<uint16_t>( data[2] ) | ( static_cast<uint16_t>( data[3] ) << 8 );
+        mapHeight = static_cast<uint16_t>( data[4] ) | ( static_cast<uint16_t>( data[5] ) << 8 );
+    }
+    else {
+        return false;
+    }
+
+    if ( mapWidth == 0 || mapHeight == 0 ) {
+        return false;
+    }
+
+    filename = std::move( virtualPath );
+
+    // Fall back to filename if name slot is empty.
+    if ( name.empty() ) {
+        name = System::GetFileName( filename );
+        const auto dotPos = name.rfind( '.' );
+        if ( dotPos != std::string::npos ) {
+            name = name.substr( 0, dotPos );
+        }
+    }
+
+    width  = mapWidth;
+    height = mapHeight;
+
+    difficulty = Difficulty::EASY;
+    version    = GameVersion::HOMM1;
+
+    // Allow 1 human player (BLUE) + up to 3 computer players
+    kingdomColors            = PlayerColor::BLUE | PlayerColor::RED | PlayerColor::GREEN | PlayerColor::YELLOW;
+    colorsAvailableForHumans = PlayerColor::BLUE | PlayerColor::RED | PlayerColor::GREEN | PlayerColor::YELLOW;
+    colorsAvailableForComp   = PlayerColor::BLUE | PlayerColor::RED | PlayerColor::GREEN | PlayerColor::YELLOW;
+
+    for ( int i = 0; i < 4; ++i ) {
+        races[i] = Race::KNGT;
+    }
+
+    victoryConditionType = VICTORY_DEFEAT_EVERYONE;
+    allowNormalVictory   = true;
+    lossConditionType    = LOSS_EVERYTHING;
+
+    startWithHeroInFirstCastle = true;
+
+    return true;
 }
 
 bool Maps::FileInfo::readMP2Map( std::string filePath, const bool isForEditor )
@@ -747,6 +836,35 @@ MapsFileInfoList Maps::getAllMapFileInfos( const uint8_t humanPlayerCount )
 
         for ( auto & map : validResurrectionMaps ) {
             validMaps.emplace_back( std::move( map ) );
+        }
+    }
+
+    // Load HoMM1 .MAP files from the AGG archive
+    {
+        const std::vector<std::string> homm1MapNames = AGG::getHoMM1MapNames();
+        for ( const std::string & mapName : homm1MapNames ) {
+            Maps::FileInfo fi;
+            const std::string virtualPath = std::string( "[AGG]" ) + mapName;
+            if ( fi.readHoMM1MapFromBytes( AGG::getDataFromAggFile( mapName, false ), virtualPath ) ) {
+                validMaps.emplace_back( std::move( fi ) );
+            }
+        }
+    }
+
+    // Load HoMM1 .MAP files from the MAPS/ filesystem directory
+    {
+        const ListFiles homm1Files = Settings::FindFiles( "maps", ".map", false );
+        for ( const std::string & filePath : homm1Files ) {
+            StreamFile fs;
+            if ( !fs.open( filePath, "rb" ) ) {
+                continue;
+            }
+            const size_t fileSize = fs.size();
+            std::vector<uint8_t> data = fs.getRaw( fileSize );
+            Maps::FileInfo fi;
+            if ( fi.readHoMM1MapFromBytes( std::move( data ), filePath ) ) {
+                validMaps.emplace_back( std::move( fi ) );
+            }
         }
     }
 

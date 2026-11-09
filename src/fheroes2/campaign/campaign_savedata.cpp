@@ -242,21 +242,9 @@ namespace Campaign
     std::optional<int> getCurrentScenarioDifficultyLevel()
     {
         static const std::map<std::pair<int, int>, int> adjustedDifficultyLevels = { // Roland
-                                                                                     { { ROLAND_CAMPAIGN, 1 }, Difficulty::EASY },
+                                                                                     { { IRONFIST_CAMPAIGN, 1 }, Difficulty::EASY },
                                                                                      // Archibald
-                                                                                     { { ARCHIBALD_CAMPAIGN, 1 }, Difficulty::EASY },
-                                                                                     // Descendants
-                                                                                     { { DESCENDANTS_CAMPAIGN, 0 }, Difficulty::EASY },
-                                                                                     { { DESCENDANTS_CAMPAIGN, 5 }, Difficulty::HARD },
-                                                                                     // Wizard's Isle
-                                                                                     { { WIZARDS_ISLE_CAMPAIGN, 3 }, Difficulty::HARD },
-                                                                                     // Voyage Home
-                                                                                     { { VOYAGE_HOME_CAMPAIGN, 0 }, Difficulty::EASY },
-                                                                                     // Price of Loyalty
-                                                                                     { { PRICE_OF_LOYALTY_CAMPAIGN, 0 }, Difficulty::EASY },
-                                                                                     { { PRICE_OF_LOYALTY_CAMPAIGN, 5 }, Difficulty::HARD },
-                                                                                     { { PRICE_OF_LOYALTY_CAMPAIGN, 6 }, Difficulty::HARD },
-                                                                                     { { PRICE_OF_LOYALTY_CAMPAIGN, 7 }, Difficulty::EXPERT } };
+                                                                                     { { SLAYER_CAMPAIGN, 1 }, Difficulty::EASY } };
 
         const CampaignSaveData & campaignData = CampaignSaveData::Get();
 

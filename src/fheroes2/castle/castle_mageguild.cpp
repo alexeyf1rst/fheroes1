@@ -116,7 +116,7 @@ Castle::MageGuildDialogResult Castle::_openMageGuild( const Heroes * hero ) cons
     const bool haveLibraryCapability = HaveLibraryCapability();
     const bool hasLibrary = isLibraryBuilt();
 
-    std::array<std::unique_ptr<fheroes2::SpellsInOneRow>, 5> spellRows;
+    std::array<std::unique_ptr<fheroes2::SpellsInOneRow>, 4> spellRows;
 
     for ( size_t levelIndex = 0; levelIndex < spellRows.size(); ++levelIndex ) {
         const int32_t spellsLevel = static_cast<int32_t>( levelIndex ) + 1;
@@ -193,7 +193,7 @@ Castle::MageGuildDialogResult Castle::_openMageGuild( const Heroes * hero ) cons
         }
 
         spellRows[0]->queueEventProcessing( false ) || spellRows[1]->queueEventProcessing( false ) || spellRows[2]->queueEventProcessing( false )
-            || spellRows[3]->queueEventProcessing( false ) || spellRows[4]->queueEventProcessing( false );
+            || spellRows[3]->queueEventProcessing( false );
 
         if ( le.isMouseRightButtonPressedInArea( buttonExit.area() ) ) {
             fheroes2::showStandardTextMessage( _( "Exit" ), _( "Exit Mage Guild" ), Dialog::ZERO );

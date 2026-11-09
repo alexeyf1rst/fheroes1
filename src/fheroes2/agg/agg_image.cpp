@@ -644,6 +644,16 @@ namespace
     void replacePOLAssetWithSW( const int id, const int assetIndex )
     {
         const std::vector<uint8_t> & body = ::AGG::getDataFromAggFile( ICN::getIcnFileName( id ), true );
+        if ( body.size() < headerSize )
+            return;
+        // HoMM1 ICN: blockSize + headerSize == body.size(); skip PoL-specific fixup for HoMM1 assets.
+        {
+            ROStreamBuf tmp( body );
+            tmp.getLE16(); // count
+            const uint32_t blockSize = tmp.getLE32();
+            if ( blockSize + headerSize == static_cast<uint32_t>( body.size() ) )
+                return; // HoMM1 format — nothing to fix
+        }
         ROStreamBuf imageStream( body );
 
         imageStream.seek( headerSize + assetIndex * 13 );
@@ -661,6 +671,57 @@ namespace
         _icnVsSprite[id][assetIndex] = fheroes2::decodeICNSprite( data, dataEnd, header1 );
     }
 
+    // Scan through sequential HoMM1 ICN sprite data to build a per-sprite byte-offset table.
+    // isMonochrome: true for font ICNs (all sprites monochrome RLE), false for colour RLE.
+    std::vector<uint32_t> buildHoMM1SpriteOffsets( const uint8_t * db, const uint32_t dbSize, const uint32_t count, const bool isMonochrome )
+    {
+        std::vector<uint32_t> offsets( count, 0 );
+        uint32_t pos = 0;
+
+        for ( uint32_t i = 0; i < count; ++i ) {
+            offsets[i] = pos;
+            if ( pos >= dbSize )
+                break;
+
+            if ( isMonochrome ) {
+                // Every byte is a 1-byte command; 0x80 = end-of-sprite.
+                while ( pos < dbSize ) {
+                    if ( db[pos++] == 0x80 )
+                        break;
+                }
+            }
+            else {
+                // Colour RLE: same encoding as HoMM2.
+                while ( pos < dbSize ) {
+                    const uint8_t b = db[pos++];
+                    if ( b == 0x80 )
+                        break;
+                    else if ( b > 0 && b < 0x80 ) {
+                        pos += b; // N colour bytes follow
+                        if ( pos > dbSize )
+                            pos = dbSize;
+                    }
+                    else if ( b == 0xC0 ) {
+                        if ( pos >= dbSize )
+                            break;
+                        const uint8_t t = db[pos++]; // transform byte
+                        if ( ( t & 0x03 ) == 0 && pos < dbSize )
+                            ++pos; // extended pixel-count byte
+                    }
+                    else if ( b > 0xC0 ) {
+                        if ( b == 0xC1 && pos < dbSize )
+                            ++pos; // pixel-count byte
+                        if ( pos < dbSize )
+                            ++pos; // colour byte
+                    }
+                    // 0x00, 0x81-0xBF: single-byte codes, already consumed by pos++
+                }
+            }
+        }
+
+        return offsets;
+    }
+
     // This function returns true if sprites were successfully loaded from AGG file.
     // WARNING: this function must be called once - only in the beginning of `loadICN()` function.
     bool readIcnFromAgg( const int id )
@@ -674,6 +735,52 @@ namespace
             return false;
         }
 
+        // HoMM1 raw palette BMP: extension is ".BMP" and body is exactly 6 + w*h bytes.
+        // Header: byte0=indicator, byte1=unused, bytes2-3=width(u16LE), bytes4-5=height(u16LE).
+        // Pixel data: raw 8-bit palette indices into KB.PAL (256 × 3 bytes of 6-bit RGB).
+        {
+            const std::string & icnFileName = ICN::getIcnFileName( id );
+            const bool isBmpFile = icnFileName.size() >= 4
+                                   && icnFileName.compare( icnFileName.size() - 4, 4, ".BMP" ) == 0;
+            if ( isBmpFile ) {
+                if ( body.size() < 6 )
+                    return false;
+                const uint32_t w = static_cast<uint32_t>( body[2] ) | ( static_cast<uint32_t>( body[3] ) << 8 );
+                const uint32_t h = static_cast<uint32_t>( body[4] ) | ( static_cast<uint32_t>( body[5] ) << 8 );
+                if ( w == 0 || h == 0 || body.size() != 6 + w * h )
+                    return false;
+
+                fheroes2::Sprite sprite( static_cast<int32_t>( w ), static_cast<int32_t>( h ), 0, 0 );
+                sprite.reset();
+                uint8_t * imageData = sprite.image();
+                uint8_t * transformData = sprite.transform();
+                const uint8_t * pixels = body.data() + 6;
+
+                const std::vector<uint8_t> & palData = ::AGG::getDataFromAggFile( "KB.PAL", false );
+                if ( palData.size() >= 256 * 3 ) {
+                    for ( uint32_t i = 0; i < w * h; ++i ) {
+                        const uint8_t idx = pixels[i];
+                        const uint8_t r = static_cast<uint8_t>( palData[idx * 3 + 0] << 2 );
+                        const uint8_t g = static_cast<uint8_t>( palData[idx * 3 + 1] << 2 );
+                        const uint8_t b = static_cast<uint8_t>( palData[idx * 3 + 2] << 2 );
+                        imageData[i] = fheroes2::GetColorId( r, g, b );
+                        transformData[i] = 0;
+                    }
+                }
+                else {
+                    // Fallback: use raw palette indices directly
+                    for ( uint32_t i = 0; i < w * h; ++i ) {
+                        imageData[i] = pixels[i];
+                        transformData[i] = 0;
+                    }
+                }
+
+                _icnVsSprite[id].resize( 1 );
+                _icnVsSprite[id][0] = std::move( sprite );
+                return true;
+            }
+        }
+
         ROStreamBuf imageStream( body );
 
         const uint32_t count = imageStream.getLE16();
@@ -682,6 +789,91 @@ namespace
             return false;
         }
 
+        // HoMM1 ICN detection: blockSize covers the entire post-preamble content
+        // (both the header table and the sprite data), so blockSize == body.size() - headerSize.
+        // HoMM2 ICN: blockSize is the sprite-data-only block, which is smaller.
+        const bool isHoMM1 = ( blockSize + headerSize == static_cast<uint32_t>( body.size() ) );
+
+        if ( isHoMM1 ) {
+            // HoMM1 ICN format:
+            //   preamble (6 bytes): count(u16) + totalContentSize(u32)
+            //   header table: count × 12 bytes  (ox s16, oy s16, w u16, h u16, af_unused u8, advance u8, pad u16)
+            //   sprite data block: sequential RLE sprites, each terminated by 0x80
+
+            const uint32_t icnHdrStride = 12;
+            const uint32_t dataBlockOffset = headerSize + count * icnHdrStride;
+            if ( dataBlockOffset > static_cast<uint32_t>( body.size() ) )
+                return false;
+
+            const uint32_t dataOnlySize = static_cast<uint32_t>( body.size() ) - dataBlockOffset;
+
+            // Font ICNs (FONT.ICN, SMALFONT.ICN) are monochromatic; all other HoMM1 ICNs are colour.
+            const std::string & filename = ICN::getIcnFileName( id );
+            const bool isMonoFont = ( filename.find( "FONT" ) != std::string::npos );
+
+            // Build sequential sprite offset table by scanning the data block.
+            const uint8_t * db = body.data() + dataBlockOffset;
+            const std::vector<uint32_t> spriteOffsets = buildHoMM1SpriteOffsets( db, dataOnlySize, count, isMonoFont );
+
+            _icnVsSprite[id].resize( count );
+
+            for ( uint32_t i = 0; i < count; ++i ) {
+                // Construct a synthetic ICNHeader from the 12-byte HoMM1 header.
+                imageStream.seek( headerSize + i * icnHdrStride );
+                fheroes2::ICNHeader header1;
+                header1.offsetX = static_cast<int16_t>( imageStream.getLE16() );
+                header1.offsetY = static_cast<int16_t>( imageStream.getLE16() );
+                header1.width = imageStream.getLE16();
+                header1.height = imageStream.getLE16();
+                imageStream.get();    // af byte (cumulative-offset checksum, not a flag)
+                imageStream.get();    // advance byte
+                imageStream.getLE16(); // padding
+
+                // Force the correct monochrome flag for the decoder.
+                header1.animationFrames = isMonoFont ? 0x20 : 0;
+
+                // Encode sprite data offset so the existing pointer arithmetic still holds:
+                //   body.data() + headerSize + offsetData  ==  db + spriteOffsets[i]
+                header1.offsetData = count * icnHdrStride + spriteOffsets[i];
+
+                const uint32_t dataSize = ( i + 1 != count ) ? ( spriteOffsets[i + 1] - spriteOffsets[i] )
+                                                              : ( dataOnlySize - spriteOffsets[i] );
+
+                if ( headerSize + header1.offsetData + dataSize > body.size() ) {
+                    throw fheroes2::InvalidDataResources( "ICN Id " + std::to_string( id ) + ", index " + std::to_string( i )
+                                                          + " is being corrupted. "
+                                                            "Make sure that you own an official version of the game." );
+                }
+
+                const uint8_t * data = body.data() + headerSize + header1.offsetData;
+                const uint8_t * dataEnd = data + dataSize;
+                _icnVsSprite[id][i] = fheroes2::decodeICNSprite( data, dataEnd, header1 );
+
+                // If the sprite has no transparent pixels, decodeICNSprite disables its transform layer.
+                // Promote single-layer sprites back to double-layer so that downstream code
+                // (e.g. copyTransformLayer, cursor rendering) never sees a single-layer source sprite.
+                fheroes2::Sprite & s = _icnVsSprite[id][i];
+                if ( s.singleLayer() && !s.empty() ) {
+                    fheroes2::Sprite doubleLayer( s.width(), s.height(), s.x(), s.y() );
+                    fheroes2::Copy( s, doubleLayer );
+                    s = std::move( doubleLayer );
+                }
+
+            }
+
+            // HoMM1 monochromatic font sprites are decoded with visible pixels at palette index 0 (black).
+            // The color-remapping tables (WHITE_FONT, YELLOW_FONT, etc.) only operate on indices 10-36,
+            // so remap 0 -> 10 (the start of the white range) to make palette-based coloring work.
+            if ( isMonoFont ) {
+                for ( fheroes2::Sprite & s : _icnVsSprite[id] ) {
+                    fheroes2::ReplaceColorId( s, 0, 10 );
+                }
+            }
+
+            return true;
+        }
+
+        // HoMM2 ICN format (original code path).
         _icnVsSprite[id].resize( count );
 
         for ( uint32_t i = 0; i < count; ++i ) {
@@ -690,7 +882,7 @@ namespace
             fheroes2::ICNHeader header1;
             imageStream >> header1;
 
-            // There should be enough frames for ICNs with animation. When animationFrames is equal to 32 then it is a Monochromatic image
+            // There should be enough frames for ICNs with animation. When animationFrames is equal to 32 then it is a Monochromatic image.
             assert( header1.animationFrames == 32 || header1.animationFrames <= count );
 
             uint32_t dataSize = 0;
@@ -5679,6 +5871,10 @@ namespace
             // The ICN `id` is not present in AGG file. In example, if you try to load PoL ICN from SW AGG file.
             // In order to avoid subsequent attempts to get resources from this ICN we are making it as non-empty.
             _icnVsSprite[id].resize( 1 );
+            // Make the placeholder sprite a valid 1×1 transparent image so that downstream code
+            // (e.g. cursor rendering) does not assert on empty/single-layer images.
+            _icnVsSprite[id][0].resize( 1, 1 );
+            _icnVsSprite[id][0].reset();
             return;
         }
 

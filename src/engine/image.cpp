@@ -1427,7 +1427,7 @@ namespace fheroes2
     void copyTransformLayer( const Image & in, Image & out )
     {
         if ( in.empty() || out.empty() || in.singleLayer() || in.width() != out.width() || in.height() != out.height() ) {
-            assert( 0 );
+            // Graceful no-op when resources are missing or mismatched (e.g. HoMM1 assets lacking HoMM2-specific ICNs).
             return;
         }
 

@@ -43,12 +43,6 @@ namespace fheroes2
         case Race::WRLK:
             Blit( AGG::GetICN( ICN::STRIP, 7 ), output, offset.x, offset.y );
             break;
-        case Race::WZRD:
-            Blit( AGG::GetICN( ICN::STRIP, 8 ), output, offset.x, offset.y );
-            break;
-        case Race::NECR:
-            Blit( AGG::GetICN( ICN::STRIP, 9 ), output, offset.x, offset.y );
-            break;
         default:
             Blit( AGG::GetICN( ICN::STRIP, 10 ), output, offset.x, offset.y );
             break;

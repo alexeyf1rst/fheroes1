@@ -45,7 +45,7 @@ namespace ICN
     // Make sure that each item ID has exactly the same location ID!
     const std::array<ICNMapItem, LAST_VALID_FILE_ICN> icnMap
         = { { { UNKNOWN, "UNKNOWN" },       { ADVBORDE, "ADVBORDE.ICN" }, { ADVBORD, "ADVBORD.ICN" },   { ADVBTNS, "ADVBTNS.ICN" },   { ADVEBTNS, "ADVEBTNS.ICN" },
-              { ADVMCO, "ADVMCO.ICN" },     { AELEM, "AELEM.ICN" },       { APANBKGE, "APANBKGE.ICN" }, { APANBKG, "APANBKG.ICN" },   { APANELE, "APANELE.ICN" },
+              { ADVMCO, "ADVMICE.ICN" },     { AELEM, "AELEM.ICN" },       { APANBKGE, "APANBKGE.ICN" }, { APANBKG, "APANBKG.ICN" },   { APANELE, "APANELE.ICN" },
               { APANEL, "APANEL.ICN" },     { ARCHER2, "ARCHER2.ICN" },   { ARCHER, "ARCHER.ICN" },     { ARCH_MSL, "ARCH_MSL.ICN" }, { ART32, "ART32.ICN" },
               { ARTFX, "ARTFX.ICN" },       { ARTIFACT, "ARTIFACT.ICN" }, { BARB32, "BARB32.ICN" },     { B_BFLG32, "B-BFLG32.ICN" }, { BERZERK, "BERZERK.ICN" },
               { B_FLAG32, "B-FLAG32.ICN" }, { BIGBAR, "BIGBAR.ICN" },     { BLDGXTRA, "BLDGXTRA.ICN" }, { BLESS, "BLESS.ICN" },       { BLIND, "BLIND.ICN" },
@@ -99,7 +99,7 @@ namespace ICN
               { FRNG0012, "FRNG0012.ICN" }, { FRNG0013, "FRNG0013.ICN" }, { FROTH, "FROTH.ICN" },       { GARGOYLE, "GARGOYLE.ICN" }, { G_BFLG32, "G-BFLG32.ICN" },
               { GENIE, "GENIE.ICN" },       { G_FLAG32, "G-FLAG32.ICN" }, { GHOST, "GHOST.ICN" },       { GOBLIN, "GOBLIN.ICN" },     { GOLEM2, "GOLEM2.ICN" },
               { GOLEM, "GOLEM.ICN" },       { GRIFFIN, "GRIFFIN.ICN" },   { GROUND12, "GROUND12.ICN" }, { GROUND4, "GROUND4.ICN" },   { GROUND6, "GROUND6.ICN" },
-              { HALFLING, "HALFLING.ICN" }, { HALFLMSL, "HALFLMSL.ICN" }, { HASTE, "HASTE.ICN" },       { HEROBKG, "HEROBKG.ICN" },   { HEROES, "HEROES.ICN" },
+              { HALFLING, "HALFLING.ICN" }, { HALFLMSL, "HALFLMSL.ICN" }, { HASTE, "HASTE.ICN" },       { HEROBKG, "HEROBKG.ICN" },   { HEROES, "HEROES.BMP" },
               { HEROEXTE, "HEROEXTE.ICN" }, { HEROEXTG, "HEROEXTG.ICN" }, { HEROFL00, "HEROFL00.ICN" }, { HEROFL01, "HEROFL01.ICN" }, { HEROFL02, "HEROFL02.ICN" },
               { HEROFL03, "HEROFL03.ICN" }, { HEROFL04, "HEROFL04.ICN" }, { HEROFL05, "HEROFL05.ICN" }, { HEROFL06, "HEROFL06.ICN" }, { HEROLOGE, "HEROLOGE.ICN" },
               { HEROLOGO, "HEROLOGO.ICN" }, { HISCORE, "HISCORE.ICN" },   { HOURGLAS, "HOURGLAS.ICN" }, { HSBKG, "HSBKG.ICN" },       { HSBTNS, "HSBTNS.ICN" },
@@ -171,8 +171,8 @@ namespace ICN
               { SWAPBTN, "SWAPBTN.ICN" },   { SWAPWIN, "SWAPWIN.ICN" },   { SWORDSM2, "SWORDSM2.ICN" }, { SWORDSMN, "SWORDSMN.ICN" }, { SYSTEME, "SYSTEME.ICN" },
               { SYSTEM, "SYSTEM.ICN" },     { TAVWIN, "TAVWIN.ICN" },     { TENT, "TENT.ICN" },         { TERRAINS, "TERRAINS.ICN" }, { TEXTBACK, "TEXTBACK.ICN" },
               { TEXTBAK2, "TEXTBAK2.ICN" }, { TEXTBAR, "TEXTBAR.ICN" },   { TITANBLA, "TITANBLA.ICN" }, { TITANBLU, "TITANBLU.ICN" }, { TITANMSL, "TITANMSL.ICN" },
-              { TOWNBKG0, "TOWNBKG0.ICN" }, { TOWNBKG1, "TOWNBKG1.ICN" }, { TOWNBKG2, "TOWNBKG2.ICN" }, { TOWNBKG3, "TOWNBKG3.ICN" }, { TOWNBKG4, "TOWNBKG4.ICN" },
-              { TOWNBKG5, "TOWNBKG5.ICN" }, { TOWNFIX, "TOWNFIX.ICN" },   { TOWNNAME, "TOWNNAME.ICN" }, { TOWNWIND, "TOWNWIND.ICN" }, { TRADPOSE, "TRADPOSE.ICN" },
+              { TOWNBKG0, "TOWNBKG0.ICN" }, { TOWNBKG1, "TOWNBKG1.ICN" }, { TOWNBKG2, "TOWNBKG2.ICN" }, { TOWNBKG3, "TOWNBKG3.ICN" },
+              { TOWNFIX, "TOWNFIX.ICN" },   { TOWNNAME, "TOWNNAME.ICN" }, { TOWNWIND, "TOWNWIND.ICN" }, { TRADPOSE, "TRADPOSE.ICN" },
               { TRADPOST, "TRADPOST.ICN" }, { TREASURY, "TREASURY.ICN" }, { TREDECI, "TREDECI.ICN" },   { TREEVIL, "TREEVIL.ICN" },   { TREFALL, "TREFALL.ICN" },
               { TREFIR, "TREFIR.ICN" },     { TREJNGL, "TREJNGL.ICN" },   { TRESNOW, "TRESNOW.ICN" },   { TROLL2, "TROLL2.ICN" },     { TROLL, "TROLL.ICN" },
               { TROLLMSL, "TROLLMSL.ICN" }, { TWNBBOAT, "TWNBBOAT.ICN" }, { TWNBCAPT, "TWNBCAPT.ICN" }, { TWNBCSTL, "TWNBCSTL.ICN" }, { TWNBDOCK, "TWNBDOCK.ICN" },
@@ -218,7 +218,10 @@ namespace ICN
               { X_LOADCM, "X_LOADCM.ICN" }, { X_CMPBKG, "X_CMPBKG.ICN" }, { X_CMPBTN, "X_CMPBTN.ICN" }, { X_CMPEXT, "X_CMPEXT.ICN" }, { X_TRACK1, "X_TRACK1.ICN" },
               { X_TRACK2, "X_TRACK2.ICN" }, { X_TRACK3, "X_TRACK3.ICN" }, { X_TRACK4, "X_TRACK4.ICN" }, { X_LOC1, "X_LOC1.ICN" },     { X_LOC2, "X_LOC2.ICN" },
               { X_LOC3, "X_LOC3.ICN" },     { XPRIMARY, "XPRIMARY.ICN" }, { Y_BFLG32, "Y-BFLG32.ICN" }, { Y_FLAG32, "Y-FLAG32.ICN" }, { YINYANG, "YINYANG.ICN" },
-              { ZOMBIE2, "ZOMBIE2.ICN" },   { ZOMBIE, "ZOMBIE.ICN" } } };
+              { ZOMBIE2, "ZOMBIE2.ICN" },   { ZOMBIE, "ZOMBIE.ICN" },     { H1BTNS, "BTNMAIN.ICN" },    { H1PANEL, "REDBACK.BMP" },   { H1BTNCAMP, "BTNCMPGN.ICN" },
+              { H1NEWGAME_BMP, "NEWGAME.BMP" }, { H1NEWGAME_ICN, "NEWGAME.ICN" }, { H1BTNNEWGM, "BTNNEWGM.ICN" },
+              { H1HISCORE_BMP, "HISCORE.BMP" }, { H1HISCORE_ICN, "HISCORE.ICN" }, { H1BORD_BMP, "BORD.BMP" }, { H1CREDITS_BMP, "CREDITS.BMP" },
+              { H1REQUEST_BMP, "REQUEST.BMP" }, { H1REQEXTRA_BMP, "REQEXTRA.BMP" }, { H1REQUEST_ICN, "REQUEST.ICN" } } };
 }
 
 const char * ICN::getIcnFileName( const int icnId )
@@ -800,42 +803,6 @@ int ICN::getHeroPortraitIcnId( const int heroId )
         return ICN::PORT0034;
     case Heroes::WRATHMONT:
         return ICN::PORT0035;
-    case Heroes::MYRA:
-        return ICN::PORT0036;
-    case Heroes::FLINT:
-        return ICN::PORT0037;
-    case Heroes::DAWN:
-        return ICN::PORT0038;
-    case Heroes::HALON:
-        return ICN::PORT0039;
-    case Heroes::MYRINI:
-        return ICN::PORT0040;
-    case Heroes::WILFREY:
-        return ICN::PORT0041;
-    case Heroes::SARAKIN:
-        return ICN::PORT0042;
-    case Heroes::KALINDRA:
-        return ICN::PORT0043;
-    case Heroes::MANDIGAL:
-        return ICN::PORT0044;
-    case Heroes::ZOM:
-        return ICN::PORT0045;
-    case Heroes::DARLANA:
-        return ICN::PORT0046;
-    case Heroes::ZAM:
-        return ICN::PORT0047;
-    case Heroes::RANLOO:
-        return ICN::PORT0048;
-    case Heroes::CHARITY:
-        return ICN::PORT0049;
-    case Heroes::RIALDO:
-        return ICN::PORT0050;
-    case Heroes::ROXANA:
-        return ICN::PORT0051;
-    case Heroes::SANDRO:
-        return ICN::PORT0052;
-    case Heroes::CELIA:
-        return ICN::PORT0053;
     case Heroes::ROLAND:
         return ICN::PORT0054;
     case Heroes::CORLAGON:
@@ -848,28 +815,6 @@ int ICN::getHeroPortraitIcnId( const int heroId )
         return ICN::PORT0058;
     case Heroes::BRAX:
         return ICN::PORT0059;
-    case Heroes::SOLMYR:
-        return ICN::PORT0060;
-    case Heroes::DAINWIN:
-        return ICN::PORT0061;
-    case Heroes::MOG:
-        return ICN::PORT0062;
-    case Heroes::UNCLEIVAN:
-        return ICN::PORT0063;
-    case Heroes::JOSEPH:
-        return ICN::PORT0064;
-    case Heroes::GALLAVANT:
-        return ICN::PORT0065;
-    case Heroes::ELDERIAN:
-        return ICN::PORT0066;
-    case Heroes::CEALLACH:
-        return ICN::PORT0067;
-    case Heroes::DRAKONIA:
-        return ICN::PORT0068;
-    case Heroes::MARTINE:
-        return ICN::PORT0069;
-    case Heroes::JARKONAS:
-        return ICN::PORT0070;
     case Heroes::DEBUG_HERO:
         return ICN::PORT0059;
     default:
@@ -888,14 +833,10 @@ int ICN::getCaptainIcnId( const int race )
         return CSTLCAPB;
     case Race::KNGT:
         return CSTLCAPK;
-    case Race::NECR:
-        return CSTLCAPN;
     case Race::SORC:
         return CSTLCAPS;
     case Race::WRLK:
         return CSTLCAPW;
-    case Race::WZRD:
-        return CSTLCAPZ;
     default:
         break;
     }
@@ -910,14 +851,10 @@ int ICN::getBuildingIcnId( const int race )
         return CSTLBARB;
     case Race::KNGT:
         return CSTLKNGT;
-    case Race::NECR:
-        return CSTLNECR;
     case Race::SORC:
         return CSTLSORC;
     case Race::WRLK:
         return CSTLWRLK;
-    case Race::WZRD:
-        return CSTLWZRD;
     default:
         break;
     }
@@ -932,14 +869,10 @@ int ICN::getCastleIcnId( const int race )
         return CASTLEB;
     case Race::KNGT:
         return CASTLEK;
-    case Race::NECR:
-        return CASTLEN;
     case Race::SORC:
         return CASTLES;
     case Race::WRLK:
         return CASTLEW;
-    case Race::WZRD:
-        return CASTLEZ;
     default:
         break;
     }

@@ -175,10 +175,6 @@ namespace
         const int32_t monsterExtraOffsetY = std::max<int32_t>( 0, smon.height() - 96 );
         dst_pt.y = pos.y + 119 - smon.height() + monsterExtraOffsetY;
 
-        if ( monsterId == Monster::CHAMPION ) {
-            ++dst_pt.x;
-        }
-
         fheroes2::Blit( smon, display, dst_pt.x, dst_pt.y );
 
         // Resources needed to buy monster.

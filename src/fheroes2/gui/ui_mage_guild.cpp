@@ -56,18 +56,14 @@ namespace fheroes2
             guildIcn = ICN::MAGEGLDW;
             break;
         case Race::RAND:
-        case Race::WZRD:
-            guildIcn = ICN::MAGEGLDZ;
-            break;
-        case Race::NECR:
-            guildIcn = ICN::MAGEGLDN;
+            guildIcn = ICN::MAGEGLDK;
             break;
         default:
             assert( 0 );
             break;
         }
 
-        assert( guildLevel >= 1 && guildLevel <= 5 );
+        assert( guildLevel >= 1 && guildLevel <= 4 );
         const Sprite & sprite = AGG::GetICN( guildIcn, guildLevel - 1 );
 
         const Rect area = GetActiveROI( sprite );

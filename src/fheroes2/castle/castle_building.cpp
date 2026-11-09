@@ -52,10 +52,6 @@ namespace
             return ICN::TOWNBKG2;
         case Race::WRLK:
             return ICN::TOWNBKG3;
-        case Race::WZRD:
-            return ICN::TOWNBKG4;
-        case Race::NECR:
-            return ICN::TOWNBKG5;
         default:
             // Have you added a new race? Add the logic for it!
             assert( 0 );
@@ -86,9 +82,6 @@ namespace
             if ( building == BUILD_THIEVESGUILD ) {
                 return true;
             }
-        }
-        else if ( race == Race::NECR && building == BUILD_CAPTAIN ) {
-            return true;
         }
 
         return false;
@@ -133,17 +126,6 @@ namespace
 
                 fheroes2::drawCastleDialogBuilding( ICN::TWNBEXT3, 0, castle, position, roi, alpha );
             }
-        }
-        else if ( race == Race::NECR ) {
-            if ( building == BUILD_CAPTAIN && ( !castle.isBuild( building ) || !isBuildingFullyBuilt( castle, BUILD_CASTLE, buildingCurrentlyUnderConstruction ) ) ) {
-                return;
-            }
-
-            if ( building == BUILD_CASTLE && ( !castle.isBuild( building ) || !isBuildingFullyBuilt( castle, BUILD_CAPTAIN, buildingCurrentlyUnderConstruction ) ) ) {
-                return;
-            }
-
-            fheroes2::drawCastleDialogBuilding( ICN::NECROMANCER_CASTLE_CAPTAIN_QUARTERS_BRIDGE, 0, castle, position, roi, alpha );
         }
     }
 
@@ -198,13 +180,13 @@ namespace
         const uint32_t index = [building, race]() -> uint32_t {
             switch ( building ) {
             case BUILD_MAGEGUILD2:
-                return ( race == Race::NECR ? 6 : 1 );
+                return 1;
             case BUILD_MAGEGUILD3:
-                return ( race == Race::NECR ? 12 : 2 );
+                return 2;
             case BUILD_MAGEGUILD4:
-                return ( race == Race::NECR ? 18 : 3 );
+                return 3;
             case BUILD_MAGEGUILD5:
-                return ( race == Race::NECR ? 24 : 4 );
+                return 4;
             default:
                 break;
             }
@@ -344,17 +326,6 @@ namespace
             fheroes2::Blit( sprite0, display, offset.x + sprite0.x(), offset.y + sprite0.y() );
         }
 
-        // The original Wizard's castle "bay" is not actually a bay, but a river flowing through a gorge in the wastelands,
-        // which must be animated, even if the castle itself is not located on the seashore.
-        else if ( castleRace == Race::WZRD ) {
-            const int32_t riverIcnId = ICN::TWNZEXT0;
-            const uint32_t riverExtraIndex = 1 + animationIndex % 5;
-
-            // The river is already present on the background so there is no need to draw its sprite (image index 0).
-            // We draw only the river animation.
-            fheroes2::drawCastleDialogBuilding( riverIcnId, riverExtraIndex, castle, offset, max );
-        }
-
         const uint32_t fadingInBuildingId = fadeBuilding.getBuilding();
 
         // Bay animation. We have a special case for the Barbarian's castle:
@@ -373,14 +344,8 @@ namespace
             case Race::SORC:
                 bayIcnId = ICN::TWNSEXT0;
                 break;
-            case Race::NECR:
-                bayIcnId = ICN::TWNNEXT0;
-                break;
             case Race::WRLK:
                 bayIcnId = ICN::TWNWEXT0;
-                break;
-            case Race::WZRD:
-                bayIcnId = ICN::WIZARD_CASTLE_BAY;
                 break;
             default:
                 // Did you add a new race? Add the logic for it!

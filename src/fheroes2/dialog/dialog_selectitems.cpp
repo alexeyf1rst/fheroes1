@@ -1152,9 +1152,6 @@ Artifact Dialog::selectArtifact( const int32_t artifactId, const bool isForVicto
     std::vector<int32_t> artifacts;
     artifacts.reserve( Artifact::ARTIFACT_COUNT - 2 );
 
-    const GameVersion version = Settings::Get().getCurrentMapInfo().version;
-    const bool isPriceofLoyaltyArtifactAllowed = ( version == GameVersion::PRICE_OF_LOYALTY || version == GameVersion::RESURRECTION );
-
     if ( !isForVictoryConditions ) {
         // We show the Magic Book at the first place.
         artifacts.emplace_back( Artifact::MAGIC_BOOK );
@@ -1177,7 +1174,7 @@ Artifact Dialog::selectArtifact( const int32_t artifactId, const bool isForVicto
             continue;
         }
 
-        if ( !isPriceofLoyaltyArtifactAllowed && fheroes2::isPriceOfLoyaltyArtifact( id ) ) {
+        if ( fheroes2::isPriceOfLoyaltyArtifact( id ) ) {
             continue;
         }
 
@@ -1228,10 +1225,7 @@ Monster Dialog::selectMonster( const int32_t monsterId )
 
 int Dialog::selectHeroes( const int32_t heroId /* = Heroes::UNKNOWN */ )
 {
-    const GameVersion version = Settings::Get().getCurrentMapInfo().version;
-    const bool isPoLHeroesAllowed = ( version == GameVersion::PRICE_OF_LOYALTY || version == GameVersion::RESURRECTION );
-
-    std::vector<int32_t> heroes( static_cast<int>( isPoLHeroesAllowed ? Heroes::JARKONAS : Heroes::BRAX ), Heroes::UNKNOWN );
+    std::vector<int32_t> heroes( static_cast<int>( Heroes::BRAX ), Heroes::UNKNOWN );
 
     if ( heroes.empty() ) {
         fheroes2::showStandardTextMessage( _( "Warning" ), _( "There are no heroes to select from." ), Dialog::OK );

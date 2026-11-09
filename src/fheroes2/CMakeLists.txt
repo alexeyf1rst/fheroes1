@@ -28,41 +28,41 @@ if(MACOS_APP_BUNDLE)
 	set(FHEROES2_ICON ${CMAKE_CURRENT_SOURCE_DIR}/../resources/fheroes2.icns)
 	set_source_files_properties(${FHEROES2_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-	add_executable(fheroes2 MACOSX_BUNDLE ${FHEROES2_ICON} ${FHEROES2_SOURCES} ${TRANSLATION_DATA})
+	add_executable(fheroes MACOSX_BUNDLE ${FHEROES2_ICON} ${FHEROES2_SOURCES} ${TRANSLATION_DATA})
 
 	target_compile_definitions(
-		fheroes2
+		fheroes
 		PRIVATE
 		$<$<CONFIG:Debug>:WITH_DEBUG>
 		$<$<BOOL:${MACOS_APP_BUNDLE}>:MACOS_APP_BUNDLE>
 		)
 
-	target_link_libraries(fheroes2 "-framework CoreFoundation")
+	target_link_libraries(fheroes "-framework CoreFoundation")
 
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME})
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME fheroes2)
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER org.fheroes2.${CMAKE_PROJECT_NAME})
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_ICON_FILE fheroes2.icns)
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/../resources/Info.plist.in)
-	set_target_properties(fheroes2 PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME})
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME fheroes)
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER org.fheroes.${CMAKE_PROJECT_NAME})
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_ICON_FILE fheroes.icns)
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/../resources/Info.plist.in)
+	set_target_properties(fheroes PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
 else(MACOS_APP_BUNDLE)
 	cmake_path(
-		ABSOLUTE_PATH FHEROES2_DATA
+		ABSOLUTE_PATH FHEROES_DATA
 		BASE_DIRECTORY ${CMAKE_INSTALL_PREFIX}
 		NORMALIZE
 		OUTPUT_VARIABLE FHEROES2_DATA_ABSOLUTE
 		)
 
 	add_executable(
-		fheroes2
+		fheroes
 		${FHEROES2_SOURCES}
 		${CMAKE_CURRENT_SOURCE_DIR}/../resources/fheroes2.manifest
 		${CMAKE_CURRENT_SOURCE_DIR}/../resources/fheroes2.rc
 		)
 
 	target_compile_definitions(
-		fheroes2
+		fheroes
 		PRIVATE
 		# MSVC: suppress deprecation warnings
 		$<$<OR:$<COMPILE_LANG_AND_ID:C,MSVC>,$<COMPILE_LANG_AND_ID:CXX,MSVC>>:_CRT_SECURE_NO_WARNINGS>
@@ -70,19 +70,13 @@ else(MACOS_APP_BUNDLE)
 		FHEROES2_DATA=${FHEROES2_DATA_ABSOLUTE}
 		)
 
-	# Copy executable to root of the project.
-	add_custom_command(
-		TARGET fheroes2 POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-		$<TARGET_FILE:fheroes2>
-		${PROJECT_SOURCE_DIR}/$<TARGET_FILE_NAME:fheroes2>
-		)
+	set_target_properties(fheroes PROPERTIES OUTPUT_NAME fheroes1 WIN32_EXECUTABLE TRUE)
 
-	install(TARGETS fheroes2 DESTINATION ${CMAKE_INSTALL_BINDIR})
+	install(TARGETS fheroes DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif(MACOS_APP_BUNDLE)
 
 target_include_directories(
-	fheroes2
+	fheroes
 	PRIVATE
 	agg
 	ai
@@ -108,7 +102,7 @@ target_include_directories(
 	)
 
 target_link_libraries(
-	fheroes2
+	fheroes
 	engine
 	${USE_SDL_VERSION}::${USE_SDL_VERSION}main
 	)

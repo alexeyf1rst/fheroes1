@@ -189,13 +189,6 @@ namespace
             return world.GetKingdom( color ).isTravellerTentVisited( getBarrierColorFromTile( tile ) );
         }
 
-        // AI can use boats to overcome water obstacles
-        if ( objectType == MP2::OBJ_BOAT ) {
-            assert( !fromWater && tile.isWater() );
-
-            return true;
-        }
-
         // If we can't step on this tile, then it cannot be passed through
         if ( MP2::isNeedStayFront( objectType ) ) {
             return false;

@@ -1118,8 +1118,8 @@ bool Maps::Tile::isPassableFrom( const int direction, const bool fromWater, cons
             return false;
         }
     }
-    // From the ground we can get to a water tile only if this tile contains a certain object.
-    else if ( tileIsWater && _mainObjectType != MP2::OBJ_SHIPWRECK && _mainObjectType != MP2::OBJ_HERO && _mainObjectType != MP2::OBJ_BOAT ) {
+    // HoMM1 has no naval travel. From the ground we cannot enter any water tile (boats are not usable).
+    else if ( tileIsWater && _mainObjectType != MP2::OBJ_SHIPWRECK && _mainObjectType != MP2::OBJ_HERO ) {
         return false;
     }
 

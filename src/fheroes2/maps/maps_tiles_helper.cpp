@@ -525,7 +525,7 @@ namespace Maps
         case MP2::OBJ_WATCH_TOWER:
             return { Monster::ORC };
         case MP2::OBJ_EXCAVATION:
-            return { Monster::SKELETON };
+            return { Monster::GHOST };
         case MP2::OBJ_CAVE:
             return { Monster::CENTAUR };
         case MP2::OBJ_TREE_HOUSE:
@@ -537,7 +537,7 @@ namespace Maps
         case MP2::OBJ_DWARF_COTTAGE:
             return { Monster::DWARF };
         case MP2::OBJ_HALFLING_HOLE:
-            return { Monster::HALFLING };
+            return { Monster::SPRITE };
         case MP2::OBJ_PEASANT_HUT:
             return { Monster::PEASANT };
         case MP2::OBJ_RUINS:
@@ -551,9 +551,9 @@ namespace Maps
         case MP2::OBJ_TROLL_BRIDGE:
             return { Monster::TROLL };
         case MP2::OBJ_DRAGON_CITY:
-            return { Monster::RED_DRAGON };
+            return { Monster::GREEN_DRAGON };
         case MP2::OBJ_CITY_OF_DEAD:
-            return { Monster::POWER_LICH };
+            return { Monster::GHOST };
         case MP2::OBJ_GENIE_LAMP:
             return { Monster::GENIE };
         case MP2::OBJ_ABANDONED_MINE:
@@ -1492,8 +1492,8 @@ namespace Maps
                 break;
             }
 
-            // Random spell of level 5.
-            setSpellOnTile( tile, Spell::getRandomSpell( 5 ).GetID() );
+            // HoMM1 only has 4 spell levels; use level 4.
+            setSpellOnTile( tile, Spell::getRandomSpell( 4 ).GetID() );
             break;
         }
 
@@ -1837,10 +1837,10 @@ namespace Maps
             res.second = Race::WRLK;
             break;
         case 4:
-            res.second = Race::WZRD;
+            res.second = Race::WRLK;
             break;
         case 5:
-            res.second = Race::NECR;
+            res.second = Race::BARB;
             break;
         case 6:
             res.second = Race::RAND;

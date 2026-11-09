@@ -127,7 +127,7 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "Ballista of Quickness" ),
-                  gettext_noop( "The %{name} gives the hero's catapult one extra shot per combat round." ),
+                  gettext_noop( "The %{name} increases the hero's attack skill by %{count}." ),
                   gettext_noop(
                       "Walking through the ruins of an ancient walled city, you find the instrument of the city's destruction, an elaborately crafted ballista." ),
                   {},
@@ -198,13 +198,13 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "Nomad Boots of Mobility" ),
-                  gettext_noop( "The %{name} increase the hero's movement on land." ),
+                  gettext_noop( "The %{name} increases the luck of the hero's army by %{count}." ),
                   gettext_noop(
                       "A Nomad trader seeks protection from a tribe of Goblins. For your assistance, he gives you a finely crafted pair of boots made from the softest leather. Looking closely, you see fascinating ancient carvings engraved on the leather." ),
                   {},
                   {} },
                 { gettext_noop( "Traveler's Boots of Mobility" ),
-                  gettext_noop( "The %{name} increase the hero's movement on land." ),
+                  gettext_noop( "The %{name} increases the luck of the hero's army by %{count}." ),
                   gettext_noop(
                       "Discovering a pair of beautifully beaded boots made from the finest and softest leather, you thank the anonymous donor and add the boots to your inventory." ),
                   {},
@@ -233,178 +233,178 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "True Compass of Mobility" ),
-                  gettext_noop( "The %{name} increases the hero's movement on land and sea." ),
+                  gettext_noop( "The %{name} increases the luck of the hero's army by %{count}." ),
                   gettext_noop( "An old man claiming to be an inventor asks you to try his latest invention. He then hands you a compass." ),
                   {},
                   {} },
                 { gettext_noop( "Sailor's Astrolabe of Mobility" ),
-                  gettext_noop( "The %{name} increases the hero's movement on sea." ),
+                  gettext_noop( "The %{name} increases the luck of the hero's army by %{count}." ),
                   gettext_noop(
                       "An old sea captain is being tortured by Ogres. You save him, and in return he rewards you with a wondrous instrument to measure the distance of a star." ),
                   {},
                   {} },
                 { gettext_noop( "Evil Eye" ),
-                  gettext_noop( "The %{name} reduces the casting cost of curse spells by half." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "While venturing into a decrepit hut you find the Skeleton of a long dead witch. Investigation of the remains reveals a glass eye rolling around inside an empty skull." ),
                   {},
                   {} },
                 { gettext_noop( "Enchanted Hourglass" ),
-                  gettext_noop( "The %{name} extends the duration of all the hero's spells by %{count} turns." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "A surprise turn in the landscape finds you in the midst of a grisly scene: Vultures picking at the aftermath of a terrible battle. Your cursory search of the remains turns up an enchanted hourglass." ),
                   {},
                   {} },
                 { gettext_noop( "Gold Watch" ),
-                  gettext_noop( "The %{name} doubles the effectiveness of the hero's hypnotize spells." ),
+                  gettext_noop( "The %{name} increases the hero's knowledge by %{count}." ),
                   gettext_noop(
                       "In reward for helping his cart out of a ditch, a traveling potion salesman gives you a \"magic\" gold watch. Unbeknownst to him, the watch really is magical." ),
                   {},
                   {} },
                 { gettext_noop( "Skullcap" ),
-                  gettext_noop( "The %{name} halves the casting cost of all mind influencing spells." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "A brief stop at an improbable rural inn yields an exchange of money, tales, and accidentally, luggage. You find a magical skullcap in your new backpack." ),
                   {},
                   {} },
                 { gettext_noop( "Ice Cloak" ),
-                  gettext_noop( "The %{name} halves all damage the hero's troops receive from cold spells." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "Responding to the panicked cries of a damsel in distress, you discover a young woman fleeing from a hungry bear. You slay the beast in the nick of time, and the grateful Sorceress weaves a magic cloak from the bear's hide." ),
                   {},
                   {} },
                 { gettext_noop( "Fire Cloak" ),
-                  gettext_noop( "The %{name} halves all damage the hero's troops receive from fire spells." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "You've come upon a fight between a Necromancer and a Paladin. The Necromancer blasts the Paladin with a fire bolt, bringing him to his knees. Acting quickly, you slay the evil one before the final blow. The grateful Paladin gives you the fire cloak that saved him." ),
                   {},
                   {} },
                 { gettext_noop( "Lightning Helm" ),
-                  gettext_noop( "The %{name} halves all damage the hero's troops receive from lightning spells." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "A traveling tinker in need of supplies offers you a helm with a thunderbolt design on its top in exchange for food and water. Curious, you accept, and later find out that the helm is magical." ),
                   {},
                   {} },
                 { gettext_noop( "Evercold Icicle" ),
-                  gettext_noop( "The %{name} causes the hero's cold spells to do %{count} percent more damage to enemy troops." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "An icicle withstanding the full heat of the noonday sun attracts your attention. Intrigued, you break it off, and find that it does not melt in your hand." ),
                   {},
                   {} },
                 { gettext_noop( "Everhot Lava Rock" ),
-                  gettext_noop( "The %{name} causes the hero's fire spells to do %{count} percent more damage to enemy troops." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "Your wanderings bring you into contact with a tribe of ape-like beings using a magical lava rock that never cools to light their fires. You take pity on them and teach them to make fire with sticks. Believing you to be a god, the apes give you their rock." ),
                   {},
                   {} },
                 { gettext_noop( "Lightning Rod" ),
-                  gettext_noop( "The %{name} causes the hero's lightning spells to do %{count} percent more damage to enemy troops." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "While waiting out a storm, a lighting bolt strikes a nearby cottage's lightning rod, which melts and falls to the ground. The tip of the rod, however, survives intact and makes your hair stand on end when you touch it. Hmm..." ),
                   {},
                   {} },
                 { gettext_noop( "Snake-Ring" ),
-                  gettext_noop( "The %{name} halves the casting cost of all of the hero's bless spells." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop( "You've found an oddly shaped ring on the finger of a long dead traveler. The ring looks like a snake biting its own tail." ),
                   {},
                   {} },
                 { gettext_noop( "Ankh" ),
-                  gettext_noop( "The %{name} doubles the effectiveness of all of the hero's resurrect and animate spells." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "A fierce windstorm reveals the entrance to a buried tomb. Your investigation reveals that the tomb has already been looted, but the thieves overlooked an ankh on a silver chain in the dark." ),
                   {},
                   {} },
                 { gettext_noop( "Book of Elements" ),
-                  gettext_noop( "The %{name} doubles the effectiveness of all of the hero's summoning spells." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "You come across a conjurer who begs to accompany you and your army awhile for safety. You agree, and he offers as payment a copy of the book of the elements." ),
                   {},
                   {} },
                 { gettext_noop( "Elemental Ring" ),
-                  gettext_noop( "The %{name} halves the casting cost of all summoning spells." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "While pausing to rest, you notice a bobcat climbing a short tree to get at a crow's nest. On impulse, you climb the tree yourself and scare off the cat. When you look in the nest, you find a collection of shiny stones and a ring." ),
                   {},
                   {} },
                 { gettext_noop( "Holy Pendant" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to curse spells." ),
+                  gettext_noop( "The %{name} increases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "In your wanderings you come across a hermit living in a small, tidy hut. Impressed with your mission, he takes time out from his meditations to bless and give you a charm against curses." ),
                   {},
                   {} },
                 { gettext_noop( "Pendant of Free Will" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to hypnotize spells." ),
+                  gettext_noop( "The %{name} increases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "Responding to cries for help, you find river Sprites making a sport of dunking an old man. Feeling vengeful, you rescue the man and drag a Sprite onto dry land for awhile. The Sprite, uncomfortable in the air, gives you a magic pendant to let him go." ),
                   {},
                   {} },
                 { gettext_noop( "Pendant of Life" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to death spells." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "A brief roadside encounter with a small caravan and a game of knucklebones wins a magic pendant. Its former owner says that it protects from Necromancers' death spells." ),
                   {},
                   {} },
                 { gettext_noop( "Serenity Pendant" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to berserk spells." ),
+                  gettext_noop( "The %{name} increases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "The sounds of combat draw you to the scene of a fight between an old Barbarian and an eight-headed Hydra. Your timely intervention swings the battle in favor of the man, and he rewards you with a pendant he used to use to calm his mind for battle." ),
                   {},
                   {} },
                 { gettext_noop( "Seeing-eye Pendant" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to blindness spells." ),
+                  gettext_noop( "The %{name} increases the luck of the hero's army by %{count}." ),
                   gettext_noop(
                       "You come upon a very old woman, long blind from cataracts and dying alone. You tend to her final needs and promise a proper burial. Grateful, she gives you a magic pendant emblazoned with a stylized eye. It lets you see with your eyes closed." ),
                   {},
                   {} },
                 { gettext_noop( "Kinetic Pendant" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to paralyze spells." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "You come across a golem wearing a glowing pendant and blocking your way. Acting on a hunch, you cut the pendant from its neck. Deprived of its power source, the golem breaks down, leaving you with the magical pendant." ),
                   {},
                   {} },
                 { gettext_noop( "Pendant of Death" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to holy spells." ),
+                  gettext_noop( "The %{name} increases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "A quick and deadly battle with a Necromancer wins you his magical pendant. Later, a Wizard tells you that the pendant protects undead under your control from holy word spells." ),
                   {},
                   {} },
                 { gettext_noop( "Wand of Negation" ),
-                  gettext_noop( "The %{name} makes all of the hero's troops immune to dispel magic spells." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "You meet an old Wizard friend of yours traveling in the opposite direction. He presents  you with a gift: A wand that prevents the use of the dispel magic spell on your allies." ),
                   {},
                   {} },
                 { gettext_noop( "Golden Bow" ),
-                  gettext_noop( "The %{name} eliminates the %{count} percent penalty for the hero's troops shooting past obstacles (e.g. castle walls)." ),
+                  gettext_noop( "The %{name} increases the hero's attack skill by %{count}." ),
                   gettext_noop( "A chance meeting with a famous Archer finds you in a game of knucklebones pitting his bow against your horse. You win." ),
                   {},
                   {} },
                 { gettext_noop( "Telescope" ),
-                  gettext_noop( "The %{name} increases the amount of terrain the hero reveals when adventuring by %{count} extra square." ),
+                  gettext_noop( "The %{name} increases the luck of the hero's army by %{count}." ),
                   gettext_noop(
                       "A merchant from far away lands trades you a new invention of his people for traveling supplies. It makes distant objects appear closer, and he calls it...\n\na telescope." ),
                   {},
                   {} },
                 { gettext_noop( "Statesman's Quill" ),
-                  gettext_noop( "The %{name} reduces the cost of surrender to %{count} percent of the total cost of troops the hero has in their army." ),
+                  gettext_noop( "The %{name} increases the hero's knowledge by %{count}." ),
                   gettext_noop(
                       "You pause to help a diplomat with a broken axle fix his problem. In gratitude, he gives you a writing quill with magical properties which he says will \"help people see things your way\"." ),
                   {},
                   {} },
                 { gettext_noop( "Wizard's Hat" ),
-                  gettext_noop( "The %{name} increases the duration of the hero's spells by %{count} turns." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "You see a Wizard fleeing from a Griffin and riding like the wind. The Wizard opens a portal and rides through, getting his hat knocked off by the edge of the gate. The Griffin follows; the gate closes. You pick the hat up, dust it off, and put it on." ),
                   {},
                   {} },
                 { gettext_noop( "Power Ring" ),
-                  gettext_noop( "The %{name} returns %{count} extra spell points per day to the hero." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "You find a small tree that closely resembles the great Warlock Carnauth with a ring around one of its twigs. Scraps of clothing and rotting leather lead you to suspect that it IS Carnauth, transformed. Since you can't help him, you take the magic ring." ),
                   {},
                   {} },
                 { gettext_noop( "Ammo Cart" ),
-                  gettext_noop( "The %{name} provides endless ammunition for all of the hero's troops that shoot." ),
+                  gettext_noop( "The %{name} increases the hero's attack skill by %{count}." ),
                   gettext_noop(
                       "An ammunition cart in the middle of an old battlefield catches your eye. Inspection shows it to be in good working order, so  you take it along." ),
                   {},
@@ -416,7 +416,7 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "Hideous Mask" ),
-                  gettext_noop( "The %{name} prevents all 'wandering' armies from joining the hero." ),
+                  gettext_noop( "The %{name} greatly decreases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "Your looting of the grave of Sinfilas Gardolad, the famous shapeshifting Warlock, unearths his fabled mask. Trembling, you put it on and it twists your visage into an awful grimace! Oh no! It's actually the hideous mask of Gromluck Greene, and you are stuck with it." ),
                   {},
@@ -493,12 +493,12 @@ namespace
                 { gettext_noop( "Dummy 4" ), gettext_noop( "The reserved artifact." ), nullptr, {}, {} },
 
                 { gettext_noop( "Spell Scroll" ),
-                  gettext_noop( "This %{name} gives the hero the ability to cast the %{spell} spell if the hero has a Magic Book." ),
+                  gettext_noop( "The %{name} increases the hero's spell power by %{count}." ),
                   gettext_noop(
                       "You find an elaborate container which houses an old vellum scroll. The runes on the container are very old, and the artistry with which it was put together is stunning. As you pull the scroll out, you feel imbued with magical power." ),
                   {},
                   {} },
-                { gettext_noop( "Arm of the Martyr" ), gettext_noop( "The %{name} increases the hero's spell power by %{count} but adds the undead morale penalty." ), gettext_noop( "One of the less intelligent members of your party picks up an arm off of the ground. Despite its missing a body, it is still moving. Your troops find the dismembered arm repulsive, but you cannot bring yourself to drop it: it seems to hold some sort of magical power that influences your decision making." ), {}, {} },
+                { gettext_noop( "Arm of the Martyr" ), gettext_noop( "The %{name} increases the hero's spell power by %{count}." ), gettext_noop( "One of the less intelligent members of your party picks up an arm off of the ground. Despite its missing a body, it is still moving. Your troops find the dismembered arm repulsive, but you cannot bring yourself to drop it: it seems to hold some sort of magical power that influences your decision making." ), {}, {} },
                 { gettext_noop( "Breastplate of Anduran" ),
                   gettext_noop( "The %{name} increases the hero's defense by %{count}." ),
                   gettext_noop(
@@ -506,27 +506,27 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "Broach of Shielding" ),
-                  gettext_noop( "The %{name} provides %{count} percent protection from Armageddon and Elemental Storm, but decreases spell power by 2." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "A kindly Sorceress thinks that your army's defenses could use a magical boost. She offers to enchant the Broach that you wear on your cloak, and you accept." ),
                   {},
                   {} },
                 { gettext_noop( "Battle Garb of Anduran" ),
                   gettext_noop(
-                      "The %{name} combines the powers of the three Anduran artifacts (+5 to attack, defense, and spell power). It also provides maximum luck and morale for the hero's troops and gives the hero the Town Portal spell." ),
+                      "The %{name} combines the powers of the three Anduran artifacts (+5 to attack, defense, and spell power)." ),
                   gettext_noop(
                       "Out of pity for a poor peasant, you purchase a chest of old junk they are hawking for too much gold. Later, as you search through it, you find it contains the 3 pieces of the legendary battle garb of Anduran!" ),
                   {},
                   {} },
                 { gettext_noop( "Crystal Ball" ),
-                  gettext_noop( "The %{name} lets the hero get more specific information about monsters, enemy heroes, and castles nearby the hero." ),
+                  gettext_noop( "The %{name} increases the hero's knowledge by %{count}." ),
                   gettext_noop(
                       "You come upon a caravan of gypsies who are feasting and fortifying their bodies with mead. They call you forward and say \"If you prove that you can dance the Rama-Buta, we will reward you.\" You don't know it, but try anyway. They laugh hysterically, but admire your bravery, giving you a Crystal Ball." ),
                   {},
                   {} },
-                { gettext_noop( "Heart of Fire" ), gettext_noop( "The %{name} provides %{count} percent protection from fire, but doubles the damage taken from cold." ), gettext_noop( "You enter a recently burned glade and come upon a Fire Elemental sitting atop a rock. It looks up, its flaming face contorted in a look of severe pain. It then tosses a glowing object at you. You put up your hands to block it, but it passes right through them and sears itself into your chest." ), {}, {} },
+                { gettext_noop( "Heart of Fire" ), gettext_noop( "The %{name} increases the hero's attack skill by %{count}." ), gettext_noop( "You enter a recently burned glade and come upon a Fire Elemental sitting atop a rock. It looks up, its flaming face contorted in a look of severe pain. It then tosses a glowing object at you. You put up your hands to block it, but it passes right through them and sears itself into your chest." ), {}, {} },
                 { gettext_noop( "Heart of Ice" ),
-                  gettext_noop( "The %{name} provides %{count} percent protection from cold, but doubles the damage taken from fire." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "Suddenly, a biting coldness engulfs your body. You seize up, falling from your horse. The pain subsides, but you still feel as if your chest is frozen. As you pick yourself up off of the ground, you hear hearty laughter. You turn around just in time to see a Frost Giant run off into the woods and disappear." ),
                   {},
@@ -545,13 +545,13 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "Masthead" ),
-                  gettext_noop( "The %{name} boosts the hero's troops' luck and morale by %{count} each in sea combat." ),
+                  gettext_noop( "The %{name} increases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "An old seaman tells you a tale of an enchanted masthead that he used in his youth to rally his crew during times of trouble. He then hands you a faded map that shows where he hid it. After much exploring, you find it stashed underneath a nearby dock." ),
                   {},
                   {} },
                 { gettext_noop( "Sphere of Negation" ),
-                  gettext_noop( "The %{name} disables all spell casting, for both sides, in combat." ),
+                  gettext_noop( "The %{name} increases the hero's defense skill by %{count}." ),
                   gettext_noop(
                       "You stop to help a Peasant catch a runaway mare. To show his gratitude, he hands you a tiny sphere. As soon as you grasp it, you feel the magical energy drain from your limbs..." ),
                   {},
@@ -574,7 +574,7 @@ namespace
                   {},
                   {} },
                 { gettext_noop( "Spade of Necromancy" ),
-                  gettext_noop( "The %{name} gives the hero increased necromancy skill." ),
+                  gettext_noop( "The %{name} increases the morale of the hero's army by %{count}." ),
                   gettext_noop(
                       "A dirty shovel has been thrust into a dirt mound nearby. Upon investigation, you discover it to be the enchanted shovel of the Gravediggers, long thought lost by mortals." ),
                   {},
@@ -634,7 +634,7 @@ namespace
 
         artifactData[Artifact::GIANT_FLAIL].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 1 );
 
-        artifactData[Artifact::BALLISTA].bonuses.emplace_back( fheroes2::ArtifactBonusType::EXTRA_CATAPULT_SHOTS, 1 );
+        artifactData[Artifact::BALLISTA].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 1 );
 
         artifactData[Artifact::STEALTH_SHIELD].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 2 );
 
@@ -658,9 +658,9 @@ namespace
 
         artifactData[Artifact::ENDLESS_PURSE_GOLD].bonuses.emplace_back( fheroes2::ArtifactBonusType::GOLD_INCOME, 500 );
 
-        artifactData[Artifact::NOMAD_BOOTS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LAND_MOBILITY, 600 );
+        artifactData[Artifact::NOMAD_BOOTS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
-        artifactData[Artifact::TRAVELER_BOOTS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LAND_MOBILITY, 300 );
+        artifactData[Artifact::TRAVELER_BOOTS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
         artifactData[Artifact::RABBIT_FOOT].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
@@ -670,70 +670,69 @@ namespace
 
         artifactData[Artifact::FOUR_LEAF_CLOVER].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
-        artifactData[Artifact::TRUE_COMPASS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LAND_MOBILITY, 500 );
-        artifactData[Artifact::TRUE_COMPASS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::SEA_MOBILITY, 500 );
+        artifactData[Artifact::TRUE_COMPASS_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 2 );
 
-        artifactData[Artifact::SAILORS_ASTROLABE_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::SEA_MOBILITY, 1000 );
+        artifactData[Artifact::SAILORS_ASTROLABE_MOBILITY].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
-        artifactData[Artifact::EVIL_EYE].bonuses.emplace_back( fheroes2::ArtifactBonusType::CURSE_SPELL_COST_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::EVIL_EYE].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::ENCHANTED_HOURGLASS].bonuses.emplace_back( fheroes2::ArtifactBonusType::EVERY_COMBAT_SPELL_DURATION, 2 );
+        artifactData[Artifact::ENCHANTED_HOURGLASS].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::GOLD_WATCH].bonuses.emplace_back( fheroes2::ArtifactBonusType::HYPNOTIZE_SPELL_EXTRA_EFFECTIVENESS_PERCENT, 100 );
+        artifactData[Artifact::GOLD_WATCH].bonuses.emplace_back( fheroes2::ArtifactBonusType::KNOWLEDGE_SKILL, 1 );
 
-        artifactData[Artifact::SKULLCAP].bonuses.emplace_back( fheroes2::ArtifactBonusType::MIND_INFLUENCE_SPELL_COST_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::SKULLCAP].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::ICE_CLOAK].bonuses.emplace_back( fheroes2::ArtifactBonusType::COLD_SPELL_DAMAGE_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::ICE_CLOAK].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 1 );
 
-        artifactData[Artifact::FIRE_CLOAK].bonuses.emplace_back( fheroes2::ArtifactBonusType::FIRE_SPELL_DAMAGE_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::FIRE_CLOAK].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 1 );
 
-        artifactData[Artifact::LIGHTNING_HELM].bonuses.emplace_back( fheroes2::ArtifactBonusType::LIGHTNING_SPELL_DAMAGE_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::LIGHTNING_HELM].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 1 );
 
-        artifactData[Artifact::EVERCOLD_ICICLE].bonuses.emplace_back( fheroes2::ArtifactBonusType::COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT, 50 );
+        artifactData[Artifact::EVERCOLD_ICICLE].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::EVERHOT_LAVA_ROCK].bonuses.emplace_back( fheroes2::ArtifactBonusType::FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT, 50 );
+        artifactData[Artifact::EVERHOT_LAVA_ROCK].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::LIGHTNING_ROD].bonuses.emplace_back( fheroes2::ArtifactBonusType::LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT, 50 );
+        artifactData[Artifact::LIGHTNING_ROD].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::SNAKE_RING].bonuses.emplace_back( fheroes2::ArtifactBonusType::BLESS_SPELL_COST_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::SNAKE_RING].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::ANKH].bonuses.emplace_back( fheroes2::ArtifactBonusType::RESURRECT_SPELL_EXTRA_EFFECTIVENESS_PERCENT, 100 );
+        artifactData[Artifact::ANKH].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 2 );
 
-        artifactData[Artifact::BOOK_ELEMENTS].bonuses.emplace_back( fheroes2::ArtifactBonusType::SUMMONING_SPELL_EXTRA_EFFECTIVENESS_PERCENT, 100 );
+        artifactData[Artifact::BOOK_ELEMENTS].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 3 );
 
-        artifactData[Artifact::ELEMENTAL_RING].bonuses.emplace_back( fheroes2::ArtifactBonusType::SUMMONING_SPELL_COST_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::ELEMENTAL_RING].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::HOLY_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::CURSE_SPELL_IMMUNITY );
+        artifactData[Artifact::HOLY_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::MORALE, 1 );
 
-        artifactData[Artifact::PENDANT_FREE_WILL].bonuses.emplace_back( fheroes2::ArtifactBonusType::HYPNOTIZE_SPELL_IMMUNITY );
+        artifactData[Artifact::PENDANT_FREE_WILL].bonuses.emplace_back( fheroes2::ArtifactBonusType::MORALE, 1 );
 
-        artifactData[Artifact::PENDANT_LIFE].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEATH_SPELL_IMMUNITY );
+        artifactData[Artifact::PENDANT_LIFE].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 2 );
 
-        artifactData[Artifact::SERENITY_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::BERSERK_SPELL_IMMUNITY );
+        artifactData[Artifact::SERENITY_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::MORALE, 1 );
 
-        artifactData[Artifact::SEEING_EYE_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::BLIND_SPELL_IMMUNITY );
+        artifactData[Artifact::SEEING_EYE_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
-        artifactData[Artifact::KINETIC_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::PARALYZE_SPELL_IMMUNITY );
+        artifactData[Artifact::KINETIC_PENDANT].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 1 );
 
-        artifactData[Artifact::PENDANT_DEATH].bonuses.emplace_back( fheroes2::ArtifactBonusType::HOLY_SPELL_IMMUNITY );
+        artifactData[Artifact::PENDANT_DEATH].bonuses.emplace_back( fheroes2::ArtifactBonusType::MORALE, 1 );
 
-        artifactData[Artifact::WAND_NEGATION].bonuses.emplace_back( fheroes2::ArtifactBonusType::DISPEL_SPELL_IMMUNITY );
+        artifactData[Artifact::WAND_NEGATION].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 1 );
 
-        artifactData[Artifact::GOLDEN_BOW].bonuses.emplace_back( fheroes2::ArtifactBonusType::NO_SHOOTING_PENALTY, GameStatic::getCastleWallRangedPenalty() );
+        artifactData[Artifact::GOLDEN_BOW].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 2 );
 
-        artifactData[Artifact::TELESCOPE].bonuses.emplace_back( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE, 1 );
+        artifactData[Artifact::TELESCOPE].bonuses.emplace_back( fheroes2::ArtifactBonusType::LUCK, 1 );
 
-        artifactData[Artifact::STATESMAN_QUILL].bonuses.emplace_back( fheroes2::ArtifactBonusType::SURRENDER_COST_REDUCTION_PERCENT, 10 );
+        artifactData[Artifact::STATESMAN_QUILL].bonuses.emplace_back( fheroes2::ArtifactBonusType::KNOWLEDGE_SKILL, 2 );
 
-        artifactData[Artifact::WIZARD_HAT].bonuses.emplace_back( fheroes2::ArtifactBonusType::EVERY_COMBAT_SPELL_DURATION, 10 );
+        artifactData[Artifact::WIZARD_HAT].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 3 );
 
-        artifactData[Artifact::POWER_RING].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POINTS_DAILY_GENERATION, 2 );
+        artifactData[Artifact::POWER_RING].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 2 );
 
-        artifactData[Artifact::AMMO_CART].bonuses.emplace_back( fheroes2::ArtifactBonusType::ENDLESS_AMMUNITION );
+        artifactData[Artifact::AMMO_CART].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 1 );
 
         artifactData[Artifact::TAX_LIEN].curses.emplace_back( fheroes2::ArtifactCurseType::GOLD_PENALTY, 250 );
 
-        artifactData[Artifact::HIDEOUS_MASK].curses.emplace_back( fheroes2::ArtifactCurseType::NO_JOINING_ARMIES );
+        artifactData[Artifact::HIDEOUS_MASK].curses.emplace_back( fheroes2::ArtifactCurseType::MORALE, 2 );
 
         artifactData[Artifact::ENDLESS_POUCH_SULFUR].bonuses.emplace_back( fheroes2::ArtifactBonusType::SULFUR_INCOME, 1 );
 
@@ -765,30 +764,27 @@ namespace
         artifactData[Artifact::UNUSED_85].bonuses.emplace_back( fheroes2::ArtifactBonusType::NONE );
         artifactData[Artifact::UNUSED_86].bonuses.emplace_back( fheroes2::ArtifactBonusType::NONE );
 
-        artifactData[Artifact::SPELL_SCROLL].bonuses.emplace_back( fheroes2::ArtifactBonusType::ADD_SPELL, Spell::NONE );
+        artifactData[Artifact::SPELL_SCROLL].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 2 );
 
         artifactData[Artifact::ARM_MARTYR].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 3 );
-        artifactData[Artifact::ARM_MARTYR].curses.emplace_back( fheroes2::ArtifactCurseType::UNDEAD_MORALE_PENALTY );
+        artifactData[Artifact::ARM_MARTYR].curses.emplace_back( fheroes2::ArtifactCurseType::MORALE, 1 );
 
         artifactData[Artifact::BREASTPLATE_ANDURAN].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 5 );
 
-        artifactData[Artifact::BROACH_SHIELDING].bonuses.emplace_back( fheroes2::ArtifactBonusType::ELEMENTAL_SPELL_DAMAGE_REDUCTION_PERCENT, 50 );
+        artifactData[Artifact::BROACH_SHIELDING].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 2 );
         artifactData[Artifact::BROACH_SHIELDING].curses.emplace_back( fheroes2::ArtifactCurseType::SPELL_POWER_SKILL, 2 );
 
         artifactData[Artifact::BATTLE_GARB].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 5 );
         artifactData[Artifact::BATTLE_GARB].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 5 );
         artifactData[Artifact::BATTLE_GARB].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 5 );
-        artifactData[Artifact::BATTLE_GARB].bonuses.emplace_back( fheroes2::ArtifactBonusType::MAXIMUM_MORALE );
-        artifactData[Artifact::BATTLE_GARB].bonuses.emplace_back( fheroes2::ArtifactBonusType::MAXIMUM_LUCK );
-        artifactData[Artifact::BATTLE_GARB].bonuses.emplace_back( fheroes2::ArtifactBonusType::ADD_SPELL, Spell::TOWNPORTAL );
 
-        artifactData[Artifact::CRYSTAL_BALL].bonuses.emplace_back( fheroes2::ArtifactBonusType::VIEW_MONSTER_INFORMATION );
+        artifactData[Artifact::CRYSTAL_BALL].bonuses.emplace_back( fheroes2::ArtifactBonusType::KNOWLEDGE_SKILL, 2 );
 
-        artifactData[Artifact::HEART_FIRE].bonuses.emplace_back( fheroes2::ArtifactBonusType::FIRE_SPELL_DAMAGE_REDUCTION_PERCENT, 50 );
-        artifactData[Artifact::HEART_FIRE].curses.emplace_back( fheroes2::ArtifactCurseType::COLD_SPELL_EXTRA_DAMAGE_PERCENT, 100 );
+        artifactData[Artifact::HEART_FIRE].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 2 );
+        artifactData[Artifact::HEART_FIRE].curses.emplace_back( fheroes2::ArtifactCurseType::MORALE, 1 );
 
-        artifactData[Artifact::HEART_ICE].bonuses.emplace_back( fheroes2::ArtifactBonusType::COLD_SPELL_DAMAGE_REDUCTION_PERCENT, 50 );
-        artifactData[Artifact::HEART_ICE].curses.emplace_back( fheroes2::ArtifactCurseType::FIRE_SPELL_EXTRA_DAMAGE_PERCENT, 100 );
+        artifactData[Artifact::HEART_ICE].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 2 );
+        artifactData[Artifact::HEART_ICE].curses.emplace_back( fheroes2::ArtifactCurseType::MORALE, 1 );
 
         artifactData[Artifact::HELMET_ANDURAN].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 5 );
 
@@ -799,10 +795,9 @@ namespace
         artifactData[Artifact::LEGENDARY_SCEPTER].bonuses.emplace_back( fheroes2::ArtifactBonusType::KNOWLEDGE_SKILL, 2 );
         artifactData[Artifact::LEGENDARY_SCEPTER].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 2 );
 
-        artifactData[Artifact::MASTHEAD].bonuses.emplace_back( fheroes2::ArtifactBonusType::SEA_BATTLE_MORALE_BOOST, 1 );
-        artifactData[Artifact::MASTHEAD].bonuses.emplace_back( fheroes2::ArtifactBonusType::SEA_BATTLE_LUCK_BOOST, 1 );
+        artifactData[Artifact::MASTHEAD].bonuses.emplace_back( fheroes2::ArtifactBonusType::MORALE, 1 );
 
-        artifactData[Artifact::SPHERE_NEGATION].bonuses.emplace_back( fheroes2::ArtifactBonusType::DISABLE_ALL_SPELL_COMBAT_CASTING );
+        artifactData[Artifact::SPHERE_NEGATION].bonuses.emplace_back( fheroes2::ArtifactBonusType::DEFENCE_SKILL, 3 );
 
         artifactData[Artifact::STAFF_WIZARDRY].bonuses.emplace_back( fheroes2::ArtifactBonusType::SPELL_POWER_SKILL, 5 );
 
@@ -811,7 +806,7 @@ namespace
 
         artifactData[Artifact::SWORD_ANDURAN].bonuses.emplace_back( fheroes2::ArtifactBonusType::ATTACK_SKILL, 5 );
 
-        artifactData[Artifact::SPADE_NECROMANCY].bonuses.emplace_back( fheroes2::ArtifactBonusType::NECROMANCY_SKILL, 10 );
+        artifactData[Artifact::SPADE_NECROMANCY].bonuses.emplace_back( fheroes2::ArtifactBonusType::MORALE, 1 );
 
         for ( const fheroes2::ArtifactData & artifact : artifactData ) {
             if ( artifact.bonuses.empty() && artifact.curses.empty() ) {
@@ -858,52 +853,13 @@ namespace fheroes2
         return false;
     }
 
-    bool isBonusMultiplied( const ArtifactBonusType bonus )
+    bool isBonusMultiplied( const ArtifactBonusType /*bonus*/ )
     {
-        switch ( bonus ) {
-        case ArtifactBonusType::SURRENDER_COST_REDUCTION_PERCENT:
-        case ArtifactBonusType::CURSE_SPELL_COST_REDUCTION_PERCENT:
-        case ArtifactBonusType::BLESS_SPELL_COST_REDUCTION_PERCENT:
-        case ArtifactBonusType::SUMMONING_SPELL_COST_REDUCTION_PERCENT:
-        case ArtifactBonusType::MIND_INFLUENCE_SPELL_COST_REDUCTION_PERCENT:
-        case ArtifactBonusType::COLD_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case ArtifactBonusType::FIRE_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case ArtifactBonusType::LIGHTNING_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case ArtifactBonusType::ELEMENTAL_SPELL_DAMAGE_REDUCTION_PERCENT:
-        case ArtifactBonusType::HYPNOTIZE_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case ArtifactBonusType::COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case ArtifactBonusType::FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case ArtifactBonusType::LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case ArtifactBonusType::RESURRECT_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-        case ArtifactBonusType::SUMMONING_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-            return true;
-        default:
-            break;
-        }
-
         return false;
     }
 
-    bool isBonusUnique( const ArtifactBonusType bonus )
+    bool isBonusUnique( const ArtifactBonusType /*bonus*/ )
     {
-        switch ( bonus ) {
-        case ArtifactBonusType::CURSE_SPELL_IMMUNITY:
-        case ArtifactBonusType::HYPNOTIZE_SPELL_IMMUNITY:
-        case ArtifactBonusType::DEATH_SPELL_IMMUNITY:
-        case ArtifactBonusType::BERSERK_SPELL_IMMUNITY:
-        case ArtifactBonusType::BLIND_SPELL_IMMUNITY:
-        case ArtifactBonusType::PARALYZE_SPELL_IMMUNITY:
-        case ArtifactBonusType::HOLY_SPELL_IMMUNITY:
-        case ArtifactBonusType::DISPEL_SPELL_IMMUNITY:
-        case ArtifactBonusType::ENDLESS_AMMUNITION:
-        case ArtifactBonusType::NO_SHOOTING_PENALTY:
-        case ArtifactBonusType::VIEW_MONSTER_INFORMATION:
-        case ArtifactBonusType::DISABLE_ALL_SPELL_COMBAT_CASTING:
-            return true;
-        default:
-            break;
-        }
-
         return false;
     }
 
@@ -920,54 +876,23 @@ namespace fheroes2
         return false;
     }
 
-    bool isCurseMultiplied( const ArtifactCurseType curse )
+    bool isCurseMultiplied( const ArtifactCurseType /*curse*/ )
     {
-        switch ( curse ) {
-        case ArtifactCurseType::FIRE_SPELL_EXTRA_DAMAGE_PERCENT:
-        case ArtifactCurseType::COLD_SPELL_EXTRA_DAMAGE_PERCENT:
-            return true;
-        default:
-            break;
-        }
-
         return false;
     }
 
-    bool isCurseUnique( const ArtifactCurseType curse )
+    bool isCurseUnique( const ArtifactCurseType /*curse*/ )
     {
-        switch ( curse ) {
-        case ArtifactCurseType::NO_JOINING_ARMIES:
-        case ArtifactCurseType::UNDEAD_MORALE_PENALTY:
-            return true;
-        default:
-            break;
-        }
-
         return false;
     }
 
-    std::string ArtifactData::getDescription( const int extraParameter ) const
+    std::string ArtifactData::getDescription( const int /*extraParameter*/ ) const
     {
         std::string description( _( untranslatedBaseDescription ) );
 
         StringReplace( description, "%{name}", _( untranslatedName ) );
 
-        std::vector<ArtifactBonus>::const_iterator foundBonus = std::find( bonuses.begin(), bonuses.end(), ArtifactBonus( ArtifactBonusType::ADD_SPELL ) );
-        if ( foundBonus != bonuses.end() ) {
-            if ( foundBonus->value == Spell::NONE ) {
-                if ( extraParameter == Spell::NONE ) {
-                    // This is a case when artifact description is viewed from list in Battle Only mode or in Editor.
-                    StringReplace( description, "%{spell}", _( "spellBonus|selected by user" ) );
-                }
-                else {
-                    StringReplace( description, "%{spell}", Spell( extraParameter ).GetName() );
-                }
-            }
-            else {
-                StringReplace( description, "%{spell}", Spell( foundBonus->value ).GetName() );
-            }
-        }
-        else if ( !bonuses.empty() ) {
+        if ( !bonuses.empty() ) {
             StringReplace( description, "%{count}", bonuses.front().value );
         }
         else if ( !curses.empty() ) {
@@ -1066,128 +991,11 @@ namespace fheroes2
                 case ArtifactBonusType::GEMS_INCOME:
                     os << "Increase daily kingdom's income by " << bonus.value << " gem" << std::endl;
                     break;
-                case ArtifactBonusType::SPELL_POINTS_DAILY_GENERATION:
-                    os << "Restore " << bonus.value << " spell points for a hero" << std::endl;
-                    break;
-                case ArtifactBonusType::LAND_MOBILITY:
-                    os << "Add " << bonus.value << " move points to a hero on Land" << std::endl;
-                    break;
-                case ArtifactBonusType::SEA_MOBILITY:
-                    os << "Add " << bonus.value << " move points to a hero on Sea" << std::endl;
-                    break;
                 case ArtifactBonusType::MORALE:
                     os << "Increase army Morale by " << bonus.value << std::endl;
                     break;
                 case ArtifactBonusType::LUCK:
                     os << "Increase army Luck by " << bonus.value << std::endl;
-                    break;
-                case ArtifactBonusType::EVERY_COMBAT_SPELL_DURATION:
-                    os << "Increase every combat spell duration by " << bonus.value << " rounds" << std::endl;
-                    break;
-                case ArtifactBonusType::SURRENDER_COST_REDUCTION_PERCENT:
-                    os << "Reduce Surrender cost to " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::CURSE_SPELL_COST_REDUCTION_PERCENT:
-                    os << "Reduce Curse spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::BLESS_SPELL_COST_REDUCTION_PERCENT:
-                    os << "Reduce Bless spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::SUMMONING_SPELL_COST_REDUCTION_PERCENT:
-                    os << "Reduce Summoning spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::MIND_INFLUENCE_SPELL_COST_REDUCTION_PERCENT:
-                    os << "Reduce Mind Influence related spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::COLD_SPELL_DAMAGE_REDUCTION_PERCENT:
-                    os << "Reduce Cold spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::FIRE_SPELL_DAMAGE_REDUCTION_PERCENT:
-                    os << "Reduce Fire spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::LIGHTNING_SPELL_DAMAGE_REDUCTION_PERCENT:
-                    os << "Reduce Lightning spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::ELEMENTAL_SPELL_DAMAGE_REDUCTION_PERCENT:
-                    os << "Reduce Elemental Storm and Armageddon spell cost by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::HYPNOTIZE_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-                    os << "Improve Hypnotize spell effectiveness by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-                    os << "Improve Cold spell effectiveness by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-                    os << "Improve Fire spell effectiveness by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-                    os << "Improve Lightning spell effectiveness by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::RESURRECT_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-                    os << "Improve Resurrection spell effectiveness by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::SUMMONING_SPELL_EXTRA_EFFECTIVENESS_PERCENT:
-                    os << "Improve Summoning spell effectiveness by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::CURSE_SPELL_IMMUNITY:
-                    os << "Add immunity to Curse spells" << std::endl;
-                    break;
-                case ArtifactBonusType::HYPNOTIZE_SPELL_IMMUNITY:
-                    os << "Add immunity to Hypnotize spells" << std::endl;
-                    break;
-                case ArtifactBonusType::DEATH_SPELL_IMMUNITY:
-                    os << "Add immunity to Death spells" << std::endl;
-                    break;
-                case ArtifactBonusType::BERSERK_SPELL_IMMUNITY:
-                    os << "Add immunity to Berserk spells" << std::endl;
-                    break;
-                case ArtifactBonusType::BLIND_SPELL_IMMUNITY:
-                    os << "Add immunity to Blind spells" << std::endl;
-                    break;
-                case ArtifactBonusType::PARALYZE_SPELL_IMMUNITY:
-                    os << "Add immunity to Paralyze spells" << std::endl;
-                    break;
-                case ArtifactBonusType::HOLY_SPELL_IMMUNITY:
-                    os << "Add immunity to Holy spells" << std::endl;
-                    break;
-                case ArtifactBonusType::DISPEL_SPELL_IMMUNITY:
-                    os << "Add immunity to Dispel spells" << std::endl;
-                    break;
-                case ArtifactBonusType::ENDLESS_AMMUNITION:
-                    os << "Shooters have unlimited number of shots" << std::endl;
-                    break;
-                case ArtifactBonusType::NO_SHOOTING_PENALTY:
-                    os << "Shooters have no penalty over obstacles" << std::endl;
-                    break;
-                case ArtifactBonusType::EXTRA_CATAPULT_SHOTS:
-                    os << "Add " << bonus.value << " shots for catapult" << std::endl;
-                    break;
-                case ArtifactBonusType::AREA_REVEAL_DISTANCE:
-                    os << "Increase fog reveal area by " << bonus.value << std::endl;
-                    break;
-                case ArtifactBonusType::ADD_SPELL:
-                    os << "Add '" << Spell( bonus.value ).GetName() << "' spell to hero's list of spells" << std::endl;
-                    break;
-                case ArtifactBonusType::VIEW_MONSTER_INFORMATION:
-                    os << "Add ability to view monster information" << std::endl;
-                    break;
-                case ArtifactBonusType::SEA_BATTLE_MORALE_BOOST:
-                    os << "Increase army's Morale by " << bonus.value << " when in Sea" << std::endl;
-                    break;
-                case ArtifactBonusType::SEA_BATTLE_LUCK_BOOST:
-                    os << "Increase army's Luck by " << bonus.value << " when in Sea" << std::endl;
-                    break;
-                case ArtifactBonusType::DISABLE_ALL_SPELL_COMBAT_CASTING:
-                    os << "Disable all spell casting during battle" << std::endl;
-                    break;
-                case ArtifactBonusType::NECROMANCY_SKILL:
-                    os << "Increase Necromancy Skill by " << bonus.value << " percent" << std::endl;
-                    break;
-                case ArtifactBonusType::MAXIMUM_MORALE:
-                    os << "Gives the army maximum Morale." << std::endl;
-                    break;
-                case ArtifactBonusType::MAXIMUM_LUCK:
-                    os << "Gives the army maximum Luck." << std::endl;
                     break;
                 default:
                     // Did you add a new bonus type? Add the logic above!
@@ -1215,26 +1023,14 @@ namespace fheroes2
                 }
 
                 switch ( curse.type ) {
-                case ArtifactCurseType::NO_JOINING_ARMIES:
-                    os << "No army can join hero" << std::endl;
-                    break;
                 case ArtifactCurseType::MORALE:
                     os << "Decreases army's Morale by " << curse.value << std::endl;
-                    break;
-                case ArtifactCurseType::UNDEAD_MORALE_PENALTY:
-                    os << "Add Undead Penalty to army's Morale" << std::endl;
                     break;
                 case ArtifactCurseType::GOLD_PENALTY:
                     os << "Deducts " << curse.value << " gold from kingdom daily" << std::endl;
                     break;
                 case ArtifactCurseType::SPELL_POWER_SKILL:
                     os << "Reduces Spell Power by " << curse.value << std::endl;
-                    break;
-                case ArtifactCurseType::FIRE_SPELL_EXTRA_DAMAGE_PERCENT:
-                    os << "Increases Damage from Fire spells by " << curse.value << " percent" << std::endl;
-                    break;
-                case ArtifactCurseType::COLD_SPELL_EXTRA_DAMAGE_PERCENT:
-                    os << "Increases Damage from Cold spells by " << curse.value << " percent" << std::endl;
                     break;
                 default:
                     // Did you add a new curse type? Add the logic above!

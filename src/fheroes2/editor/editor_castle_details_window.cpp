@@ -330,13 +330,13 @@ namespace
 
         fheroes2::Copy( backgroundSprite, 0, 0, display, dialogRoi.x, dialogRoi.y, dialogRoi.width, dialogRoi.height - statusBarHeight );
 
-        const bool hasLibraryCapability = ( race == Race::WZRD ) || ( race == Race::RAND );
+        const bool hasLibraryCapability = ( race == Race::RAND );
 
         // Guild image.
         fheroes2::renderMageGuildBuilding( race, 5, dialogRoi.getPosition() );
 
         // Show spells.
-        std::array<std::unique_ptr<fheroes2::SpellsInOneRow>, 5> spellRows;
+        std::array<std::unique_ptr<fheroes2::SpellsInOneRow>, 4> spellRows;
         for ( int32_t levelIndex = 0; levelIndex < static_cast<int32_t>( spellRows.size() ); ++levelIndex ) {
             // REMEMBER! The level of spells as a parameter is in [1, 5] interval, but as an index is in [0, 4] interval.
             const int32_t spellsCount = MageGuild::getMaxSpellsCount( levelIndex + 1, hasLibraryCapability );
@@ -533,8 +533,10 @@ namespace
                                 const Spell spell( spellId );
                                 const int32_t spellLevel = spell.Level();
 
-                                // Banned spells must be always valid ones.
-                                assert( spellLevel >= 1 && spellLevel <= 5 );
+                                // Only handle HoMM1 spell levels (1-4).
+                                if ( spellLevel < 1 || spellLevel > static_cast<int32_t>( spellRows.size() ) ) {
+                                    continue;
+                                }
 
                                 const auto & spellRow = spellRows[spellLevel - 1];
 
@@ -580,7 +582,7 @@ namespace
             buttonOkay.drawOnState( eventHandler.isMouseLeftButtonPressedAndHeldInArea( buttonOkay.area() ) );
             buttonBannedSpells.drawOnState( eventHandler.isMouseLeftButtonPressedAndHeldInArea( buttonBannedSpells.area() ) );
 
-            for ( size_t levelIndex = 0; levelIndex < 5; ++levelIndex ) {
+            for ( size_t levelIndex = 0; levelIndex < 4; ++levelIndex ) {
                 if ( spellRows[levelIndex]->queueEventProcessing( true ) ) {
                     if ( eventHandler.MouseClickLeft() ) {
                         spellSelectProcessing( levelIndex );
@@ -734,8 +736,7 @@ namespace Editor
                                                            BuildingData( DWELLING_MONSTER5, race, metadataBuildings, metadataRestrictedBuildings ),
                                                            BuildingData( DWELLING_MONSTER6, race, metadataBuildings, metadataRestrictedBuildings ),
                                                            BuildingData( BUILD_MAGEGUILD1, race, metadataBuildings, metadataRestrictedBuildings ),
-                                                           BuildingData( race == Race::NECR ? BUILD_SHRINE : BUILD_TAVERN, race, metadataBuildings,
-                                                                         metadataRestrictedBuildings ),
+                                                           BuildingData( BUILD_TAVERN, race, metadataBuildings, metadataRestrictedBuildings ),
                                                            BuildingData( BUILD_THIEVESGUILD, race, metadataBuildings, metadataRestrictedBuildings ),
                                                            BuildingData( BUILD_SHIPYARD, race, metadataBuildings, metadataRestrictedBuildings ),
                                                            BuildingData( BUILD_STATUE, race, metadataBuildings, metadataRestrictedBuildings ),

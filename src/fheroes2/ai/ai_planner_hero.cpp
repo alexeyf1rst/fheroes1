@@ -639,7 +639,7 @@ namespace
 
         // Free army upgrade objects.
         case MP2::OBJ_FREEMANS_FOUNDRY:
-            return army.HasMonster( Monster::PIKEMAN ) || army.HasMonster( Monster::SWORDSMAN ) || army.HasMonster( Monster::IRON_GOLEM );
+            return army.HasMonster( Monster::PIKEMAN ) || army.HasMonster( Monster::SWORDSMAN );
         case MP2::OBJ_HILL_FORT:
             return army.HasMonster( Monster::DWARF ) || army.HasMonster( Monster::ORC ) || army.HasMonster( Monster::OGRE );
 
@@ -1637,7 +1637,7 @@ double AI::Planner::getGeneralObjectValue( const Heroes & hero, const int32_t in
         const uint32_t daysActive = numOfDaysPerWeek - world.GetDay() + 1;
         double movementBonus = daysActive * GameStatic::getMovementPointBonus( objectType ) - 2.0 * distanceToObject;
 
-        const double upgradeValue = getMonsterUpgradeValue( hero.GetArmy(), Monster::CHAMPION );
+        const double upgradeValue = getMonsterUpgradeValue( hero.GetArmy(), Monster::CAVALRY );
         if ( upgradeValue > 0.0001 ) {
             // Even if no movement bonus exist it is worth to visit just to upgrade monsters.
             return std::max( movementBonus, 0.0 ) + freeMonsterUpgradeModifier * upgradeValue;
@@ -1653,9 +1653,8 @@ double AI::Planner::getGeneralObjectValue( const Heroes & hero, const int32_t in
     case MP2::OBJ_FREEMANS_FOUNDRY: {
         const double upgradePikemanValue = getMonsterUpgradeValue( hero.GetArmy(), Monster::PIKEMAN );
         const double upgradeSwordsmanValue = getMonsterUpgradeValue( hero.GetArmy(), Monster::SWORDSMAN );
-        const double upgradeGolemValue = getMonsterUpgradeValue( hero.GetArmy(), Monster::IRON_GOLEM );
 
-        return freeMonsterUpgradeModifier * ( upgradePikemanValue + upgradeSwordsmanValue + upgradeGolemValue );
+        return freeMonsterUpgradeModifier * ( upgradePikemanValue + upgradeSwordsmanValue );
     }
     case MP2::OBJ_HILL_FORT: {
         const double upgradeDwarfValue = getMonsterUpgradeValue( hero.GetArmy(), Monster::DWARF );

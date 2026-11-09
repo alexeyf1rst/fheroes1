@@ -44,8 +44,7 @@ namespace AudioManager
     public:
         AudioInitializer() = delete;
 
-        AudioInitializer( const std::string & originalAGGFilePath, const std::string & expansionAGGFilePath, const ListFiles & midiSoundFonts,
-                          const std::string & timidityCfgPath );
+        AudioInitializer( const std::string & originalAGGFilePath, const ListFiles & midiSoundFonts, const std::string & timidityCfgPath );
         AudioInitializer( const AudioInitializer & ) = delete;
         AudioInitializer & operator=( const AudioInitializer & ) = delete;
 

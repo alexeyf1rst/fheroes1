@@ -45,54 +45,7 @@ namespace fheroes2
 
         // These bonuses are unique per artifact type but cumulative across multiple artifact types.
         MORALE,
-        LUCK,
-        SEA_BATTLE_MORALE_BOOST,
-        SEA_BATTLE_LUCK_BOOST,
-        LAND_MOBILITY,
-        SEA_MOBILITY,
-        SPELL_POINTS_DAILY_GENERATION,
-        EVERY_COMBAT_SPELL_DURATION,
-        EXTRA_CATAPULT_SHOTS,
-        AREA_REVEAL_DISTANCE,
-        ADD_SPELL,
-        NECROMANCY_SKILL,
-
-        // These bonuses are unique per artifact type but the effect is multiplied with different artifact types.
-        SURRENDER_COST_REDUCTION_PERCENT,
-
-        CURSE_SPELL_COST_REDUCTION_PERCENT,
-        BLESS_SPELL_COST_REDUCTION_PERCENT,
-        SUMMONING_SPELL_COST_REDUCTION_PERCENT,
-        MIND_INFLUENCE_SPELL_COST_REDUCTION_PERCENT,
-
-        COLD_SPELL_DAMAGE_REDUCTION_PERCENT,
-        FIRE_SPELL_DAMAGE_REDUCTION_PERCENT,
-        LIGHTNING_SPELL_DAMAGE_REDUCTION_PERCENT,
-        ELEMENTAL_SPELL_DAMAGE_REDUCTION_PERCENT,
-
-        HYPNOTIZE_SPELL_EXTRA_EFFECTIVENESS_PERCENT,
-        COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT,
-        FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT,
-        LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT,
-        RESURRECT_SPELL_EXTRA_EFFECTIVENESS_PERCENT,
-        SUMMONING_SPELL_EXTRA_EFFECTIVENESS_PERCENT,
-
-        // All bonuses below are unique per hero. They do not require any extra values. Only one artifact with such bonus will be used.
-        CURSE_SPELL_IMMUNITY,
-        HYPNOTIZE_SPELL_IMMUNITY,
-        DEATH_SPELL_IMMUNITY,
-        BERSERK_SPELL_IMMUNITY,
-        BLIND_SPELL_IMMUNITY,
-        PARALYZE_SPELL_IMMUNITY,
-        HOLY_SPELL_IMMUNITY,
-        DISPEL_SPELL_IMMUNITY,
-
-        ENDLESS_AMMUNITION,
-        NO_SHOOTING_PENALTY,
-        VIEW_MONSTER_INFORMATION,
-        DISABLE_ALL_SPELL_COMBAT_CASTING,
-        MAXIMUM_MORALE,
-        MAXIMUM_LUCK
+        LUCK
     };
 
     enum class ArtifactCurseType : int32_t
@@ -102,15 +55,7 @@ namespace fheroes2
         SPELL_POWER_SKILL,
 
         // These curses are unique per artifact type but cumulative across multiple artifact types.
-        MORALE,
-
-        // These curses are unique per artifact type but the effect is multiplied with different artifact types.
-        FIRE_SPELL_EXTRA_DAMAGE_PERCENT,
-        COLD_SPELL_EXTRA_DAMAGE_PERCENT,
-
-        // All curses below are unique per hero. They do not require any extra values. Only one artifact with such curse will be used.
-        NO_JOINING_ARMIES,
-        UNDEAD_MORALE_PENALTY
+        MORALE
     };
 
     struct ArtifactBonus

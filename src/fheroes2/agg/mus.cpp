@@ -70,9 +70,9 @@ namespace
                                                   { MUS::LOSTGAME, "Lost Game" },
                                                   { MUS::NEW_WEEK, "New Week" },
                                                   { MUS::NEW_MONTH, "New Month" },
-                                                  { MUS::ARCHIBALD_CAMPAIGN_SCREEN, "Archibald Campaign" },
+                                                  { MUS::SLAYER_CAMPAIGN_SCREEN, "Archibald Campaign" },
                                                   { MUS::PUZZLE, "Map Puzzle" },
-                                                  { MUS::ROLAND_CAMPAIGN_SCREEN, "Roland Campaign" },
+                                                  { MUS::IRONFIST_CAMPAIGN_SCREEN, "Roland Campaign" },
                                                   { MUS::CARAVANS, "25" },
                                                   { MUS::CARAVANS_2, "26" },
                                                   { MUS::CARAVANS_3, "27" },
@@ -179,10 +179,6 @@ namespace MUS
             return SORCERESS_CASTLE;
         case Race::WRLK:
             return WARLOCK_CASTLE;
-        case Race::WZRD:
-            return WIZARD_CASTLE;
-        case Race::NECR:
-            return NECROMANCER_CASTLE;
         default:
             // Did you add a new race? Add an appropriate music theme for it!
             assert( 0 );

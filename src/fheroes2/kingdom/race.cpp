@@ -38,10 +38,6 @@ const char * Race::String( int race )
         return _( "Sorceress" );
     case Race::WRLK:
         return _( "Warlock" );
-    case Race::WZRD:
-        return _( "Wizard" );
-    case Race::NECR:
-        return _( "Necromancer" );
     case Race::MULT:
         return _( "Multi" );
     case Race::RAND:
@@ -68,10 +64,6 @@ const char * Race::DoubleLinedString( int race )
         return _( "doubleLined|Sorceress" );
     case Race::WRLK:
         return _( "doubleLined|Warlock" );
-    case Race::WZRD:
-        return _( "doubleLined|Wizard" );
-    case Race::NECR:
-        return _( "doubleLined|Necro-\nmancer" );
     case Race::MULT:
         return _( "doubleLinedRace|Multi" );
     case Race::RAND:
@@ -89,22 +81,18 @@ const char * Race::DoubleLinedString( int race )
 
 int Race::Rand()
 {
-    switch ( Rand::Get( 1, 6 ) ) {
+    switch ( Rand::Get( 1, 4 ) ) {
     case 1:
         return Race::KNGT;
     case 2:
         return Race::BARB;
     case 3:
         return Race::SORC;
-    case 4:
-        return Race::WRLK;
-    case 5:
-        return Race::WZRD;
     default:
         break;
     }
 
-    return Race::NECR;
+    return Race::WRLK;
 }
 
 bool Race::isMagicalRace( const int race )
@@ -115,8 +103,6 @@ bool Race::isMagicalRace( const int race )
         return false;
     case SORC:
     case WRLK:
-    case WZRD:
-    case NECR:
         return true;
     default:
         assert( 0 );
@@ -131,11 +117,9 @@ bool Race::isEvilRace( const int race )
     switch ( race ) {
     case BARB:
     case WRLK:
-    case NECR:
         return true;
     case KNGT:
     case SORC:
-    case WZRD:
     case MULT:
     case RAND:
         return false;
@@ -159,12 +143,8 @@ uint8_t Race::IndexToRace( const int index )
     case 3:
         return Race::WRLK;
     case 4:
-        return Race::WZRD;
-    case 5:
-        return Race::NECR;
-    case 6:
         return Race::MULT;
-    case 7:
+    case 5:
         return Race::RAND;
     default:
         break;
@@ -184,10 +164,6 @@ uint32_t Race::getRaceIcnIndex( const int race, const bool isActivePlayer )
         return isActivePlayer ? 53 : 72;
     case Race::WRLK:
         return isActivePlayer ? 54 : 73;
-    case Race::WZRD:
-        return isActivePlayer ? 55 : 74;
-    case Race::NECR:
-        return isActivePlayer ? 56 : 75;
     case Race::MULT:
         return isActivePlayer ? 57 : 76;
     case Race::RAND:
@@ -211,10 +187,6 @@ int Race::getNextRace( const int race )
     case Race::SORC:
         return Race::WRLK;
     case Race::WRLK:
-        return Race::WZRD;
-    case Race::WZRD:
-        return Race::NECR;
-    case Race::NECR:
         return Race::RAND;
     case Race::RAND:
         return Race::KNGT;
@@ -237,12 +209,8 @@ int Race::getPreviousRace( const int race )
         return Race::BARB;
     case Race::WRLK:
         return Race::SORC;
-    case Race::WZRD:
-        return Race::WRLK;
-    case Race::NECR:
-        return Race::WZRD;
     case Race::RAND:
-        return Race::NECR;
+        return Race::WRLK;
     default:
         // Did you add a new race? Add the logic above
         assert( 0 );

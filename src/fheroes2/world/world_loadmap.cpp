@@ -46,6 +46,7 @@
 #include "game_language.h"
 #include "game_over.h"
 #include "game_static.h"
+#include "ground.h"
 #include "heroes.h"
 #include "kingdom.h"
 #include "logging.h"
@@ -355,11 +356,11 @@ bool World::LoadMapMP2( const std::string & filename, const bool isOriginalMp2Fi
             break;
         case 0x04:
         case 0x84:
-            vec_castles.AddCastle( std::make_unique<Castle>( posX, posY, Race::WZRD ) );
+            vec_castles.AddCastle( std::make_unique<Castle>( posX, posY, Race::WRLK ) );
             break;
         case 0x05:
         case 0x85:
-            vec_castles.AddCastle( std::make_unique<Castle>( posX, posY, Race::NECR ) );
+            vec_castles.AddCastle( std::make_unique<Castle>( posX, posY, Race::BARB ) );
             break;
         case 0x06:
         case 0x86:
@@ -549,10 +550,10 @@ bool World::LoadMapMP2( const std::string & filename, const bool isOriginalMp2Fi
                         raceType = Race::WRLK;
                         break;
                     case 4:
-                        raceType = Race::WZRD;
+                        raceType = Race::WRLK;
                         break;
                     case 5:
-                        raceType = Race::NECR;
+                        raceType = Race::BARB;
                         break;
                     default:
                         DEBUG_LOG( DBG_GAME, DBG_WARN, "Invalid MP2 file format: unknown race ID for Jail hero " << static_cast<int>( raceId ) )
@@ -564,7 +565,7 @@ bool World::LoadMapMP2( const std::string & filename, const bool isOriginalMp2Fi
                     // Byte 17 determines whether the hero has a custom portrait, and byte 18 contains the custom portrait ID. If the hero has a custom portrait, then we
                     // should directly use the hero corresponding to this portrait, if possible.
                     // MP2 format stores hero IDs start from 0, while fheroes2 engine starts from 1.
-                    if ( pblock[17] && pblock[18] + 1 <= Heroes::JARKONAS ) {
+                    if ( pblock[17] && pblock[18] + 1 <= Heroes::BRAX ) {
                         hero = vec_heroes.Get( pblock[18] + 1 );
                     }
 
@@ -601,7 +602,7 @@ bool World::LoadMapMP2( const std::string & filename, const bool isOriginalMp2Fi
                         // Byte 17 determines whether the hero has a custom portrait, and byte 18 contains the custom portrait ID. If the hero has a custom portrait, then
                         // we should directly use the hero corresponding to this portrait, if possible.
                         // MP2 format stores hero IDs start from 0, while fheroes2 engine starts from 1.
-                        if ( pblock[17] && pblock[18] + 1 <= Heroes::JARKONAS ) {
+                        if ( pblock[17] && pblock[18] + 1 <= Heroes::BRAX ) {
                             hero = vec_heroes.Get( pblock[18] + 1 );
                         }
 
@@ -1780,6 +1781,198 @@ bool World::setHeroIdsForMapConditions()
 
         hero->SetModes( Heroes::NOTDISMISS | Heroes::CUSTOM );
     }
+
+    return true;
+}
+
+bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
+{
+    Reset();
+    Defaults();
+
+    if ( data.size() < 6 ) {
+        return false;
+    }
+
+    // Detect format from the u16 LE magic at offset 0.
+    // Disk .MAP format:  magic = 0x03E8; dimensions are at secondary header offset 1364+2 / 1364+4.
+    // AGG-internal format: magic != 0x03E8; dimensions are at offset 2 / 4.
+    constexpr size_t kDiskSecondaryHdr = 1364;
+    const uint16_t magic = static_cast<uint16_t>( data[0] ) | ( static_cast<uint16_t>( data[1] ) << 8 );
+    const bool isDiskFormat = ( magic == 0x03E8 );
+
+    uint16_t mapWidth, mapHeight;
+    if ( isDiskFormat ) {
+        if ( data.size() < kDiskSecondaryHdr + 6 ) {
+            ERROR_LOG( "HoMM1 map: disk format too short (" << data.size() << " bytes)" )
+            return false;
+        }
+        mapWidth  = static_cast<uint16_t>( data[kDiskSecondaryHdr + 2] ) | ( static_cast<uint16_t>( data[kDiskSecondaryHdr + 3] ) << 8 );
+        mapHeight = static_cast<uint16_t>( data[kDiskSecondaryHdr + 4] ) | ( static_cast<uint16_t>( data[kDiskSecondaryHdr + 5] ) << 8 );
+    }
+    else {
+        mapWidth  = static_cast<uint16_t>( data[2] ) | ( static_cast<uint16_t>( data[3] ) << 8 );
+        mapHeight = static_cast<uint16_t>( data[4] ) | ( static_cast<uint16_t>( data[5] ) << 8 );
+    }
+
+    constexpr uint16_t maxHoMM1MapSide = 72;
+    if ( mapWidth == 0 || mapWidth != mapHeight || mapWidth > maxHoMM1MapSide ) {
+        ERROR_LOG( "HoMM1 map: invalid dimensions " << mapWidth << " x " << mapHeight )
+        return false;
+    }
+
+    width  = static_cast<int32_t>( mapWidth );
+    height = static_cast<int32_t>( mapHeight );
+
+    const int32_t worldSize = width * height;
+
+    // Tile data starts immediately after the secondary header (disk) or after the 6-byte header (AGG).
+    const size_t tileDataOffset = isDiskFormat ? ( kDiskSecondaryHdr + 6 ) : 6;
+    constexpr size_t kTileBytes = 10;
+    const size_t tileDataSize = static_cast<size_t>( worldSize ) * kTileBytes;
+
+    if ( data.size() < tileDataOffset + tileDataSize ) {
+        ERROR_LOG( "HoMM1 map: not enough data for tiles (need " << tileDataOffset + tileDataSize << " bytes, have " << data.size() << ")" )
+        return false;
+    }
+
+    vec_tiles.resize( worldSize );
+    for ( int32_t i = 0; i < worldSize; ++i ) {
+        const size_t tileOff = tileDataOffset + static_cast<size_t>( i ) * kTileBytes;
+        const uint8_t terrain = data[tileOff];
+        if ( terrain >= Maps::Ground::homm1TilesPerTerrain * Maps::Ground::homm1TerrainCount ) {
+            ERROR_LOG( "HoMM1 map: invalid terrain tile at index " << i );
+            return false;
+        }
+        Maps::Tile & tile = vec_tiles[i];
+        tile.setIndex( i );
+        // The first two flags are the vertical and horizontal ground flips.
+        tile.setTerrain( Maps::Ground::homm1ImageFlag | terrain, data[tileOff + 6] & 0x03 );
+    }
+
+    // Scan tile data for castle entrance tiles.
+    // Each tile is 10 bytes; byte[8] is the semantic type.
+    // Semantic type 0xa0 (128+32) marks castle/town entrance tiles — exactly one per castle structure.
+    std::vector<fheroes2::Point> castlePositions;
+    for ( int32_t row = 0; row < height; ++row ) {
+        for ( int32_t col = 0; col < width; ++col ) {
+            const size_t tileOff = tileDataOffset + static_cast<size_t>( row * width + col ) * kTileBytes;
+            if ( data[tileOff + 8] == 0xa0 ) {
+                castlePositions.push_back( { col, row } );
+            }
+        }
+    }
+
+    // Parse post-tile hero block: triplets of (col, row, colorFlag) terminated when col byte == 0xFF.
+    // Entries with colorFlag & 0x80 are player starting positions.
+    // colorFlag & 0x7F: on some maps these are distinct (1=Red, 2=Blue, 3=Green, 4=Yellow);
+    // on most maps all starting positions share the same value (typically 0x84).
+    const size_t postTileOffset = tileDataOffset + tileDataSize;
+    struct HeroEntry
+    {
+        int32_t col;
+        int32_t row;
+        uint8_t colorFlag;
+    };
+    std::vector<HeroEntry> heroEntries;
+    {
+        size_t idx = postTileOffset;
+        while ( idx + 2 < data.size() ) {
+            const uint8_t col       = data[idx];
+            const uint8_t row       = data[idx + 1];
+            const uint8_t colorFlag = data[idx + 2];
+            idx += 3;
+            if ( col == 0xFF ) {
+                break;
+            }
+            if ( colorFlag & 0x80 ) {
+                heroEntries.push_back( { static_cast<int32_t>( col ), static_cast<int32_t>( row ), colorFlag } );
+            }
+        }
+    }
+
+    // Determine whether the map uses per-position color indices (indices 1-4 are distinct across all entries)
+    // or whether all entries share the same value (generic starting-position marker).
+    // When distinct: colorIndex 1=Red, 2=Blue, 3=Green, 4=Yellow.
+    // When all-same: assign colors by position order (1st->Blue, 2nd->Green, 3rd->Red, 4th->Yellow)
+    // so the human player (Blue) always gets the first castle.
+    const std::array<PlayerColor, 4> kColorOrder = { PlayerColor::BLUE, PlayerColor::GREEN, PlayerColor::RED, PlayerColor::YELLOW };
+
+    auto colorIndexToPlayerColor = []( const uint8_t colorIndex ) -> PlayerColor {
+        switch ( colorIndex ) {
+        case 1:
+            return PlayerColor::RED;
+        case 2:
+            return PlayerColor::BLUE;
+        case 3:
+            return PlayerColor::GREEN;
+        case 4:
+            return PlayerColor::YELLOW;
+        default:
+            return PlayerColor::NONE;
+        }
+    };
+
+    bool useDistinctColors = false;
+    {
+        std::set<uint8_t> indices;
+        for ( const HeroEntry & h : heroEntries ) {
+            indices.insert( h.colorFlag & 0x7F );
+        }
+        // Distinct if every entry has a unique color index (index 0 means NONE/neutral and is valid).
+        useDistinctColors = ( indices.size() == heroEntries.size() );
+    }
+
+    // Match each hero to the nearest unclaimed castle position and assign a player color.
+    std::map<int, PlayerColor> castleColorByIndex;
+    std::vector<bool> castleClaimed( castlePositions.size(), false );
+
+    for ( int heroIdx = 0; heroIdx < static_cast<int>( heroEntries.size() ); ++heroIdx ) {
+        const HeroEntry & hero = heroEntries[heroIdx];
+
+        const PlayerColor heroColor = useDistinctColors ? colorIndexToPlayerColor( hero.colorFlag & 0x7F )
+                                                        : ( heroIdx < 4 ? kColorOrder[heroIdx] : PlayerColor::NONE );
+
+        // Find the nearest unclaimed castle
+        int bestIdx       = -1;
+        int32_t bestDist  = std::numeric_limits<int32_t>::max();
+        for ( int i = 0; i < static_cast<int>( castlePositions.size() ); ++i ) {
+            if ( castleClaimed[i] ) {
+                continue;
+            }
+            const int32_t dx   = castlePositions[i].x - hero.col;
+            const int32_t dy   = castlePositions[i].y - hero.row;
+            const int32_t dist = dx * dx + dy * dy;
+            if ( dist < bestDist ) {
+                bestDist = dist;
+                bestIdx  = i;
+            }
+        }
+        if ( bestIdx >= 0 ) {
+            castleClaimed[bestIdx]      = true;
+            castleColorByIndex[bestIdx] = heroColor;
+        }
+    }
+
+    // Create Castle objects. Player-assigned castles get the matched color; unmatched get NONE (neutral).
+    for ( int i = 0; i < static_cast<int>( castlePositions.size() ); ++i ) {
+        const fheroes2::Point & pos = castlePositions[i];
+        const PlayerColor color     = castleColorByIndex.count( i ) ? castleColorByIndex.at( i ) : PlayerColor::NONE;
+        auto castle                 = std::make_unique<Castle>( pos.x, pos.y, Race::KNGT );
+        castle->SetColor( color );
+        vec_castles.AddCastle( std::move( castle ) );
+        const int32_t tileIdx = Maps::GetIndexFromAbsPoint( pos.x, pos.y );
+        vec_tiles[tileIdx].setMainObjectType( MP2::OBJ_CASTLE );
+        map_captureobj.Set( tileIdx, MP2::OBJ_CASTLE, color );
+    }
+
+    // Add castles and heroes to kingdoms, then give each player a starting hero.
+    vec_kingdoms.AddHeroes( vec_heroes );
+    vec_kingdoms.AddCastles( vec_castles );
+
+    PostLoad( false, false );
+
+    vec_kingdoms.ApplyPlayWithStartingHero();
 
     return true;
 }

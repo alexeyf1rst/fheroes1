@@ -26,6 +26,8 @@
 *.exe
 *.out
 *.app
+imgview
+fheroes
 
 # GNU gettext
 *.pot
@@ -65,7 +67,9 @@
 *.smk
 *.ogg
 DATA/NETLODR.DAT
-
+DATA
+MAPS
+GAMES
 # build directory
 build
 

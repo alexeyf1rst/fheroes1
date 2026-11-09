@@ -46,6 +46,15 @@ fheroes2::Rect StatusBar::updateMessage( std::string msg )
 
     _prevMessage = msg;
 
+    if ( _roi.width <= 0 ) {
+        hide();
+
+        const fheroes2::Rect area = _prevMessageRoi;
+        _prevMessageRoi = {};
+
+        return area;
+    }
+
     // Create text with normal white font (with shadow)
     auto text = std::make_unique<fheroes2::Text>( std::move( msg ), fheroes2::FontType::normalWhite() );
 

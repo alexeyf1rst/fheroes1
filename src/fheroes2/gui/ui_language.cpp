@@ -87,28 +87,10 @@ namespace fheroes2
 
     SupportedLanguage getResourceLanguage()
     {
-        static std::optional<SupportedLanguage> language;
-        if ( language.has_value() ) {
-            return *language;
-        }
-
-        const std::vector<uint8_t> & data = ::AGG::getDataFromAggFile( ICN::getIcnFileName( ICN::FONT ), false );
-        if ( data.empty() ) {
-            // How is it possible to run the game without a font?
-            assert( 0 );
-            language = SupportedLanguage::English;
-            return *language;
-        }
-
-        const uint32_t crc32 = calculateCRC32( data.data(), data.size() );
-        auto iter = languageCRC32.find( crc32 );
-        if ( iter == languageCRC32.end() ) {
-            language = SupportedLanguage::English;
-            return *language;
-        }
-
-        language = iter->second;
-        return *language;
+        // HoMM1 data files: the CRC32-based language detection was designed for HoMM2 AGG fonts.
+        // The HoMM1 FONT.ICN coincidentally collides with known HoMM2 CRC32 hashes, so we
+        // always return English here.
+        return SupportedLanguage::English;
     }
 
     std::vector<SupportedLanguage> getSupportedLanguages()

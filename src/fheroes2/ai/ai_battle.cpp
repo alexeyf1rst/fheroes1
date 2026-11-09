@@ -1065,10 +1065,6 @@ void AI::BattlePlanner::analyzeBattleState( const Battle::Arena & arena, const B
             const HeroBase * commander = arena.getAttackingForce().GetCommander();
             assert( commander != nullptr );
 
-            if ( commander->GetBagArtifacts().isArtifactBonusPresent( fheroes2::ArtifactBonusType::NO_SHOOTING_PENALTY ) ) {
-                return true;
-            }
-
             if ( commander->GetLevelSkill( Skill::Secondary::ARCHERY ) != Skill::Level::NONE ) {
                 return true;
             }

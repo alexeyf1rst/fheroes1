@@ -145,12 +145,6 @@ namespace
             case Race::WRLK:
                 portraitIndex = 54;
                 break;
-            case Race::WZRD:
-                portraitIndex = 55;
-                break;
-            case Race::NECR:
-                portraitIndex = 56;
-                break;
             case Race::RAND:
                 portraitIndex = 58;
                 break;

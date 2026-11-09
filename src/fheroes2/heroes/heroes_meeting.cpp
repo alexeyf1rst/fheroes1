@@ -494,9 +494,6 @@ void Heroes::MeetingDialog( Heroes & otherHero )
     // This dialog currently does not have borders so its ROI is the same as fade ROI.
     fheroes2::fadeInDisplay( fadeRoi, !isDefaultScreenSize );
 
-    const int32_t hero1ScoutAreaBonus = _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE );
-    const int32_t hero2ScoutAreaBonus = otherHero.GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE );
-
     LocalEvent & le = LocalEvent::Get();
 
     // message loop
@@ -847,16 +844,6 @@ void Heroes::MeetingDialog( Heroes & otherHero )
     fheroes2::fadeOutDisplay( fadeRoi, !isDefaultScreenSize );
 
     restorer.restore();
-
-    // If the scout area bonus is increased with the new artifact we reveal the fog and update the radar.
-    if ( hero1ScoutAreaBonus < _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE ) ) {
-        Scout( GetIndex() );
-        ScoutRadar();
-    }
-    if ( hero2ScoutAreaBonus < otherHero.GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::AREA_REVEAL_DISTANCE ) ) {
-        otherHero.Scout( otherHero.GetIndex() );
-        otherHero.ScoutRadar();
-    }
 
     // Set fade-in game screen only for 640x480 resolution.
     if ( isDefaultScreenSize ) {

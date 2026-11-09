@@ -96,7 +96,6 @@ Funds Difficulty::getResourceIncomeBonusForAI( const int difficulty, const Kingd
 
             switch ( castle->GetRace() ) {
             case Race::KNGT:
-            case Race::NECR:
                 // Rare resources are not required to hire maximum-level units in these castles
                 break;
             case Race::BARB:
@@ -112,13 +111,6 @@ Funds Difficulty::getResourceIncomeBonusForAI( const int difficulty, const Kingd
             case Race::WRLK:
                 if ( doesKingdomHaveResourceSource( Resource::SULFUR ) ) {
                     result += ProfitConditions::FromMine( Resource::SULFUR );
-                }
-                // The maximum level units in this castle are more expensive than in others
-                result += ProfitConditions::FromMine( Resource::GOLD );
-                break;
-            case Race::WZRD:
-                if ( doesKingdomHaveResourceSource( Resource::GEMS ) ) {
-                    result += ProfitConditions::FromMine( Resource::GEMS );
                 }
                 // The maximum level units in this castle are more expensive than in others
                 result += ProfitConditions::FromMine( Resource::GOLD );

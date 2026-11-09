@@ -314,18 +314,10 @@ int HeroBase::GetMoraleModificator( std::string * strs ) const
 
     if ( strs == nullptr ) {
         result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::MORALE );
-        if ( Modes( Heroes::SHIPMASTER ) ) {
-            result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::SEA_BATTLE_MORALE_BOOST );
-        }
-
         result -= _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactCurseType::MORALE );
     }
     else {
         result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::MORALE, *strs );
-        if ( Modes( Heroes::SHIPMASTER ) ) {
-            result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::SEA_BATTLE_MORALE_BOOST, *strs );
-        }
-
         result -= _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactCurseType::MORALE, *strs );
     }
 
@@ -341,15 +333,9 @@ int HeroBase::GetLuckModificator( std::string * strs ) const
 
     if ( strs == nullptr ) {
         result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::LUCK );
-        if ( Modes( Heroes::SHIPMASTER ) ) {
-            result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::SEA_BATTLE_LUCK_BOOST );
-        }
     }
     else {
         result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::LUCK, *strs );
-        if ( Modes( Heroes::SHIPMASTER ) ) {
-            result += _bagArtifacts.getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::SEA_BATTLE_LUCK_BOOST, *strs );
-        }
     }
 
     return result;
@@ -601,12 +587,10 @@ void HeroBase::SpellCasted( const Spell & spell )
     _movePoints -= std::min( spell.movePoints(), _movePoints );
 }
 
-bool HeroBase::CanLearnSpell( const Spell & spell ) const
+bool HeroBase::CanLearnSpell( const Spell & /*spell*/ ) const
 {
-    const int wisdom = GetLevelSkill( Skill::Secondary::WISDOM );
-
-    return ( ( 4 < spell.Level() && Skill::Level::EXPERT == wisdom ) || ( 4 == spell.Level() && Skill::Level::ADVANCED <= wisdom )
-             || ( 3 == spell.Level() && Skill::Level::BASIC <= wisdom ) || 3 > spell.Level() );
+    // HoMM1 has no Wisdom secondary skill requirement - all heroes can learn any spell.
+    return true;
 }
 
 OStreamBase & operator<<( OStreamBase & stream, const HeroBase & hero )

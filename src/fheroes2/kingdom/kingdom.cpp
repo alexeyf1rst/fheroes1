@@ -355,7 +355,7 @@ uint32_t Kingdom::GetCountMarketplace() const
 
 uint32_t Kingdom::GetCountNecromancyShrineBuild() const
 {
-    return static_cast<uint32_t>( std::count_if( castles.begin(), castles.end(), []( const Castle * castle ) { return castle->isNecromancyShrineBuild(); } ) );
+    return 0;
 }
 
 uint32_t Kingdom::GetCountBuilding( uint32_t build ) const
@@ -841,20 +841,8 @@ std::set<Heroes *> Kingdoms::resetRecruits()
     return remainingRecruits;
 }
 
-bool Kingdom::IsTileVisibleFromCrystalBall( const int32_t dest ) const
+bool Kingdom::IsTileVisibleFromCrystalBall( const int32_t /*dest*/ ) const
 {
-    for ( const Heroes * hero : heroes ) {
-        assert( hero != nullptr );
-
-        if ( hero->GetBagArtifacts().isArtifactBonusPresent( fheroes2::ArtifactBonusType::VIEW_MONSTER_INFORMATION ) ) {
-            const uint32_t crystalBallDistance = Heroes::GetVisionsDistance();
-
-            if ( Maps::GetStraightLineDistance( hero->GetIndex(), dest ) <= crystalBallDistance ) {
-                return true;
-            }
-        }
-    }
-
     return false;
 }
 

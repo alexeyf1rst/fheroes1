@@ -183,15 +183,7 @@ uint32_t Battle::Force::GetSurrenderCost() const
 
     const HeroBase * commander = GetCommander();
     if ( commander ) {
-        const std::vector<int32_t> costReductionPercent
-            = commander->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::SURRENDER_COST_REDUCTION_PERCENT );
         double mod = 0.5;
-        if ( !costReductionPercent.empty() ) {
-            mod = 1;
-            for ( const int32_t value : costReductionPercent ) {
-                mod = mod * value / 100;
-            }
-        }
         const int diplomacyLevel = commander->GetLevelSkill( Skill::Secondary::DIPLOMACY );
         if ( diplomacyLevel > Skill::Level::NONE ) {
             // The modifier is always multiplied by two, normally to negate the 0.5 modifier from regular surrender, but also when there are

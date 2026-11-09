@@ -184,14 +184,6 @@ namespace
             = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|roland campaign" ), fheroes2::Key::KEY_1 };
         hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_ARCHIBALD )]
             = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|archibald campaign" ), fheroes2::Key::KEY_2 };
-        hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_PRICE_OF_LOYALTY )]
-            = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|price of loyalty campaign" ), fheroes2::Key::KEY_1 };
-        hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_VOYAGE_HOME )]
-            = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|voyage home campaign" ), fheroes2::Key::KEY_2 };
-        hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_WIZARDS_ISLE )]
-            = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|wizard's isle campaign" ), fheroes2::Key::KEY_3 };
-        hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_DESCENDANTS )]
-            = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|descendants campaign" ), fheroes2::Key::KEY_4 };
         hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_SELECT_FIRST_BONUS )]
             = { Game::HotKeyCategory::CAMPAIGN, gettext_noop( "hotkey|select first campaign bonus" ), fheroes2::Key::KEY_1 };
         hotKeyEventInfo[hotKeyEventToInt( Game::HotKeyEvent::CAMPAIGN_SELECT_SECOND_BONUS )]
@@ -491,7 +483,7 @@ void Game::HotKeysLoad( const std::string & filename )
 
 void Game::HotKeySave()
 {
-    const std::string filename = System::concatPath( System::GetConfigDirectory( "fheroes2" ), "fheroes2.key" );
+    const std::string filename = System::concatPath( System::GetConfigDirectory( "fheroes1" ), "fheroes.key" );
 
     StreamFile fileStream;
     if ( !fileStream.open( filename, "w" ) ) {

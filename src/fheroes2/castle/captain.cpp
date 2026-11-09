@@ -52,10 +52,6 @@ namespace
             return ICN::PORT0092;
         case Race::WRLK:
             return ICN::PORT0093;
-        case Race::WZRD:
-            return ICN::PORT0094;
-        case Race::NECR:
-            return ICN::PORT0095;
         default:
             return -1;
         }
@@ -72,10 +68,6 @@ namespace
             return { 43, 9 };
         case Race::WRLK:
             return { 41, 9 };
-        case Race::WZRD:
-            return { 42, 10 };
-        case Race::NECR:
-            return { 42, 9 };
         default:
             return {};
         }
@@ -122,12 +114,6 @@ int Captain::GetMorale() const
     // global modificator
     result += GetMoraleModificator( nullptr );
 
-    // A special artifact ability presence must be the last check.
-    const Artifact maxMoraleArtifact = _bagArtifacts.getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::MAXIMUM_MORALE );
-    if ( maxMoraleArtifact.isValid() ) {
-        result = Morale::BLOOD;
-    }
-
     return Morale::Normalize( result );
 }
 
@@ -137,12 +123,6 @@ int Captain::GetLuck() const
 
     // global modificator
     result += GetLuckModificator( nullptr );
-
-    // A special artifact ability presence must be the last check.
-    const Artifact maxLuckArtifact = _bagArtifacts.getFirstArtifactWithBonus( fheroes2::ArtifactBonusType::MAXIMUM_LUCK );
-    if ( maxLuckArtifact.isValid() ) {
-        result = Luck::IRISH;
-    }
 
     return Luck::Normalize( result );
 }
@@ -224,10 +204,6 @@ fheroes2::Sprite Captain::GetPortrait( const PortraitType type ) const
             return fheroes2::AGG::GetICN( ICN::MINICAPT, 2 );
         case Race::WRLK:
             return fheroes2::AGG::GetICN( ICN::MINICAPT, 3 );
-        case Race::WZRD:
-            return fheroes2::AGG::GetICN( ICN::MINICAPT, 4 );
-        case Race::NECR:
-            return fheroes2::AGG::GetICN( ICN::MINICAPT, 5 );
         default:
             break;
         }

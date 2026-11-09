@@ -91,6 +91,11 @@ namespace fheroes2
         bool load( const std::string & fileName );
         bool save( const std::string & fileName ) const;
 
+        // HoMM1 native high score format: DATA/STANDARD.HS and DATA/CAMPAIGN.HS.
+        // Each file holds exactly 10 entries of 87 bytes each.
+        bool loadHoMM1( const std::string & standardPath, const std::string & campaignPath );
+        bool saveHoMM1( const std::string & standardPath, const std::string & campaignPath ) const;
+
         int32_t registerScoreStandard( HighscoreData && data );
         int32_t registerScoreCampaign( HighscoreData && data );
 

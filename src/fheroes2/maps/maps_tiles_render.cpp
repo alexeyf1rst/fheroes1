@@ -370,13 +370,6 @@ namespace
             case Race::WRLK:
                 icnId = ICN::WRLK32;
                 break;
-            case Race::WZRD:
-                icnId = ICN::WZRD32;
-                break;
-            case Race::NECR:
-                icnId = ICN::NECR32;
-                break;
-
             default:
                 // Did you add a new race? Add logic above!
                 assert( 0 );
@@ -1328,6 +1321,6 @@ namespace Maps
 
     const fheroes2::Image & getTileSurface( const Tile & tile )
     {
-        return fheroes2::AGG::GetTIL( TIL::GROUND32, tile.getTerrainImageIndex(), ( tile.getTerrainFlags() & 0x3 ) );
+        return fheroes2::AGG::GetTIL( TIL::GROUND32, tile.getTerrainImageIndex() & ~Ground::homm1ImageFlag, tile.getTerrainFlags() & 0x3 );
     }
 }

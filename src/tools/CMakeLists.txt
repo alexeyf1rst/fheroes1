@@ -17,7 +17,7 @@
 #   Free Software Foundation, Inc.,                                       #
 #   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             #
 ###########################################################################
-
+cmake_minimum_required(VERSION 4.2)
 add_compile_options("$<$<COMPILE_LANG_AND_ID:C,AppleClang,Clang,GNU>:${GNU_CC_WARN_OPTS}>")
 add_compile_options("$<$<COMPILE_LANG_AND_ID:CXX,AppleClang,Clang,GNU>:${GNU_CXX_WARN_OPTS}>")
 add_compile_options("$<$<OR:$<COMPILE_LANG_AND_ID:C,MSVC>,$<COMPILE_LANG_AND_ID:CXX,MSVC>>:${MSVC_CC_WARN_OPTS}>")
@@ -26,20 +26,26 @@ add_compile_options("$<$<OR:$<COMPILE_LANG_AND_ID:C,MSVC>,$<COMPILE_LANG_AND_ID:
 add_compile_definitions($<$<OR:$<COMPILE_LANG_AND_ID:C,MSVC>,$<COMPILE_LANG_AND_ID:CXX,MSVC>>:_CRT_SECURE_NO_WARNINGS>)
 add_compile_definitions($<$<CONFIG:Debug>:WITH_DEBUG>)
 
+find_package(SDL2_ttf REQUIRED)
+
 add_executable(82m2wav 82m2wav.cpp)
+add_executable(agglist agglist.cpp)
 add_executable(bin2txt bin2txt.cpp)
 add_executable(extractor extractor.cpp)
 add_executable(h2dmgr h2dmgr.cpp)
 add_executable(icn2img icn2img.cpp)
+add_executable(imgview imgview.cpp)
 add_executable(pal2img pal2img.cpp)
 add_executable(til2img til2img.cpp)
 add_executable(xmi2midi xmi2midi.cpp)
 
 target_link_libraries(82m2wav engine)
+target_link_libraries(agglist engine)
 target_link_libraries(bin2txt engine)
 target_link_libraries(extractor engine)
 target_link_libraries(h2dmgr engine)
 target_link_libraries(icn2img engine)
+target_link_libraries(imgview engine SDL2::SDL2 SDL2_ttf::SDL2_ttf)
 target_link_libraries(pal2img engine)
 target_link_libraries(til2img engine)
 target_link_libraries(xmi2midi engine)

@@ -24,9 +24,7 @@
 #include "skill.h"
 
 #include <algorithm>
-#include <array>
 #include <cassert>
-#include <unordered_set>
 
 #include "artifact.h"
 #include "artifact_info.h"
@@ -43,78 +41,6 @@
 #include "translations.h"
 #include "world.h"
 
-namespace
-{
-    constexpr std::array<int, Skill::numOfSecondarySkills> allSecondarySkills{ Skill::Secondary::PATHFINDING, Skill::Secondary::ARCHERY,    Skill::Secondary::LOGISTICS,
-                                                                               Skill::Secondary::SCOUTING,    Skill::Secondary::DIPLOMACY,  Skill::Secondary::NAVIGATION,
-                                                                               Skill::Secondary::LEADERSHIP,  Skill::Secondary::WISDOM,     Skill::Secondary::MYSTICISM,
-                                                                               Skill::Secondary::LUCK,        Skill::Secondary::BALLISTICS, Skill::Secondary::EAGLE_EYE,
-                                                                               Skill::Secondary::NECROMANCY,  Skill::Secondary::ESTATES };
-    static_assert( !allSecondarySkills.empty() && allSecondarySkills.back() != 0, "All existing secondary skills must be present in this array" );
-
-    int SecondaryGetWeightSkillFromRace( const int race, const int skill )
-    {
-        const Skill::FactionProperties * ptr = GameStatic::GetFactionProperties( race );
-        if ( ptr == nullptr ) {
-            return 0;
-        }
-
-        switch ( skill ) {
-        case Skill::Secondary::PATHFINDING:
-            return ptr->weightsOfSecondarySkills.pathfinding;
-        case Skill::Secondary::ARCHERY:
-            return ptr->weightsOfSecondarySkills.archery;
-        case Skill::Secondary::LOGISTICS:
-            return ptr->weightsOfSecondarySkills.logistics;
-        case Skill::Secondary::SCOUTING:
-            return ptr->weightsOfSecondarySkills.scouting;
-        case Skill::Secondary::DIPLOMACY:
-            return ptr->weightsOfSecondarySkills.diplomacy;
-        case Skill::Secondary::NAVIGATION:
-            return ptr->weightsOfSecondarySkills.navigation;
-        case Skill::Secondary::LEADERSHIP:
-            return ptr->weightsOfSecondarySkills.leadership;
-        case Skill::Secondary::WISDOM:
-            return ptr->weightsOfSecondarySkills.wisdom;
-        case Skill::Secondary::MYSTICISM:
-            return ptr->weightsOfSecondarySkills.mysticism;
-        case Skill::Secondary::LUCK:
-            return ptr->weightsOfSecondarySkills.luck;
-        case Skill::Secondary::BALLISTICS:
-            return ptr->weightsOfSecondarySkills.ballistics;
-        case Skill::Secondary::EAGLE_EYE:
-            return ptr->weightsOfSecondarySkills.eagleeye;
-        case Skill::Secondary::NECROMANCY:
-            return ptr->weightsOfSecondarySkills.necromancy;
-        case Skill::Secondary::ESTATES:
-            return ptr->weightsOfSecondarySkills.estates;
-        default:
-            assert( 0 );
-            break;
-        }
-
-        return 0;
-    }
-
-    int32_t SecondaryPriorityFromRace( const int race, const std::unordered_set<int> & blacklist, const uint32_t seed )
-    {
-        Rand::Queue parts( Skill::numOfSecondarySkills );
-
-        for ( auto skill : allSecondarySkills ) {
-            if ( blacklist.find( skill ) != blacklist.end() ) {
-                continue;
-            }
-
-            parts.Push( skill, SecondaryGetWeightSkillFromRace( race, skill ) );
-        }
-
-        if ( parts.Size() == 0 ) {
-            return Skill::Secondary::UNKNOWN;
-        }
-
-        return parts.GetWithSeed( seed );
-    }
-}
 
 uint32_t Skill::Secondary::GetValue() const
 {
@@ -779,75 +705,13 @@ void Skill::SecSkills::FillMax( const Skill::Secondary & skill )
     }
 }
 
-std::pair<Skill::Secondary, Skill::Secondary> Skill::SecSkills::FindSkillsForLevelUp( const int race, const uint32_t firstSkillSeed,
-                                                                                      uint32_t const secondSkillSeed ) const
+std::pair<Skill::Secondary, Skill::Secondary> Skill::SecSkills::FindSkillsForLevelUp( const int /*race*/, const uint32_t /*firstSkillSeed*/,
+                                                                                      uint32_t const /*secondSkillSeed*/ ) const
 {
-    std::unordered_set<int> blacklist;
-    blacklist.reserve( numOfSecondarySkills + Heroes::maxNumOfSecSkills );
-
-    for ( const Secondary & skill : *this ) {
-        if ( skill.Level() != Level::EXPERT ) {
-            continue;
-        }
-
-        blacklist.insert( skill.Skill() );
-    }
-
-    if ( Count() >= Heroes::maxNumOfSecSkills ) {
-        for ( const int skill : allSecondarySkills ) {
-            if ( GetLevel( skill ) != Level::NONE ) {
-                continue;
-            }
-
-            blacklist.insert( skill );
-        }
-    }
-
-    // Wisdom should be offered to the heroes of "magic" classes on a mandatory basis at least once every three level-ups, regardless of its probability in accordance
-    // with the class parameters
-    const bool isWisdomPriority = [this, race, &blacklist = std::as_const( blacklist )]() {
-        if ( !Race::isMagicalRace( race ) ) {
-            return false;
-        }
-
-        if ( GetTotalLevel() % 3 != 0 ) {
-            return false;
-        }
-
-        if ( blacklist.find( Skill::Secondary::WISDOM ) != blacklist.end() ) {
-            return false;
-        }
-
-        return true;
-    }();
-
-    const auto levelUpSingleSkill = [this]( const int skill ) -> Secondary {
-        if ( skill == Secondary::UNKNOWN ) {
-            return {};
-        }
-
-        Secondary result{ skill, GetLevel( skill ) };
-        assert( result.Level() != Level::EXPERT );
-
-        result.NextLevel();
-
-        return result;
-    };
-
-    std::pair<Secondary, Secondary> result;
-
-    result.first = levelUpSingleSkill( isWisdomPriority ? Skill::Secondary::WISDOM : SecondaryPriorityFromRace( race, blacklist, firstSkillSeed ) );
-    if ( result.first.Skill() == Secondary::UNKNOWN ) {
-        return result;
-    }
-
-    blacklist.insert( result.first.Skill() );
-
-    result.second = levelUpSingleSkill( SecondaryPriorityFromRace( race, blacklist, secondSkillSeed ) );
-    assert( result.first.Skill() != result.second.Skill() );
-
-    return result;
+    // HoMM1 has no secondary skills - heroes only gain primary stats on level-up
+    return {};
 }
+
 
 int Skill::getLeadershipModifiers( int level, std::string * strs )
 {
@@ -882,9 +746,8 @@ int Skill::getLuckModifiers( int level, std::string * strs )
 uint32_t Skill::GetNecromancyBonus( const HeroBase & hero )
 {
     const uint32_t shrineCount = world.GetKingdom( hero.GetColor() ).GetCountNecromancyShrineBuild();
-    const uint32_t artifactEffect = hero.GetBagArtifacts().isArtifactBonusPresent( fheroes2::ArtifactBonusType::NECROMANCY_SKILL ) ? 1 : 0;
     // cap bonus at 7
-    return std::min<uint32_t>( 7U, shrineCount + artifactEffect );
+    return std::min<uint32_t>( 7U, shrineCount );
 }
 
 uint32_t Skill::GetNecromancyPercent( const HeroBase & hero )

@@ -216,7 +216,7 @@ void Interface::PlayersInfo::RedrawInfo( const bool displayInGameInfo ) const
 
         // draw player name
         fheroes2::Text name( info.player->GetName(), fheroes2::FontType::smallWhite() );
-        const int32_t maximumTextWidth = playerIcon.width() - 4;
+        const int32_t maximumTextWidth = std::max( 1, playerIcon.width() - 4 );
         name.fitToOneRow( maximumTextWidth );
 
         name.draw( info.playerTypeRoi.x + 2 + ( maximumTextWidth - name.width() ) / 2, info.playerTypeRoi.y + info.playerTypeRoi.height + 1, display );

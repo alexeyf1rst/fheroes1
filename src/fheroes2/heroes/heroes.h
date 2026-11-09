@@ -133,28 +133,6 @@ public:
         FALAGAR,
         WRATHMONT,
 
-        // Wizard heroes from The Succession Wars.
-        MYRA,
-        FLINT,
-        DAWN,
-        HALON,
-        MYRINI,
-        WILFREY,
-        SARAKIN,
-        KALINDRA,
-        MANDIGAL,
-
-        // Necromancer heroes from The Succession Wars.
-        ZOM,
-        DARLANA,
-        ZAM,
-        RANLOO,
-        CHARITY,
-        RIALDO,
-        ROXANA,
-        SANDRO,
-        CELIA,
-
         // The Succession Wars campaign heroes.
         ROLAND,
         CORLAGON,
@@ -162,19 +140,6 @@ public:
         ARCHIBALD,
         HALTON,
         BRAX,
-
-        // The Price of Loyalty expansion heroes.
-        SOLMYR,
-        DAINWIN,
-        MOG,
-        UNCLEIVAN,
-        JOSEPH,
-        GALLAVANT,
-        ELDERIAN,
-        CEALLACH,
-        DRAKONIA,
-        MARTINE,
-        JARKONAS,
 
         // Debug hero. Should not be used anywhere outside the development!
         DEBUG_HERO,
@@ -661,7 +626,7 @@ public:
 
     bool isPoLPortrait() const
     {
-        return ( _portrait >= SOLMYR && _portrait <= JARKONAS );
+        return false; // No PoL heroes in HoMM1 conversion
     }
 
     fheroes2::Point MovementDirection() const;

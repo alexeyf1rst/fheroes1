@@ -1053,19 +1053,19 @@ void Army::setFromTile( const Maps::Tile & tile )
 
     switch ( tile.getMainObjectType( false ) ) {
     case MP2::OBJ_PYRAMID:
-        at( 0 )->Set( Monster::VAMPIRE_LORD, 10 );
-        at( 1 )->Set( Monster::ROYAL_MUMMY, 10 );
-        at( 2 )->Set( Monster::ROYAL_MUMMY, 10 );
-        at( 3 )->Set( Monster::ROYAL_MUMMY, 10 );
-        at( 4 )->Set( Monster::VAMPIRE_LORD, 10 );
+        at( 0 )->Set( Monster::GREEN_DRAGON, 10 );
+        at( 1 )->Set( Monster::UNICORN, 10 );
+        at( 2 )->Set( Monster::UNICORN, 10 );
+        at( 3 )->Set( Monster::UNICORN, 10 );
+        at( 4 )->Set( Monster::GREEN_DRAGON, 10 );
         break;
 
     case MP2::OBJ_GRAVEYARD:
-        at( 0 )->Set( Monster::MUTANT_ZOMBIE, 20 );
-        at( 1 )->Set( Monster::MUTANT_ZOMBIE, 20 );
-        at( 2 )->Set( Monster::MUTANT_ZOMBIE, 20 );
-        at( 3 )->Set( Monster::MUTANT_ZOMBIE, 20 );
-        at( 4 )->Set( Monster::MUTANT_ZOMBIE, 20 );
+        at( 0 )->Set( Monster::GHOST, 20 );
+        at( 1 )->Set( Monster::GHOST, 20 );
+        at( 2 )->Set( Monster::GHOST, 20 );
+        at( 3 )->Set( Monster::GHOST, 20 );
+        at( 4 )->Set( Monster::GHOST, 20 );
         break;
 
     case MP2::OBJ_SHIPWRECK: {
@@ -1098,7 +1098,7 @@ void Army::setFromTile( const Maps::Tile & tile )
     }
 
     case MP2::OBJ_DERELICT_SHIP:
-        ArrangeForBattle( Monster::SKELETON, 200, tile.GetIndex(), false );
+        ArrangeForBattle( Monster::GHOST, 200, tile.GetIndex(), false );
         break;
 
     case MP2::OBJ_ARTIFACT:
@@ -1122,10 +1122,10 @@ void Army::setFromTile( const Maps::Tile & tile )
             ArrangeForBattle( Monster::GREEN_DRAGON, 1, tile.GetIndex(), false );
             break;
         case Maps::ArtifactCaptureCondition::FIGHT_1_TITAN:
-            ArrangeForBattle( Monster::TITAN, 1, tile.GetIndex(), false );
+            ArrangeForBattle( Monster::GREEN_DRAGON, 1, tile.GetIndex(), false );
             break;
         case Maps::ArtifactCaptureCondition::FIGHT_1_BONE_DRAGON:
-            ArrangeForBattle( Monster::BONE_DRAGON, 1, tile.GetIndex(), false );
+            ArrangeForBattle( Monster::GHOST, 1, tile.GetIndex(), false );
             break;
         default:
             break;
@@ -1133,18 +1133,18 @@ void Army::setFromTile( const Maps::Tile & tile )
         break;
 
     case MP2::OBJ_CITY_OF_DEAD:
-        at( 0 )->Set( Monster::ZOMBIE, 20 );
-        at( 1 )->Set( Monster::VAMPIRE_LORD, 5 );
-        at( 2 )->Set( Monster::POWER_LICH, 5 );
-        at( 3 )->Set( Monster::VAMPIRE_LORD, 5 );
-        at( 4 )->Set( Monster::ZOMBIE, 20 );
+        at( 0 )->Set( Monster::GHOST, 20 );
+        at( 1 )->Set( Monster::GENIE, 5 );
+        at( 2 )->Set( Monster::GENIE, 5 );
+        at( 3 )->Set( Monster::GENIE, 5 );
+        at( 4 )->Set( Monster::GHOST, 20 );
         break;
 
     case MP2::OBJ_TROLL_BRIDGE:
         at( 0 )->Set( Monster::TROLL, 4 );
-        at( 1 )->Set( Monster::WAR_TROLL, 4 );
+        at( 1 )->Set( Monster::TROLL, 4 );
         at( 2 )->Set( Monster::TROLL, 4 );
-        at( 3 )->Set( Monster::WAR_TROLL, 4 );
+        at( 3 )->Set( Monster::TROLL, 4 );
         at( 4 )->Set( Monster::TROLL, 4 );
         break;
 
@@ -1160,8 +1160,8 @@ void Army::setFromTile( const Maps::Tile & tile )
         at( 0 )->Set( Monster::GREEN_DRAGON, monsterCount );
         at( 1 )->Set( Monster::GREEN_DRAGON, monsterCount );
         at( 2 )->Set( Monster::GREEN_DRAGON, monsterCount );
-        at( 3 )->Set( Monster::RED_DRAGON, monsterCount );
-        at( 4 )->Set( Monster::BLACK_DRAGON, monsterCount );
+        at( 3 )->Set( Monster::GREEN_DRAGON, monsterCount );
+        at( 4 )->Set( Monster::GREEN_DRAGON, monsterCount );
         break;
     }
 
@@ -1243,9 +1243,6 @@ int Army::GetMoraleModificator( std::string * strs ) const
     if ( castle ) {
         result += castle->GetMoraleModificator( strs );
     }
-
-    // artifact "Arm of the Martyr" adds the undead morale penalty
-    hasUndead = hasUndead || ( GetCommander() && GetCommander()->GetBagArtifacts().isArtifactCursePresent( fheroes2::ArtifactCurseType::UNDEAD_MORALE_PENALTY ) );
 
     const int count = static_cast<int>( races.size() );
     switch ( count ) {
@@ -1695,10 +1692,6 @@ NeutralMonsterJoiningCondition Army::GetJoinSolution( const Heroes & hero, const
         // The ability to accept monsters (a free slot or a stack of monsters of the same type) is a mandatory condition for their joining in accordance with the
         // mechanics of the original game
         if ( !hero.GetArmy().CanJoinTroop( troop ) ) {
-            return false;
-        }
-
-        if ( hero.GetBagArtifacts().isArtifactCursePresent( fheroes2::ArtifactCurseType::NO_JOINING_ARMIES ) ) {
             return false;
         }
 

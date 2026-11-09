@@ -235,13 +235,13 @@ namespace
     {
         Army & army = hero.GetArmy();
 
-        if ( 0 == enemyTroopsKilled || ( army.isFullHouse() && !army.HasMonster( Monster::SKELETON ) ) )
+        if ( 0 == enemyTroopsKilled || ( army.isFullHouse() && !army.HasMonster( Monster::GHOST ) ) )
             return;
 
         const uint32_t necromancyPercent = GetNecromancyPercent( hero );
 
         const uint32_t raiseCount = std::max<uint32_t>( ( enemyTroopsKilled * necromancyPercent ) / 100, 1U );
-        army.JoinTroop( Monster::SKELETON, raiseCount, false );
+        army.JoinTroop( Monster::GHOST, raiseCount, false );
 
         if ( isControlHuman ) {
             Battle::Arena::DialogBattleNecromancy( raiseCount );

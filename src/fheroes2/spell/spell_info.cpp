@@ -66,67 +66,18 @@ namespace
 
 namespace fheroes2
 {
-    uint32_t getSpellDamage( const Spell & spell, const uint32_t spellPower, const HeroBase * hero )
+    uint32_t getSpellDamage( const Spell & spell, const uint32_t spellPower, const HeroBase * /*hero*/ )
     {
         assert( spellPower > 0 );
 
-        uint32_t damage = spell.Damage() * spellPower;
-
-        if ( hero == nullptr ) {
-            return damage;
-        }
-
-        ArtifactBonusType type = ArtifactBonusType::NONE;
-
-        switch ( spell.GetID() ) {
-        case Spell::COLDRAY:
-        case Spell::COLDRING:
-            type = ArtifactBonusType::COLD_SPELL_EXTRA_EFFECTIVENESS_PERCENT;
-            break;
-
-        case Spell::FIREBALL:
-        case Spell::FIREBLAST:
-            type = ArtifactBonusType::FIRE_SPELL_EXTRA_EFFECTIVENESS_PERCENT;
-            break;
-
-        case Spell::LIGHTNINGBOLT:
-        case Spell::CHAINLIGHTNING:
-            type = ArtifactBonusType::LIGHTNING_SPELL_EXTRA_EFFECTIVENESS_PERCENT;
-            break;
-        default:
-            break;
-        }
-
-        if ( type == ArtifactBonusType::NONE ) {
-            return damage;
-        }
-
-        const std::vector<int32_t> extraDamagePercentage = hero->GetBagArtifacts().getTotalArtifactMultipliedPercent( type );
-        for ( const int32_t value : extraDamagePercentage ) {
-            damage = damage * ( 100 + value ) / 100;
-        }
-
-        return damage;
+        return spell.Damage() * spellPower;
     }
 
-    uint32_t getSummonMonsterCount( const Spell & spell, const uint32_t spellPower, const HeroBase * hero )
+    uint32_t getSummonMonsterCount( const Spell & spell, const uint32_t spellPower, const HeroBase * /*hero*/ )
     {
         assert( spellPower > 0 );
 
-        uint32_t monsterCount = spell.ExtraValue() * spellPower;
-
-        if ( hero == nullptr ) {
-            return monsterCount;
-        }
-
-        const std::vector<int32_t> summonSpellExtraEffectPercent
-            = hero->GetBagArtifacts().getTotalArtifactMultipliedPercent( ArtifactBonusType::SUMMONING_SPELL_EXTRA_EFFECTIVENESS_PERCENT );
-
-        for ( const int32_t value : summonSpellExtraEffectPercent ) {
-            monsterCount = monsterCount * ( 100 + value ) / 100;
-        }
-
-        return monsterCount;
+        return spell.ExtraValue() * spellPower;
     }
 
     uint32_t getHPRestorePoints( const Spell & spell, const uint32_t spellPower, const HeroBase * hero )
@@ -138,24 +89,11 @@ namespace fheroes2
         return spell.Restore() * spellPower;
     }
 
-    uint32_t getResurrectPoints( const Spell & spell, const uint32_t spellPower, const HeroBase * hero )
+    uint32_t getResurrectPoints( const Spell & spell, const uint32_t spellPower, const HeroBase * /*hero*/ )
     {
         assert( spellPower > 0 );
 
-        uint32_t resurrectionPoints = spell.Resurrect() * spellPower;
-
-        if ( hero == nullptr ) {
-            return resurrectionPoints;
-        }
-
-        const std::vector<int32_t> extraSpellEffectivenessPercent
-            = hero->GetBagArtifacts().getTotalArtifactMultipliedPercent( ArtifactBonusType::RESURRECT_SPELL_EXTRA_EFFECTIVENESS_PERCENT );
-
-        for ( const int32_t value : extraSpellEffectivenessPercent ) {
-            resurrectionPoints = resurrectionPoints * ( 100 + value ) / 100;
-        }
-
-        return resurrectionPoints;
+        return spell.Resurrect() * spellPower;
     }
 
     uint32_t getGuardianMonsterCount( const Spell & spell, const uint32_t spellPower )
@@ -165,22 +103,12 @@ namespace fheroes2
         return spell.ExtraValue() * spellPower;
     }
 
-    uint32_t getHypnotizeMonsterHPPoints( const Spell & spell, const uint32_t spellPower, const HeroBase * hero )
+    uint32_t getHypnotizeMonsterHPPoints( const Spell & spell, const uint32_t spellPower, const HeroBase * /*hero*/ )
     {
         assert( spell == Spell::HYPNOTIZE );
         assert( spellPower > 0 );
 
-        uint32_t hpPoints = spell.ExtraValue() * spellPower;
-
-        if ( hero != nullptr ) {
-            const std::vector<int32_t> extraEffectiveness
-                = hero->GetBagArtifacts().getTotalArtifactMultipliedPercent( fheroes2::ArtifactBonusType::HYPNOTIZE_SPELL_EXTRA_EFFECTIVENESS_PERCENT );
-            for ( const int32_t value : extraEffectiveness ) {
-                hpPoints = hpPoints * ( 100 + value ) / 100;
-            }
-        }
-
-        return hpPoints;
+        return spell.ExtraValue() * spellPower;
     }
 
     const Castle * getNearestCastleTownGate( const Heroes & hero )

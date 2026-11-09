@@ -34,12 +34,10 @@ namespace Campaign
 {
     enum CampaignID
     {
-        ROLAND_CAMPAIGN = 0,
-        ARCHIBALD_CAMPAIGN = 1,
-        PRICE_OF_LOYALTY_CAMPAIGN = 2,
-        DESCENDANTS_CAMPAIGN = 3,
-        WIZARDS_ISLE_CAMPAIGN = 4,
-        VOYAGE_HOME_CAMPAIGN = 5
+        IRONFIST_CAMPAIGN = 0,    // HoMM1: Lord Ironfist (Knight)
+        SLAYER_CAMPAIGN = 1, // HoMM1: Lord Slayer (Barbarian)
+        LAMANDA_CAMPAIGN = 2,   // HoMM1: Queen Lamanda (Sorceress)
+        ALAMAR_CAMPAIGN = 3     // HoMM1: Lord Alamar (Warlock)
     };
 
     enum class ScenarioVictoryCondition : int

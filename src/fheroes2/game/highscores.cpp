@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <ctime>
 #include <iterator>
 
@@ -40,39 +41,23 @@ namespace
 
     const size_t highscoreMaximumEntries = 10;
 
-    const std::array<Monster::MonsterType, 66> monstersInRanking = { Monster::PEASANT,       Monster::GOBLIN,
-                                                                     Monster::SPRITE,        Monster::HALFLING,
-                                                                     Monster::CENTAUR,       Monster::ROGUE,
-                                                                     Monster::SKELETON,      Monster::ORC,
-                                                                     Monster::ZOMBIE,        Monster::ARCHER,
-                                                                     Monster::RANGER,        Monster::BOAR,
-                                                                     Monster::DWARF,         Monster::MUTANT_ZOMBIE,
-                                                                     Monster::ORC_CHIEF,     Monster::ELF,
-                                                                     Monster::GARGOYLE,      Monster::PIKEMAN,
-                                                                     Monster::GRAND_ELF,     Monster::BATTLE_DWARF,
-                                                                     Monster::NOMAD,         Monster::VETERAN_PIKEMAN,
-                                                                     Monster::WOLF,          Monster::MUMMY,
-                                                                     Monster::IRON_GOLEM,    Monster::ROYAL_MUMMY,
-                                                                     Monster::OGRE,          Monster::GRIFFIN,
-                                                                     Monster::SWORDSMAN,     Monster::DRUID,
-                                                                     Monster::STEEL_GOLEM,   Monster::MASTER_SWORDSMAN,
-                                                                     Monster::AIR_ELEMENT,   Monster::GREATER_DRUID,
+    const std::array<Monster::MonsterType, 33> monstersInRanking = { Monster::PEASANT,       Monster::GOBLIN,
+                                                                     Monster::SPRITE,        Monster::CENTAUR,
+                                                                     Monster::ROGUE,         Monster::ORC,
+                                                                     Monster::ARCHER,        Monster::DWARF,
+                                                                     Monster::ELF,           Monster::GARGOYLE,
+                                                                     Monster::PIKEMAN,       Monster::NOMAD,
+                                                                     Monster::WOLF,          Monster::OGRE,
+                                                                     Monster::GRIFFIN,       Monster::SWORDSMAN,
+                                                                     Monster::DRUID,         Monster::AIR_ELEMENT,
                                                                      Monster::FIRE_ELEMENT,  Monster::GHOST,
-                                                                     Monster::VAMPIRE,       Monster::WATER_ELEMENT,
-                                                                     Monster::EARTH_ELEMENT, Monster::ROC,
+                                                                     Monster::WATER_ELEMENT, Monster::EARTH_ELEMENT,
                                                                      Monster::MINOTAUR,      Monster::CAVALRY,
-                                                                     Monster::TROLL,         Monster::MAGE,
-                                                                     Monster::MEDUSA,        Monster::LICH,
-                                                                     Monster::OGRE_LORD,     Monster::MINOTAUR_KING,
-                                                                     Monster::CHAMPION,      Monster::WAR_TROLL,
-                                                                     Monster::VAMPIRE_LORD,  Monster::ARCHMAGE,
-                                                                     Monster::POWER_LICH,    Monster::UNICORN,
+                                                                     Monster::TROLL,         Monster::MEDUSA,
+                                                                     Monster::GENIE,         Monster::UNICORN,
                                                                      Monster::HYDRA,         Monster::PALADIN,
-                                                                     Monster::GENIE,         Monster::CRUSADER,
-                                                                     Monster::CYCLOPS,       Monster::GIANT,
-                                                                     Monster::PHOENIX,       Monster::BONE_DRAGON,
-                                                                     Monster::GREEN_DRAGON,  Monster::RED_DRAGON,
-                                                                     Monster::TITAN,         Monster::BLACK_DRAGON };
+                                                                     Monster::CYCLOPS,       Monster::PHOENIX,
+                                                                     Monster::GREEN_DRAGON };
 
     int32_t saveHighscoreEntry( fheroes2::HighscoreData && data, std::vector<fheroes2::HighscoreData> & entries, const bool isCampaign )
     {
@@ -244,11 +229,11 @@ namespace fheroes2
                     step = 4;
                 }
                 // 132 to 227
-                else if ( monster == Monster::GREATER_DRUID ) {
+                else if ( monster == Monster::DRUID ) {
                     step = 3;
                 }
                 // >= 228
-                else if ( monster == Monster::BLACK_DRAGON ) {
+                else if ( monster == Monster::GREEN_DRAGON ) {
                     step = 1;
                 }
 
@@ -292,11 +277,11 @@ namespace fheroes2
                 const Monster::MonsterType monster = *iter;
 
                 // 0 to 300
-                if ( monster == Monster::BLACK_DRAGON ) {
+                if ( monster == Monster::GREEN_DRAGON ) {
                     step = 300;
                 }
                 // 301 to 1000
-                else if ( monster == Monster::TITAN ) {
+                else if ( monster == Monster::PHOENIX ) {
                     step = 20;
                 }
                 // 1001 to 2000
@@ -304,7 +289,7 @@ namespace fheroes2
                     step = 100;
                 }
                 // 2001 to 5800
-                else if ( monster == Monster::BATTLE_DWARF ) {
+                else if ( monster == Monster::DWARF ) {
                     step = 200;
                 }
                 // >= 5801
@@ -340,6 +325,116 @@ namespace fheroes2
         return { Monster::PEASANT };
     }
 
+    bool HighScoreDataContainer::loadHoMM1( const std::string & standardPath, const std::string & campaignPath )
+    {
+        // HoMM1 .HS format: 10 entries × 87 bytes.
+        // Each entry: [17-byte name][15-byte scenario][4-byte uint32 LE value][51-byte padding]
+        // Name/scenario: space-padded to max length, null terminator at byte 16/14.
+        constexpr size_t entrySize = 87;
+        constexpr int entryCount = 10;
+        constexpr size_t nameSize = 17;
+        constexpr size_t scenarioSize = 15;
+        constexpr size_t valueOffset = nameSize + scenarioSize;
+
+        const auto readHS = [&]( const std::string & path, std::vector<HighscoreData> & entries, const bool isCampaign ) {
+            StreamFile fs;
+            if ( !fs.open( path, "rb" ) || fs.size() != entrySize * entryCount ) {
+                return;
+            }
+
+            const std::vector<uint8_t> data = fs.getRaw( entrySize * entryCount );
+            entries.clear();
+
+            const std::string lang = fheroes2::getLanguageAbbreviation( fheroes2::SupportedLanguage::English );
+            for ( int i = 0; i < entryCount; ++i ) {
+                const uint8_t * entry = data.data() + i * entrySize;
+
+                // Player name: copy up to the null terminator, strip trailing spaces.
+                std::string name( reinterpret_cast<const char *>( entry ), nameSize - 1 );
+                name.resize( std::min( name.size(), name.find( '\0' ) ) );
+                while ( !name.empty() && name.back() == ' ' )
+                    name.pop_back();
+
+                if ( name.empty() )
+                    continue;
+
+                // Scenario name.
+                std::string scenario( reinterpret_cast<const char *>( entry + nameSize ), scenarioSize - 1 );
+                scenario.resize( std::min( scenario.size(), scenario.find( '\0' ) ) );
+                while ( !scenario.empty() && scenario.back() == ' ' )
+                    scenario.pop_back();
+
+                // 4-byte little-endian value (days for campaign, rating for standard).
+                const uint32_t value = static_cast<uint32_t>( entry[valueOffset] )
+                                       | ( static_cast<uint32_t>( entry[valueOffset + 1] ) << 8 )
+                                       | ( static_cast<uint32_t>( entry[valueOffset + 2] ) << 16 )
+                                       | ( static_cast<uint32_t>( entry[valueOffset + 3] ) << 24 );
+
+                const uint32_t days = isCampaign ? value : 0;
+                const uint32_t rating = value; // both modes store rating here
+                entries.push_back( { lang, name, scenario, 0, days, rating, 0 } );
+            }
+        };
+
+        readHS( standardPath, _highScoresStandard, false );
+        readHS( campaignPath, _highScoresCampaign, true );
+
+        if ( _highScoresStandard.size() < highscoreMaximumEntries )
+            populateStandardDefaultHighScores();
+        if ( _highScoresCampaign.size() < highscoreMaximumEntries )
+            populateCampaignDefaultHighScores();
+
+        return true;
+    }
+
+    bool HighScoreDataContainer::saveHoMM1( const std::string & standardPath, const std::string & campaignPath ) const
+    {
+        constexpr size_t entrySize = 87;
+        constexpr int entryCount = 10;
+        constexpr size_t nameSize = 17;
+        constexpr size_t scenarioSize = 15;
+        constexpr size_t valueOffset = nameSize + scenarioSize;
+
+        const auto writeHS = [&]( const std::string & path, const std::vector<HighscoreData> & entries ) -> bool {
+            std::vector<uint8_t> data( entrySize * entryCount, 0 );
+
+            for ( int i = 0; i < entryCount && i < static_cast<int>( entries.size() ); ++i ) {
+                uint8_t * entry = data.data() + i * entrySize;
+                const HighscoreData & hs = entries[i];
+
+                // Name: space-fill 16 bytes, write name chars, set null at index 16.
+                std::memset( entry, ' ', 16 );
+                entry[16] = '\0';
+                const size_t nameLen = std::min( hs.playerName.size(), static_cast<size_t>( 16 ) );
+                std::memcpy( entry, hs.playerName.data(), nameLen );
+
+                // Scenario: space-fill 14 bytes, write scenario chars, set null at index 14.
+                uint8_t * scenPtr = entry + nameSize;
+                std::memset( scenPtr, ' ', 14 );
+                scenPtr[14] = '\0';
+                const size_t scenLen = std::min( hs.scenarioName.size(), static_cast<size_t>( 14 ) );
+                std::memcpy( scenPtr, hs.scenarioName.data(), scenLen );
+
+                // Value: write rating (standard) or rating (campaign uses rating==dayCount).
+                const uint32_t value = hs.rating;
+                uint8_t * valuePtr = entry + valueOffset;
+                valuePtr[0] = value & 0xFF;
+                valuePtr[1] = ( value >> 8 ) & 0xFF;
+                valuePtr[2] = ( value >> 16 ) & 0xFF;
+                valuePtr[3] = ( value >> 24 ) & 0xFF;
+            }
+
+            StreamFile fs;
+            if ( !fs.open( path, "wb" ) )
+                return false;
+
+            fs.putRaw( reinterpret_cast<const char *>( data.data() ), data.size() );
+            return !fs.fail();
+        };
+
+        return writeHS( standardPath, _highScoresStandard ) && writeHS( campaignPath, _highScoresCampaign );
+    }
+
     void HighScoreDataContainer::populateStandardDefaultHighScores()
     {
         const uint32_t currentTime = HighscoreData::generateCompletionTime();
@@ -364,15 +459,15 @@ namespace fheroes2
 
         const std::string lang = fheroes2::getLanguageAbbreviation( fheroes2::getCurrentLanguage() );
 
-        registerScoreCampaign( { lang, _( "Antoine" ), Campaign::getCampaignName( Campaign::ROLAND_CAMPAIGN ), currentTime, 600, 600, 0 } );
-        registerScoreCampaign( { lang, _( "Astra" ), Campaign::getCampaignName( Campaign::ARCHIBALD_CAMPAIGN ), currentTime, 650, 650, 0 } );
-        registerScoreCampaign( { lang, _( "Agar" ), Campaign::getCampaignName( Campaign::ROLAND_CAMPAIGN ), currentTime, 700, 700, 0 } );
-        registerScoreCampaign( { lang, _( "Vatawna" ), Campaign::getCampaignName( Campaign::ARCHIBALD_CAMPAIGN ), currentTime, 750, 750, 0 } );
-        registerScoreCampaign( { lang, _( "Vesper" ), Campaign::getCampaignName( Campaign::ROLAND_CAMPAIGN ), currentTime, 800, 800, 0 } );
-        registerScoreCampaign( { lang, _( "Ambrose" ), Campaign::getCampaignName( Campaign::ARCHIBALD_CAMPAIGN ), currentTime, 850, 850, 0 } );
-        registerScoreCampaign( { lang, _( "Troyan" ), Campaign::getCampaignName( Campaign::ROLAND_CAMPAIGN ), currentTime, 900, 900, 0 } );
-        registerScoreCampaign( { lang, _( "Jojosh" ), Campaign::getCampaignName( Campaign::ARCHIBALD_CAMPAIGN ), currentTime, 1000, 1000, 0 } );
-        registerScoreCampaign( { lang, _( "Wrathmont" ), Campaign::getCampaignName( Campaign::ROLAND_CAMPAIGN ), currentTime, 2000, 2000, 0 } );
-        registerScoreCampaign( { lang, _( "Maximus" ), Campaign::getCampaignName( Campaign::ARCHIBALD_CAMPAIGN ), currentTime, 3000, 3000, 0 } );
+        registerScoreCampaign( { lang, _( "Antoine" ), Campaign::getCampaignName( Campaign::IRONFIST_CAMPAIGN ), currentTime, 600, 600, 0 } );
+        registerScoreCampaign( { lang, _( "Astra" ), Campaign::getCampaignName( Campaign::SLAYER_CAMPAIGN ), currentTime, 650, 650, 0 } );
+        registerScoreCampaign( { lang, _( "Agar" ), Campaign::getCampaignName( Campaign::IRONFIST_CAMPAIGN ), currentTime, 700, 700, 0 } );
+        registerScoreCampaign( { lang, _( "Vatawna" ), Campaign::getCampaignName( Campaign::SLAYER_CAMPAIGN ), currentTime, 750, 750, 0 } );
+        registerScoreCampaign( { lang, _( "Vesper" ), Campaign::getCampaignName( Campaign::IRONFIST_CAMPAIGN ), currentTime, 800, 800, 0 } );
+        registerScoreCampaign( { lang, _( "Ambrose" ), Campaign::getCampaignName( Campaign::SLAYER_CAMPAIGN ), currentTime, 850, 850, 0 } );
+        registerScoreCampaign( { lang, _( "Troyan" ), Campaign::getCampaignName( Campaign::IRONFIST_CAMPAIGN ), currentTime, 900, 900, 0 } );
+        registerScoreCampaign( { lang, _( "Jojosh" ), Campaign::getCampaignName( Campaign::SLAYER_CAMPAIGN ), currentTime, 1000, 1000, 0 } );
+        registerScoreCampaign( { lang, _( "Wrathmont" ), Campaign::getCampaignName( Campaign::IRONFIST_CAMPAIGN ), currentTime, 2000, 2000, 0 } );
+        registerScoreCampaign( { lang, _( "Maximus" ), Campaign::getCampaignName( Campaign::SLAYER_CAMPAIGN ), currentTime, 3000, 3000, 0 } );
     }
 }

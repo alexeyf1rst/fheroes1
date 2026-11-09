@@ -464,12 +464,6 @@ bool ArmyBar::ActionBarLeftMouseSingleClick( ArmyTroop & troop )
                 case Race::WRLK:
                     cur = Monster::CENTAUR;
                     break;
-                case Race::WZRD:
-                    cur = Monster::HALFLING;
-                    break;
-                case Race::NECR:
-                    cur = Monster::SKELETON;
-                    break;
                 default:
                     break;
                 }

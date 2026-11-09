@@ -93,16 +93,17 @@ namespace fheroes2
     {
         Display & display = Display::instance();
 
-        const Sprite & mainMenuBackground = AGG::GetICN( ICN::HEROES, 0 );
-        Copy( mainMenuBackground, 0, 0, display, mainMenuBackground.x(), mainMenuBackground.y(), mainMenuBackground.width(), mainMenuBackground.height() );
+        // HoMM1 full-screen background (HEROES.BMP, 640×480).
+        const Sprite & bg = AGG::GetICN( ICN::HEROES, 0 );
+        const int32_t bgX = ( display.width() - bg.width() ) / 2;
+        const int32_t bgY = ( display.height() - bg.height() ) / 2;
+        Copy( bg, 0, 0, display, bgX, bgY, bg.width(), bg.height() );
 
-        drawSprite( display, ICN::BTNSHNGL, 1 );
-        drawSprite( display, ICN::BTNSHNGL, 5 );
-        drawSprite( display, ICN::BTNSHNGL, 9 );
-        drawSprite( display, ICN::BTNSHNGL, 13 );
-        drawSprite( display, ICN::BTNSHNGL, 17 );
+        // HoMM1 red button panel (REDBACK.BMP) at panel-screen offset (426, 35) within the background.
+        const Sprite & panel = AGG::GetICN( ICN::H1PANEL, 0 );
+        Copy( panel, 0, 0, display, bgX + 426, bgY + 35, panel.width(), panel.height() );
 
-        fillScreenBorders( display, { mainMenuBackground.x(), mainMenuBackground.y(), mainMenuBackground.width(), mainMenuBackground.height() } );
+        fillScreenBorders( display, { bgX, bgY, bg.width(), bg.height() } );
     }
 
     void drawEditorMainMenuScreen()

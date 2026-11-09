@@ -834,12 +834,6 @@ namespace fheroes2
         case Race::WRLK:
             preparePortrait( ICN::CMBTHROW, 7, false );
             break;
-        case Race::WZRD:
-            preparePortrait( ICN::CMBTHROZ, 8, false );
-            break;
-        case Race::NECR:
-            preparePortrait( ICN::CMBTHRON, 9, false );
-            break;
         case Race::RAND:
             preparePortrait( ICN::CMBTHROW, 10, true );
             break;

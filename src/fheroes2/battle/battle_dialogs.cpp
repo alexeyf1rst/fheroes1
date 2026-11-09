@@ -809,7 +809,7 @@ void Battle::Arena::DialogBattleNecromancy( const uint32_t raiseCount )
     const fheroes2::Text titleBox( _( "Necromancy!" ), fheroes2::FontType::normalYellow() );
     titleBox.draw( roi.x, yOffset, roi.width, display );
 
-    const Monster mons( Monster::SKELETON );
+    const Monster mons( Monster::GHOST );
     std::string msg = _( "Practicing the dark arts of necromancy, you are able to raise %{count} of the enemy's dead to return under your service as %{monster}." );
     StringReplace( msg, "%{count}", raiseCount );
     StringReplace( msg, "%{monster}", mons.GetPluralName( raiseCount ) );

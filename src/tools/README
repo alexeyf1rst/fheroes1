@@ -1,4 +1,5 @@
 82m2wav   - converts the specified 82M file(s) to WAV format.
+agglist   - lists the contents of the specified AGG file(s).
 bin2txt   - extracts various data from monster animation files.
 extractor - extracts the contents of the specified AGG file(s).
 h2dmgr    - manages the contents of the specified H2D file(s).

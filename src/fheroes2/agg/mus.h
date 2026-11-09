@@ -52,9 +52,9 @@ namespace MUS
         LOSTGAME,
         NEW_WEEK,
         NEW_MONTH,
-        ARCHIBALD_CAMPAIGN_SCREEN,
+        SLAYER_CAMPAIGN_SCREEN,
         PUZZLE,
-        ROLAND_CAMPAIGN_SCREEN,
+        IRONFIST_CAMPAIGN_SCREEN,
         CARAVANS, // not in use
         CARAVANS_2, // not in use
         CARAVANS_3, // not in use

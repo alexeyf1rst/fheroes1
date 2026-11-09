@@ -63,7 +63,6 @@ Battle::Catapult::Catapult( const HeroBase & hero )
         break;
     }
 
-    catShots += hero.GetBagArtifacts().getTotalArtifactEffectValue( fheroes2::ArtifactBonusType::EXTRA_CATAPULT_SHOTS );
 }
 
 int Battle::Catapult::GetDamage( Rand::PCG32 & randomGenerator ) const

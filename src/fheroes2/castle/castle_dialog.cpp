@@ -119,7 +119,7 @@ namespace
     std::string buildingStatusMessage( const int race, const uint32_t buildingId )
     {
         // Check if building is a monster dwelling or its upgraded version
-        if ( ( buildingId & DWELLING_MONSTERS ) == 0 && ( buildingId & DWELLING_UPGRADES ) == 0 ) {
+        if ( ( buildingId & DWELLING_MONSTERS ) == 0 ) {
             return fheroes2::getBuildingName( race, static_cast<BuildingType>( buildingId ) );
         }
 
@@ -702,8 +702,7 @@ Castle::CastleDialogReturnValue Castle::OpenDialog( const bool openConstructionW
                         case BUILD_STATUE:
                         case BUILD_WEL2:
                         case BUILD_MOAT:
-                        case BUILD_SPEC:
-                        case BUILD_SHRINE: {
+                        case BUILD_SPEC: {
                             const fheroes2::ButtonRestorer exitRestorer( buttonExit );
                             fheroes2::showStandardTextMessage( GetStringBuilding( it->id ), GetDescriptionBuilding( it->id ), Dialog::OK );
                             break;

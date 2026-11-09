@@ -61,6 +61,11 @@ namespace Maps
             MAX_IMAGE_INDEX = 432U
         };
 
+        // Heroes I has 20 images per terrain in its own GROUND32.TIL.
+        constexpr uint16_t homm1ImageFlag = 0x8000;
+        constexpr uint16_t homm1TilesPerTerrain = 20;
+        constexpr uint16_t homm1TerrainCount = 7;
+
         // Returns index of first ground image in GROUND32.TIL
         uint16_t getTerrainStartImageIndex( const int32_t groundId );
         // Returns ground index by ground image index in GROUND32.TIL

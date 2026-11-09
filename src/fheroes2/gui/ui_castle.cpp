@@ -178,10 +178,6 @@ namespace fheroes2
             return isCastle ? 11 : 17;
         case Race::WRLK:
             return isCastle ? 12 : 18;
-        case Race::WZRD:
-            return isCastle ? 13 : 19;
-        case Race::NECR:
-            return isCastle ? 14 : 20;
         case Race::RAND:
             // It is used in Editor to select random castle as a victory/loss special condition.
             return isCastle ? 25 : 26;

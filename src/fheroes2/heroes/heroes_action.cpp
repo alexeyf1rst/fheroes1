@@ -2662,7 +2662,7 @@ namespace
         }
 
         case MP2::OBJ_FREEMANS_FOUNDRY: {
-            monsToUpgrade = { Monster( Monster::SWORDSMAN ), Monster( Monster::PIKEMAN ), Monster( Monster::IRON_GOLEM ) };
+            monsToUpgrade = { Monster( Monster::SWORDSMAN ), Monster( Monster::PIKEMAN ) };
 
             msg1 = _( "All of your %{monsters} have been upgraded into %{monsters2}." );
             msg2 = _(
