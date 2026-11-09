@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(homm1 C CXX)
 
-# Native build of the game and the scenario editor on the SDL3 platform
-# layer, for Linux and (cross-compiled with MinGW-w64, nix/windows.nix)
-# Windows. The Visual C++ 6 build (build.py) is
-# separate and unaffected.
+# Native build of the game and scenario editor with SDL3.
 
 include(CTest)
 
@@ -168,27 +165,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # --------------------------------------------------------------------------
-# The browser build (Emscripten). The game's own loops block - menus,
-# dialogs, combat and the adventure map each run a loop that polls for input
-# - so the program cannot return to the browser between frames. ASYNCIFY
-# lets those loops yield where they already wait: SDL_Delay, presenting a
-# frame and the event poll unwind the WebAssembly stack to the browser and
-# rewind it afterwards. JSPI would do the same with less code, but is not
-# available in every browser yet (docs/port/README.md).
-# --------------------------------------------------------------------------
-
-if(EMSCRIPTEN)
-  set(HOMM1_WEB_PRE_JS ${CMAKE_SOURCE_DIR}/src/PLATFORM/Web/pre.js)
-  set(HOMM1_WEB_LINK_OPTIONS
-    -sASYNCIFY=1 -sASYNCIFY_STACK_SIZE=262144
-    -sSTACK_SIZE=8MB -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH=1
-    -sFORCE_FILESYSTEM=1 -lidbfs.js
-    -sINVOKE_RUN=0 -sEXIT_RUNTIME=1 -sENVIRONMENT=web
-    "-sEXPORTED_RUNTIME_METHODS=FS,callMain,ENV"
-    --pre-js ${HOMM1_WEB_PRE_JS})
-endif()
-
-# --------------------------------------------------------------------------
 # Platform layer: host services behind include/PLATFORM interfaces.
 # --------------------------------------------------------------------------
 
@@ -212,8 +188,7 @@ target_compile_definitions(homm1_platform PRIVATE HOMM1_PORT=1 HOMM1_CODEPAGE=${
 if(WIN32)
   target_link_libraries(homm1_platform PUBLIC SDL3::SDL3-static homm1_vorbis ws2_32)
   # MinGW: SDL, the C++ runtime and the compiler's thread library are linked
-  # in, so each program is a single file that imports only Windows' own DLLs
-  # (nix/windows.nix checks that).
+  # in, so each program is a single file that imports only Windows' own DLLs.
   target_link_options(homm1_platform PUBLIC -static)
   # C99 formatting (%zu, %lld) for the log, as on other hosts.
   target_compile_definitions(homm1_platform PRIVATE __USE_MINGW_ANSI_STDIO=1)
@@ -281,22 +256,10 @@ function(homm1_program name target output rc)
   # A Windows GUI program: no console window (the log is routed in Host.cpp).
   set_target_properties(${name} PROPERTIES OUTPUT_NAME ${output} WIN32_EXECUTABLE TRUE)
   target_link_libraries(${name} PRIVATE ${name}_units)
-  if(EMSCRIPTEN)
-    target_link_options(${name} PRIVATE ${HOMM1_WEB_LINK_OPTIONS})
-    set_property(TARGET ${name} APPEND PROPERTY LINK_DEPENDS ${HOMM1_WEB_PRE_JS})
-  endif()
 endfunction()
 
 homm1_program(homm1 game heroes src/SOURCE/Heroes.rc)
 homm1_program(homm1_editor editor heroes-editor src/EDITOR/Editor.rc)
-
-# The browser build's page beside the programs: the build folder is the site
-# (python3 -m http.server --directory build/wasm).
-if(EMSCRIPTEN)
-  foreach(page index.html homm1.js homm1.css)
-    configure_file(${CMAKE_SOURCE_DIR}/src/PLATFORM/Web/${page} ${CMAKE_BINARY_DIR}/${page} COPYONLY)
-  endforeach()
-endif()
 
 # The help converter as a command-line tool (tools/help).
 add_executable(homm1_hlp2html ${CMAKE_SOURCE_DIR}/tools/help/hlp2html.cpp)

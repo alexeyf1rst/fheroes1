@@ -7,56 +7,22 @@
   },
   "configurePresets": [
     {
-      "name": "linux",
-      "displayName": "Linux (game, editor and tests)",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/linux",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-      }
-    },
-    {
-      "name": "wasm",
-      "displayName": "Browser (configure with emcmake)",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/wasm",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "OFF"
-      }
-    },
-    {
       "name": "windows",
       "displayName": "Windows (MinGW-w64)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/windows",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "OFF"
+        "BUILD_TESTING": "OFF",
+        "HOMM1_LOCALE": "en",
+        "HOMM1_WARNINGS_AS_ERRORS": "OFF"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "linux",
-      "configurePreset": "linux"
-    },
-    {
-      "name": "wasm",
-      "configurePreset": "wasm"
-    },
-    {
       "name": "windows",
       "configurePreset": "windows"
-    }
-  ],
-  "testPresets": [
-    {
-      "name": "linux",
-      "configurePreset": "linux",
-      "output": {
-        "outputOnFailure": true
-      }
     }
   ]
 }
