@@ -1,6 +1,7 @@
 #include <H1/Ints.h>
 
 #include <BASE/Misc.h>
+#include <BASE/message.h>
 #include <SOURCE/armyGroup.h>
 #include <SOURCE/artifactTypes.h>
 #include <SOURCE/game.h>
@@ -8,6 +9,8 @@
 #include <SOURCE/KB.h>
 #include <SOURCE/town.h>
 
+#include <algorithm>
+#include <limits>
 #include <string.h>
 
 armyGroup::armyGroup(void) {
@@ -143,6 +146,88 @@ i16 armyGroup::Add(i8 creatureType, i16 quantity, i8 slot) {
         m_creatureCounts[slot] = 0;
     m_creatureCounts[slot] += quantity;
     return 1;
+}
+
+void armyGroup::Redistribute(i8 source, armyGroup& target, i8 destination, i16 amount) {
+    const i8 creature = m_creatureTypes[source];
+    const bool empty = target.m_creatureTypes[destination] == CREATURE_NONE;
+    const i32 count = empty ? 0 : target.m_creatureCounts[destination];
+    if ((&target == this && source == destination) || creature == CREATURE_NONE
+        || (!empty && target.m_creatureTypes[destination] != creature)
+        || amount <= 0 || amount >= m_creatureCounts[source]
+        || count + amount > std::numeric_limits<i16>::max())
+        return;
+
+    target.m_creatureTypes[destination] = creature;
+    target.m_creatureCounts[destination] = static_cast<i16>(count + amount);
+    m_creatureCounts[source] -= amount;
+}
+
+b8 armyGroup::QuickArrange(i8 slot, i16 modifiers, b8 allowHalf) {
+    const i8 creature = m_creatureTypes[slot];
+    if (creature == CREATURE_NONE)
+        return false;
+
+    if (!(modifiers & MESSAGE_MODIFIER_CONTROL_KEYS) && (modifiers & MESSAGE_MODIFIER_ALT)) {
+        for (i8 source = 0; source < ARMY_GROUP_SLOT_COUNT; ++source) {
+            if (source == slot || m_creatureTypes[source] != creature)
+                continue;
+            const i16 room = std::numeric_limits<i16>::max() - m_creatureCounts[slot];
+            const i16 amount = std::min(room, m_creatureCounts[source]);
+            m_creatureCounts[slot] += amount;
+            m_creatureCounts[source] -= amount;
+            if (m_creatureCounts[source] == 0)
+                Dismiss(source);
+        }
+        return true;
+    }
+
+    i16 amount;
+    if (modifiers & MESSAGE_MODIFIER_CONTROL_KEYS)
+        amount = 1;
+    else if (allowHalf && (modifiers & MESSAGE_MODIFIER_SHIFT_KEYS))
+        amount = m_creatureCounts[slot] / 2;
+    else
+        return false;
+
+    for (i8 target = 0; target < ARMY_GROUP_SLOT_COUNT; ++target) {
+        if (m_creatureTypes[target] == CREATURE_NONE) {
+            Redistribute(slot, *this, target, amount);
+            break;
+        }
+    }
+    return true;
+}
+
+void armyGroup::MoveTroopsTo(armyGroup& target, b8 keepLast, i8 preferredType) {
+    for (i8 slot = 0; slot < ARMY_GROUP_SLOT_COUNT; ++slot)
+        target.QuickArrange(slot, MESSAGE_MODIFIER_ALT, false);
+
+    for (bool movePreferred : {false, true}) {
+        for (i8 source = 0; source < ARMY_GROUP_SLOT_COUNT; ++source) {
+            const i8 creature = m_creatureTypes[source];
+            if (creature == CREATURE_NONE || (creature == preferredType) != movePreferred)
+                continue;
+            i16 remaining = m_creatureCounts[source];
+            if (keepLast && GetNumArmies() == 1)
+                --remaining;
+            for (i8 type : {creature, static_cast<i8>(CREATURE_NONE)}) {
+                for (i8 slot = 0; slot < ARMY_GROUP_SLOT_COUNT && remaining > 0; ++slot) {
+                    if (target.m_creatureTypes[slot] != type)
+                        continue;
+                    const i16 count = type == CREATURE_NONE ? 0 : target.m_creatureCounts[slot];
+                    const i16 room = std::numeric_limits<i16>::max() - count;
+                    const i16 moved = std::min(remaining, room);
+                    target.m_creatureTypes[slot] = creature;
+                    target.m_creatureCounts[slot] = count + moved;
+                    m_creatureCounts[source] -= moved;
+                    remaining -= moved;
+                }
+            }
+            if (m_creatureCounts[source] == 0)
+                Dismiss(source);
+        }
+    }
 }
 
 void armyGroup::Swap(i8 slot, armyGroup* otherGroup, i8 otherSlot) {

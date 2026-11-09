@@ -140,7 +140,7 @@ std::deque<Event> gPending;
 int gReplayX = DISPLAY_WIDTH / 2;
 int gReplayY = DISPLAY_HEIGHT / 2;
 
-int NamedScanCode(const std::string& name) {
+int NamedScanCode(const std::string& name, bool& arrowKey) {
     static const struct {
         const char* name;
         int code;
@@ -148,6 +148,7 @@ int NamedScanCode(const std::string& name) {
         {"escape", 0x01}, {"return", 0x1c}, {"enter", 0x1c}, {"space", 0x39},
         {"tab", 0x0f}, {"backspace", 0x0e}, {"up", 0x48}, {"down", 0x50},
         {"left", 0x4b}, {"right", 0x4d}, {"home", 0x47}, {"end", 0x4f},
+        {"kp2", 0x50}, {"kp4", 0x4b}, {"kp6", 0x4d}, {"kp8", 0x48},
         {"pageup", 0x49}, {"pagedown", 0x51}, {"lshift", 0x2a}, {"ctrl", 0x1d},
         {"alt", 0x38}, {"f1", 0x3b}, {"f2", 0x3c}, {"f3", 0x3d}, {"f4", 0x3e},
         {"f5", 0x3f}, {"f6", 0x40}, {"f7", 0x41}, {"f8", 0x42}, {"f9", 0x43},
@@ -156,6 +157,7 @@ int NamedScanCode(const std::string& name) {
     std::string lower;
     for (char c : name)
         lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    arrowKey = lower == "up" || lower == "down" || lower == "left" || lower == "right";
     for (const auto& entry : kNames) {
         if (lower == entry.name)
             return entry.code;
@@ -188,11 +190,12 @@ void QueueMouse(Event::Type type, Event::Button button, int x, int y) {
     gPending.push_back(event);
 }
 
-void QueueKey(Event::Type type, int code) {
+void QueueKey(Event::Type type, int code, bool arrowKey) {
     Event event;
     event.type = type;
     event.scanCode = code;
     event.returnKey = code == 0x1c;
+    event.arrowKey = arrowKey;
     gPending.push_back(event);
 }
 
@@ -219,11 +222,12 @@ void RunReplayAction(const ReplayAction& action) {
         QueueMouse(Event::MOUSE_DOWN, Event::BUTTON_LEFT, x, y);
         QueueMouse(Event::MOUSE_UP, Event::BUTTON_LEFT, x, y);
     } else if (action.verb == "key-down" || action.verb == "key-up" || action.verb == "key") {
-        int code = action.arguments.empty() ? 0 : NamedScanCode(action.arguments[0]);
+        bool arrowKey = false;
+        int code = action.arguments.empty() ? 0 : NamedScanCode(action.arguments[0], arrowKey);
         if (action.verb != "key-up")
-            QueueKey(Event::KEY_DOWN, code);
+            QueueKey(Event::KEY_DOWN, code, arrowKey);
         if (action.verb != "key-down")
-            QueueKey(Event::KEY_UP, code);
+            QueueKey(Event::KEY_UP, code, arrowKey);
     } else if (action.verb == "shot") {
         Present(true);
         std::string path = action.arguments.empty() ? "screen.bmp" : action.arguments[0];
@@ -301,10 +305,15 @@ bool Translate(const SDL_Event& source, Event& event) {
             int code = SetOneScanCode(source.key.scancode);
             if (code == 0)
                 return false;
+            if (source.key.repeat && (source.key.scancode == SDL_SCANCODE_RETURN
+                                      || source.key.scancode == SDL_SCANCODE_KP_ENTER))
+                return false;
             event.type = source.type == SDL_EVENT_KEY_DOWN ? Event::KEY_DOWN : Event::KEY_UP;
             event.scanCode = code;
             event.returnKey = source.key.scancode == SDL_SCANCODE_RETURN
                               || source.key.scancode == SDL_SCANCODE_KP_ENTER;
+            event.arrowKey = source.key.scancode == SDL_SCANCODE_UP || source.key.scancode == SDL_SCANCODE_DOWN
+                             || source.key.scancode == SDL_SCANCODE_LEFT || source.key.scancode == SDL_SCANCODE_RIGHT;
             return true;
         }
         case SDL_EVENT_MOUSE_MOTION: {

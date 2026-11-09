@@ -190,6 +190,26 @@ msgid "combat.artifact.captured"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.auto.confirm"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.auto.interrupt"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.auto_resolve.setting"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.autospells.off"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.autospells.on"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.casualties.attacker"
 msgstr ""
 
@@ -256,6 +276,26 @@ msgstr ""
 msgid "combat.luck.good.buka"
 msgstr ""
 
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.auto"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.cancel"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.mode.help"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.quick"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.mode.title"
+msgstr ""
+
 #: src/SOURCE/CMBTMGR.cpp
 #, c-format
 msgid "combat.morale.bad"
@@ -288,12 +328,19 @@ msgid "combat.network.town"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
-msgid "combat.spell.already_cast"
+msgid "combat.quick.confirm"
 msgstr ""
 
-#: src/SOURCE/SPELLS.cpp
-#, c-format
-msgid "combat.spell.cast"
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.draw"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.restart"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.spell.already_cast"
 msgstr ""
 
 #: src/SOURCE/SPELLS.cpp
@@ -303,6 +350,31 @@ msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.no_hero"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_area"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_damage"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_kills"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_resist"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_resurrect"
 msgstr ""
 
 #: src/SOURCE/SPELLS.cpp
@@ -411,6 +483,10 @@ msgstr ""
 
 #: src/SOURCE/kbwin.cpp
 msgid "editor.instance.title"
+msgstr ""
+
+#: src/EDITOR/EDITMGR.cpp
+msgid "editor.map.load.discard"
 msgstr ""
 
 #: src/EDITOR/EDITMGR.cpp
@@ -1043,7 +1119,7 @@ msgstr ""
 msgid "file.load.label"
 msgstr ""
 
-#: src/EDITOR/EDITOR.cpp src/SOURCE/GAME.cpp src/SOURCE/KB.cpp
+#: src/EDITOR/EDITMGR.cpp src/EDITOR/EDITOR.cpp src/SOURCE/GAME.cpp src/SOURCE/KB.cpp
 #, c-format
 msgid "file.open.failed"
 msgstr ""
@@ -1097,6 +1173,22 @@ msgstr ""
 #: src/SOURCE/HERO.cpp src/SOURCE/VIEW.cpp
 #, c-format
 msgid "hero.title"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fit"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.integer"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.smooth"
 msgstr ""
 
 #: src/SOURCE/REMOTE.cpp
@@ -1908,6 +2000,159 @@ msgstr ""
 
 #: src/SOURCE/SETUP.cpp
 msgid "setup.modem.initialization_prompt"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.army.dismiss"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.auto"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.auto_spells"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.options"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.order"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.quick"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.retreat"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.surrender"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.cast"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.army"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.battle"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.map"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.town"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.well"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "shortcut.invalid"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.adventure_options"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.dig"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.end"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.file_options"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.hero"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.load"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.move"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.overview"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.puzzle"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.save"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.scenario"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.town"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.view_world"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.menu"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "shortcut.prompt"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.build"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.exchange"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.magic"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.recruit_all"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.shipyard"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.tavern"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.thieves_guild"
+msgstr ""
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.well"
 msgstr ""
 
 #: src/EDITOR/EDITOR.cpp src/SOURCE/KB.cpp

@@ -1,8 +1,13 @@
 #ifndef HOMM1_EDITOR_EDITMANAGER_H
 #define HOMM1_EDITOR_EDITMANAGER_H
 
+#include <deque>
+#include <memory>
+#include <vector>
+
 #include <BASE/baseManager.h>
 #include <EDITOR/randomMap.h>
+#include <SOURCE/fileRequester.h>
 #include <SOURCE/game.h>
 #include <SOURCE/KB.h>
 #include <SOURCE/mapCell.h>
@@ -322,7 +327,29 @@ public:
     baseManager* m_toolManager;
     heroWindow* m_window;
     editMap m_map;
-    editMap m_undoMap;
+private:
+    struct MapSnapshot {
+        struct ExtraRecord {
+            i32 size;
+            std::vector<u8> data;
+        };
+        editMap map;
+        SMapHeader header;
+        char fileName[EDIT_MAP_FILE_NAME_SIZE];
+        i16 nextObjectId;
+        b32 newFormat;
+        std::vector<ExtraRecord> extras;
+    };
+    using MapHistory = std::deque<std::unique_ptr<MapSnapshot>>;
+    MapHistory m_undoHistory;
+    MapHistory m_redoHistory;
+    std::unique_ptr<MapSnapshot> m_beforeEdit;
+    std::unique_ptr<MapSnapshot> CaptureMap() const;
+    void RestoreMap(const MapSnapshot& snapshot);
+    void ApplyHistory(bool redo);
+    void ResetHistory();
+
+public:
     i32 m_extraCount;
     i32 m_extraSizes[MAP_EXTRA_RECORD_CAPACITY];
     void* m_extras[MAP_EXTRA_RECORD_CAPACITY];
@@ -339,7 +366,9 @@ public:
     virtual i16 Open(i16 priority) ;
     virtual void Close(void) ;
     virtual i16 Main(tag_message& message) ;
-    void SaveUndo(void);
+    void BeginEdit();
+    void EndEdit();
+    void CancelEdit();
     void UpdateMapView(void);
     void UpdateCursor(void);
     void DrawRulers(i16 viewX, i16 viewY, i16 cursorX, i16 cursorY);

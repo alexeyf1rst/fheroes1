@@ -3,6 +3,7 @@
 #include <SOURCE/NOOPT.h>
 
 #include <BASE/Misc.h>
+#include <SOURCE/combatManager.h>
 #include <SOURCE/highScoreManager.h>
 #include <SOURCE/KB.h>
 #include <SOURCE/kbwin.h>
@@ -15,6 +16,8 @@ void DelayTicks(i32 ticks) {
 }
 
 void DelayTil(i32* endTime) {
+    if (gCombatManager && gCombatManager->m_quickCombat)
+        return;
     H1_ASSERT(*endTime > 10000);
     while (*endTime > KBTickCount()) {
         Process1WindowsMessage();
@@ -27,6 +30,8 @@ void DelayMilli(i32 delay) {
 }
 
 void DelayTilMilli(i32 endTime) {
+    if (gCombatManager && gCombatManager->m_quickCombat)
+        return;
     while (endTime > KBTickCount()) {
         Process1WindowsMessage();
         PollSound();

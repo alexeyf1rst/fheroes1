@@ -50,6 +50,7 @@
 #include <SOURCE/town.h>
 #include <SOURCE/wingraph.h>
 
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -614,7 +615,7 @@ i16 advManager::Main(struct tag_message& message) {
                         break;
                     case WIDGET_NOTIFY_DESELECT:
                         if (!(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
-                            result = ProcessDeSelect(&message, &quit, &location);
+                            result = ProcessDeSelect(message.id, &quit, &location);
                         break;
                     case WIDGET_NOTIFY_SELECT:
                         result = ProcessSelect(&message, &location);
@@ -659,9 +660,10 @@ i16 advManager::Main(struct tag_message& message) {
                         || message.keyCode == INPUT_SCAN_F9 || message.keyCode == INPUT_SCAN_F10
                         || message.keyCode == INPUT_SCAN_F11 || message.keyCode == INPUT_SCAN_F12))
                     break;
-                switch (message.keyCode) {
+                switch (TranslateShortcut(message.keyCode, SHORTCUT_MAP)) {
                     case INPUT_SCAN_F2:
-                        PopNetBox(NULL);
+                        if (gRemoteOn)
+                            PopNetBox(NULL);
                         break;
                     case INPUT_SCAN_F3:
                         gGame->m_playerDead[1] = true;
@@ -793,8 +795,24 @@ i16 advManager::Main(struct tag_message& message) {
                         break;
                     case INPUT_SCAN_ESCAPE:
                         break;
+                    case INPUT_SCAN_M:
+                        result = ProcessDeSelect(ADVENTURE_CONTROL_CONTINUE_ROUTE, &quit, &location);
+                        break;
+                    case INPUT_SCAN_E:
+                        result = ProcessDeSelect(ADVENTURE_CONTROL_END_TURN, &quit, &location);
+                        break;
+                    case INPUT_SCAN_A:
+                        result = ProcessDeSelect(ADVENTURE_CONTROL_ADVENTURE_OPTIONS, &quit, &location);
+                        break;
+                    case INPUT_SCAN_F:
+                    case INPUT_SCAN_O:
+                        result = ProcessDeSelect(ADVENTURE_CONTROL_GAME_OPTIONS, &quit, &location);
+                        break;
+                    case INPUT_SCAN_K:
+                        result = ProcessDeSelect(ADVENTURE_CONTROL_OVERVIEW, &quit, &location);
+                        break;
                     case INPUT_SCAN_NUMPAD_8:
-                        if (message.modifiers & MESSAGE_MODIFIER_CONTROL_KEYS)
+                        if (message.modifiers & (MESSAGE_MODIFIER_CONTROL_KEYS | MESSAGE_MODIFIER_ARROW))
                             ScreenScroll(MAP_DIRECTION_NORTH, false);
                         else
                             orient = MAP_DIRECTION_NORTH;
@@ -806,7 +824,7 @@ i16 advManager::Main(struct tag_message& message) {
                             orient = MAP_DIRECTION_NORTH_EAST;
                         break;
                     case INPUT_SCAN_NUMPAD_6:
-                        if (message.modifiers & MESSAGE_MODIFIER_CONTROL_KEYS)
+                        if (message.modifiers & (MESSAGE_MODIFIER_CONTROL_KEYS | MESSAGE_MODIFIER_ARROW))
                             ScreenScroll(MAP_DIRECTION_EAST, false);
                         else
                             orient = MAP_DIRECTION_EAST;
@@ -818,7 +836,7 @@ i16 advManager::Main(struct tag_message& message) {
                             orient = MAP_DIRECTION_SOUTH_EAST;
                         break;
                     case INPUT_SCAN_NUMPAD_2:
-                        if (message.modifiers & MESSAGE_MODIFIER_CONTROL_KEYS)
+                        if (message.modifiers & (MESSAGE_MODIFIER_CONTROL_KEYS | MESSAGE_MODIFIER_ARROW))
                             ScreenScroll(MAP_DIRECTION_SOUTH, false);
                         else
                             orient = MAP_DIRECTION_SOUTH;
@@ -830,7 +848,7 @@ i16 advManager::Main(struct tag_message& message) {
                             orient = MAP_DIRECTION_SOUTH_WEST;
                         break;
                     case INPUT_SCAN_NUMPAD_4:
-                        if (message.modifiers & MESSAGE_MODIFIER_CONTROL_KEYS)
+                        if (message.modifiers & (MESSAGE_MODIFIER_CONTROL_KEYS | MESSAGE_MODIFIER_ARROW))
                             ScreenScroll(MAP_DIRECTION_WEST, false);
                         else
                             orient = MAP_DIRECTION_WEST;
@@ -906,6 +924,20 @@ i16 advManager::Main(struct tag_message& message) {
                     case INPUT_SCAN_H:
                         SetHeroContext(gCurPlayerData->NextHero(0), false);
                         break;
+                    case INPUT_SCAN_SPACE:
+                        if (gCurPlayerData->CurrentTown() != GAME_TOWN_NONE) {
+                            m_pendingCommand = ADVMGR_COMMAND_TOWN_VIEW;
+                            DoAdvCommand();
+                        } else if (curHero) {
+                            const u8 location = m_heroMobilized
+                                ? GetCell(m_mapOriginX + m_cursorMapX, m_mapOriginY + m_cursorMapY)->m_triggerType
+                                : curHero->m_locationType;
+                            if (location == MAP_EVENT_TRIGGER(MAP_OBJECT_TOWN)) {
+                                m_pendingCommand = ADVMGR_COMMAND_OCCUPIED_TOWN_VIEW;
+                                DoAdvCommand();
+                            }
+                        }
+                        break;
                     case INPUT_SCAN_ENTER:
                         if (gCurPlayerData->CurrentTown() != GAME_TOWN_NONE) {
                             m_pendingCommand = ADVMGR_COMMAND_TOWN_VIEW;
@@ -960,6 +992,7 @@ void advManager::Reseed(i32, i32) {
 
 i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** eventCell) {
     i32 locatorIndex;
+    i32 heroListIndex;
     i16 mouseX;
     i16 pickedObject;
     i16 mouseY;
@@ -979,10 +1012,10 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
         case ADVENTURE_CONTROL_HERO_LOCATOR_4:
             locatorIndex = (message->id - ADVENTURE_CONTROL_HERO_LOCATOR_1)
                            / (ADVENTURE_CONTROL_HERO_LOCATOR_2 - ADVENTURE_CONTROL_HERO_LOCATOR_1);
-            if (locatorIndex >= gCurPlayerData->m_heroCount)
+            heroListIndex = gCurPlayerData->m_heroLocatorPage + locatorIndex;
+            if (heroListIndex >= gCurPlayerData->m_heroCount)
                 break;
-            pickedObject =
-                gCurPlayerData->m_heroIds[gCurPlayerData->m_heroLocatorPage + locatorIndex];
+            pickedObject = gCurPlayerData->m_heroIds[heroListIndex];
             if (message->modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) {
                 HeroQuickView(
                     pickedObject,
@@ -990,6 +1023,11 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
                     QUICK_VIEW_AT_LOCATOR,
                     QUICK_VIEW_AT_LOCATOR
                 );
+            } else if (!gRemoteOn && (message->modifiers & MESSAGE_MODIFIER_SHIFT_KEYS)) {
+                i8* heroes = gCurPlayerData->m_heroIds;
+                std::rotate(heroes, heroes + heroListIndex, heroes + heroListIndex + 1);
+                gCurPlayerData->m_heroLocatorPage = 0;
+                UpdateHeroLocators(true, true);
             } else if (pickedObject == gCurPlayerData->CurrentHero()) {
                 m_pendingCommand = ADVMGR_COMMAND_HERO_VIEW;
                 DoAdvCommand();
@@ -1145,6 +1183,15 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
                     }
                 }
             } else if (visible) {
+                if ((message->modifiers & MESSAGE_MODIFIER_SHIFT_KEYS)
+                    && MAP_TRIGGER_OBJECT(theCell->m_triggerType) == MAP_OBJECT_HERO
+                    && gGame->GetHero(theCell->m_objectMetadata)->m_owner == gCurPlayer) {
+                    if (theCell->m_objectMetadata != gCurPlayerData->CurrentHero()) {
+                        HideRoute(true, false, true);
+                        SetHeroContext(theCell->m_objectMetadata, false);
+                    }
+                    break;
+                }
                 currentHero = NULL;
                 mobileResult = false;
                 if (gCurPlayerData->m_currentHero != HERO_ID_NONE) {
@@ -1268,11 +1315,11 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
 }
 
 i32 advManager::ProcessDeSelect(
-    struct tag_message* message,
+    i16 control,
     i32* result,
     class mapCell** eventCell
 ) {
-    switch (message->id) {
+    switch (control) {
         case ADVENTURE_CONTROL_CONTINUE_ROUTE:
             m_pendingCommand = ADVMGR_COMMAND_CONTINUE_ROUTE;
             *eventCell = DoAdvCommand();
@@ -1304,8 +1351,7 @@ i32 advManager::ProcessDeSelect(
             gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, NULL);
             break;
     }
-    if (message->id >= BOTTOM_VIEW_DRAW_FIRST_WIDGET
-        && message->id <= BOTTOM_VIEW_DRAW_LAST_WIDGET) {
+    if (control >= BOTTOM_VIEW_DRAW_FIRST_WIDGET && control <= BOTTOM_VIEW_DRAW_LAST_WIDGET) {
         if (gBottomViewOverride == BOTTOM_VIEW_KINGDOM)
             gBottomViewOverride = BOTTOM_VIEW_NEW_TURN;
         else if (gBottomViewOverride != BOTTOM_VIEW_NONE)

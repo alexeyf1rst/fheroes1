@@ -27,8 +27,6 @@ strip::strip(
     i16 firstBorderId,
     b32 drawWindow
 ) {
-    i16 i;
-
     m_selectedSlot = STRIP_SLOT_NONE;
     m_x = x;
     m_y = y;
@@ -39,12 +37,14 @@ strip::strip(
     m_stripIcon = gResourceManager->GetIcon("strip.icn");
     m_monsterIcon = gResourceManager->GetIcon("monsters.icn");
     m_font = gResourceManager->GetFont("smalfont.fnt");
-    m_window =
-        new heroWindow(m_x, m_y, STRIP_WINDOW_WIDTH, STRIP_WINDOW_HEIGHT, WINDOW_FLAG_STRIP_WINDOW);
+    m_window = new heroWindow(
+        m_x, m_y, STRIP_WINDOW_WIDTH, STRIP_WINDOW_HEIGHT,
+        WINDOW_FLAG_STRIP_WINDOW | WINDOW_FLAG_OWNS_WIDGETS
+    );
     if (!m_window)
         MemError();
     if (m_army) {
-        m_borders[0] = new border(
+        auto* portrait = new border(
             STRIP_PORTRAIT_X,
             STRIP_CONTENT_Y,
             STRIP_PORTRAIT_BORDER_WIDTH,
@@ -54,11 +54,11 @@ strip::strip(
             0,
             NULL
         );
-        if (!m_borders[0])
+        if (!portrait)
             MemError();
-        m_window->AddWidget(m_borders[0], WINDOW_Z_ORDER_APPEND);
-        for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
-            m_borders[i + 1] = new border(
+        m_window->AddWidget(portrait, WINDOW_Z_ORDER_APPEND);
+        for (i16 i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
+            auto* slot = new border(
                 i * STRIP_ARMY_X_STEP + STRIP_ARMY_FIRST_X,
                 STRIP_CONTENT_Y,
                 STRIP_ARMY_BORDER_WIDTH,
@@ -68,9 +68,9 @@ strip::strip(
                 0,
                 NULL
             );
-            if (!m_borders[i + 1])
+            if (!slot)
                 MemError();
-            m_window->AddWidget(m_borders[i + 1], WINDOW_Z_ORDER_APPEND);
+            m_window->AddWidget(slot, WINDOW_Z_ORDER_APPEND);
         }
     }
     DrawIcons(drawWindow);
@@ -78,14 +78,7 @@ strip::strip(
 }
 
 strip::~strip() {
-    i16 i;
-
     gWindowManager->RemoveWindow(m_window);
-    if (m_army) {
-        for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++)
-            delete m_borders[i];
-        delete m_borders[ARMY_GROUP_SLOT_COUNT];
-    }
     delete m_window;
     gResourceManager->Dispose(m_font);
     gResourceManager->Dispose(m_stripIcon);

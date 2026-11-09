@@ -3,6 +3,7 @@
 #include <BASE/audio.h>
 #include <BASE/baseManager.h>
 #include <BASE/bitmap.h>
+#include <BASE/bmap2.h>
 #include <BASE/font.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
@@ -187,8 +188,19 @@ i16 combatManager::Open(i16 priority) {
     StopMusic();
     m_backgroundBuffer = new bitmap(BITMAP_TYPE_NONE, LOGICAL_SCREEN_WIDTH, COMBAT_VIEW_HEIGHT);
     m_backgroundDrawn = false;
-    sample = LoadPlaySample("PREBATTL.82M");
+    sample = m_autoResolveAtStart ? nullptr : LoadPlaySample("PREBATTL.82M");
     gNextAction = ACTION_NONE;
+    m_replayRequested = false;
+    m_autoCombatSides[COMBAT_DEFENDER_SIDE] = m_autoCombatSides[COMBAT_ATTACKER_SIDE] = false;
+    m_autoCombatStopRequested = COMBAT_SIDE_NONE;
+    m_showTurnOrder = gConfig.showCombatOrder;
+    m_turnOrderCount = 0;
+    m_quickCombat = false;
+    if (m_autoResolveAtStart) {
+        m_autoResolveBackground = new bitmap(BITMAP_TYPE_NONE, LOGICAL_SCREEN_WIDTH, LOGICAL_SCREEN_HEIGHT);
+        BlitBitmap(gWindowManager->m_screen, 0, 0, LOGICAL_SCREEN_WIDTH, LOGICAL_SCREEN_HEIGHT,
+                   m_autoResolveBackground, 0, 0);
+    }
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
     m_sideRetreated[COMBAT_DEFENDER_SIDE] = false;
     m_sideRetreated[COMBAT_ATTACKER_SIDE] = false;
@@ -202,6 +214,7 @@ i16 combatManager::Open(i16 priority) {
     m_combatWindow = new heroWindow(0, 0, "cmbtwin.bin");
     if (!m_combatWindow)
         MemError();
+    m_combatWindow->ClearButtonHotkey(COMBAT_CONTROL_AUTO_COMBAT);
     gWindowManager->AddWindow(m_combatWindow, WINDOW_Z_ORDER_APPEND, true);
     m_smallFont = gResourceManager->GetFont("smalfont.fnt");
     LoadIcons();
@@ -218,24 +231,28 @@ i16 combatManager::Open(i16 priority) {
     SetDrawRightToLeft(0);
     m_gridUpdateRow = 0;
     m_combatWindowOpen = true;
+    if (m_autoResolveAtStart)
+        StartQuickCombat();
     DrawFrame(true);
     gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
     m_combatPalette = gResourceManager->GetPalette("kb.pal");
     KBChangeMenu(gCombatMenu);
     CombatMessage("", true);
-    gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, m_combatPalette);
+    if (!m_autoResolveAtStart)
+        gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, m_combatPalette);
     gLimitedCombatUpdatePalette = true;
     gMouseManager->NewUpdate(true);
     gMouseManager->WarpPointer(m_hexCells[m_selectorHex].m_x, m_hexCells[m_selectorHex].m_y - 50);
     gMouseManager->ReallyShowPointer();
-    m_autoCombat = false;
-    WaitSample(sample);
+    if (sample)
+        WaitSample(sample);
     musicList[0] = MUSIC_TRACK_BATTLE_2;
     musicList[1] = MUSIC_TRACK_BATTLE_3;
     musicList[2] = MUSIC_TRACK_BATTLE_1;
     musicList[3] = MUSIC_TRACK_BATTLE_4;
     song = musicList[SRandom(0, 3)];
-    PlayMusic(song);
+    if (!m_autoResolveAtStart)
+        PlayMusic(song);
     gInputManager->Flush();
     ResetMouse();
     m_messageMask = BASE_MANAGER_ACCEPT_WIDGET;
@@ -249,6 +266,7 @@ void combatManager::Close(void) {
     i32 i;
     i32 monsterSide;
 
+    StopQuickCombat();
     StopMusic();
     if (m_restoreSampleSuspension) {
         m_restoreSampleSuspension = false;
@@ -265,17 +283,21 @@ void combatManager::Close(void) {
     gLimitedCombatUpdatePalette = false;
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
     delete m_backgroundBuffer;
-    for (i = COMBAT_SIDE_FIRST; i < COMBAT_SIDE_COUNT; i++)
-        UpdateArmyGroup(i);
-    if (m_battlefieldCell->m_triggerType == MAP_EVENT_TRIGGER(MAP_OBJECT_MONSTER)) {
-        monsterSide = m_playerId[COMBAT_DEFENDER_SIDE] != GAME_PLAYER_NONE
-                          ? static_cast<i8>(COMBAT_ATTACKER_SIDE)
-                          : static_cast<i8>(COMBAT_DEFENDER_SIDE);
-        m_battlefieldCell->m_objectMetadata = 0;
-        for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
-            if (m_armyGroups[monsterSide]->m_creatureTypes[i] != CREATURE_NONE)
-                m_battlefieldCell->m_objectMetadata +=
-                    m_armyGroups[monsterSide]->m_creatureCounts[i];
+    delete m_autoResolveBackground;
+    m_autoResolveBackground = nullptr;
+    if (!m_replayRequested) {
+        for (i = COMBAT_SIDE_FIRST; i < COMBAT_SIDE_COUNT; i++)
+            UpdateArmyGroup(i);
+        if (m_battlefieldCell && m_battlefieldCell->m_triggerType == MAP_EVENT_TRIGGER(MAP_OBJECT_MONSTER)) {
+            monsterSide = m_playerId[COMBAT_DEFENDER_SIDE] != GAME_PLAYER_NONE
+                              ? static_cast<i8>(COMBAT_ATTACKER_SIDE)
+                              : static_cast<i8>(COMBAT_DEFENDER_SIDE);
+            m_battlefieldCell->m_objectMetadata = 0;
+            for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
+                if (m_armyGroups[monsterSide]->m_creatureTypes[i] != CREATURE_NONE)
+                    m_battlefieldCell->m_objectMetadata +=
+                        m_armyGroups[monsterSide]->m_creatureCounts[i];
+            }
         }
     }
     gWindowManager->RemoveWindow(m_combatWindow);
@@ -291,22 +313,13 @@ void combatManager::Close(void) {
 }
 
 void combatManager::UpdateArmyGroup(i8 side) {
-    i16 i;
-    i16 j;
-
-    for (i = 0; i < m_numArmies[side]; i++) {
-        for (j = 0; j < ARMY_GROUP_SLOT_COUNT; j++) {
-            if (m_armyGroups[side]->m_creatureTypes[j] == m_armies[side][i].m_creatureType)
-                break;
-        }
-        if (j < ARMY_GROUP_SLOT_COUNT) {
-            if (m_armies[side][i].m_stats.attributes & MONSTER_FLAGS_DEAD) {
-                m_armyGroups[side]->m_creatureTypes[j] = CREATURE_NONE;
-                m_armyGroups[side]->m_creatureCounts[j] = 0;
-            } else {
-                m_armyGroups[side]->m_creatureCounts[j] = m_armies[side][i].m_quantity;
-            }
-        }
+    for (i16 index = 0; index < m_numArmies[side]; ++index) {
+        const i8 slot = m_armyGroupSlots[side][index];
+        const army& stack = m_armies[side][index];
+        if (stack.m_stats.attributes & MONSTER_FLAGS_DEAD)
+            m_armyGroups[side]->Dismiss(slot);
+        else
+            m_armyGroups[side]->m_creatureCounts[slot] = stack.m_quantity;
     }
 }
 
@@ -550,6 +563,7 @@ void combatManager::LoadIcons(void) {
     for (i = COMBAT_ICON_GROUND; i < COMBAT_ICON_COUNT; i++)
         m_combatIcons[i] = NULL;
     m_combatIcons[COMBAT_ICON_SPELLS] = gResourceManager->GetIcon("spells.icn");
+    m_combatIcons[COMBAT_ICON_ORDER] = gResourceManager->GetIcon("mons32.icn");
     m_backgroundBitmap = gResourceManager->GetBitmap(GetBackgroundName());
     m_combatIcons[COMBAT_ICON_GROUND] =
         gResourceManager->GetIcon(gCombatGroundNames[m_terrainType]);
@@ -601,25 +615,15 @@ void combatManager::LoadArmies(void) {
             m_armies[j][i].InitClean();
     }
     for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
-        if (m_armyGroups[COMBAT_ATTACKER_SIDE]->m_creatureTypes[i] != CREATURE_NONE) {
-            m_armies[COMBAT_ATTACKER_SIDE][m_numArmies[COMBAT_ATTACKER_SIDE]].Init(
-                m_armyGroups[COMBAT_ATTACKER_SIDE]->m_creatureTypes[i],
-                m_armyGroups[COMBAT_ATTACKER_SIDE]->m_creatureCounts[i],
-                COMBAT_ATTACKER_SIDE,
-                m_numArmies[COMBAT_ATTACKER_SIDE]
-            );
-            m_armies[COMBAT_ATTACKER_SIDE][m_numArmies[COMBAT_ATTACKER_SIDE]].LoadResources();
-            m_numArmies[COMBAT_ATTACKER_SIDE]++;
-        }
-        if (m_armyGroups[COMBAT_DEFENDER_SIDE]->m_creatureTypes[i] != CREATURE_NONE) {
-            m_armies[COMBAT_DEFENDER_SIDE][m_numArmies[COMBAT_DEFENDER_SIDE]].Init(
-                m_armyGroups[COMBAT_DEFENDER_SIDE]->m_creatureTypes[i],
-                m_armyGroups[COMBAT_DEFENDER_SIDE]->m_creatureCounts[i],
-                COMBAT_DEFENDER_SIDE,
-                m_numArmies[COMBAT_DEFENDER_SIDE]
-            );
-            m_armies[COMBAT_DEFENDER_SIDE][m_numArmies[COMBAT_DEFENDER_SIDE]].LoadResources();
-            m_numArmies[COMBAT_DEFENDER_SIDE]++;
+        for (i8 side = COMBAT_SIDE_FIRST; side < COMBAT_SIDE_COUNT; ++side) {
+            const armyGroup& group = *m_armyGroups[side];
+            if (group.m_creatureTypes[i] == CREATURE_NONE)
+                continue;
+            const i16 index = m_numArmies[side]++;
+            m_armyGroupSlots[side][index] = i;
+            army& stack = m_armies[side][index];
+            stack.Init(group.m_creatureTypes[i], group.m_creatureCounts[i], side, index);
+            stack.LoadResources();
         }
     }
 }
@@ -742,7 +746,7 @@ b32 combatManager::CheckApplyBadMorale(i32 side, i32 index) {
     return true;
 }
 
-b8 combatManager::GetNextArmy(b32 checkMorale) {
+b8 combatManager::GetNextArmy(b32 checkMorale, bool preview) {
     army* checkArmy;
     i8 speedLevelIndex;
     i32 sideIter;
@@ -776,7 +780,8 @@ b8 combatManager::GetNextArmy(b32 checkMorale) {
             if (armyCounter != m_numArmies[stackSide]) {
                 m_currentSide = stackSide;
                 m_currentArmyIndex = armyCounter;
-                GetControl();
+                if (!preview)
+                    GetControl();
                 return true;
             }
         }
@@ -786,7 +791,8 @@ b8 combatManager::GetNextArmy(b32 checkMorale) {
                 m_currentSpeed = CREATURE_SPEED_BLAZING;
         }
     }
-    GetControl();
+    if (!preview)
+        GetControl();
     return false;
 }
 

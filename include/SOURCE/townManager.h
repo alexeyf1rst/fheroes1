@@ -280,8 +280,11 @@ public:
     void DoCommand(i8 command);
     void RedrawTownScreen(void);
     void SplitArmy(void);
+    i16 PromptArmySplit(i16 maximum, const char* prompt);
     void ShiftQualChange(void);
     void ResetStrips(void);
+    void AddTransferButtons(void);
+    void TransferArmies(i16 action);
     void Toggle(i8 building);
     void DrawTown(b8 updateScreen, b32 advanceAnimation);
     i16 BuyBuild(i16 building, b8 cannotBuy, b8 quickView);

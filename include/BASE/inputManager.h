@@ -130,6 +130,7 @@ enum InputHostMessage {
     INPUT_MESSAGE_RIGHT_DOWN = 0x204,
     INPUT_MESSAGE_RIGHT_UP = 0x205,
     INPUT_MESSAGE_RIGHT_DOUBLE = 0x206,
+    INPUT_MESSAGE_EXTENDED_KEY = 0x01000000,
     INPUT_VIRTUAL_KEY_RETURN = 0x0d
 };
 
@@ -154,6 +155,7 @@ public:
     i16 m_keyCodeType;
     i16 m_keyPrefixPending;
     i16 m_modifiers;
+    i16 m_tapKey = INPUT_SCAN_NONE;
     i16 m_mouseX;
     i16 m_mouseY;
     b8 m_forceMouseMove;
@@ -166,6 +168,7 @@ public:
     virtual i16 Main(tag_message& message) ;
     void Flush(void);
     tag_message GetEvent(void);
+    void PutBackEvent(const tag_message& event);
     void SetRelativeMouse(i16 relative);
     void SetMouseCoords(i16 x, i16 y);
     void SetMouseSpeedDivisor(i16 divisor);

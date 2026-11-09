@@ -1,5 +1,4 @@
 #include <H1/Ints.h>
-
 #include <BASE/audio.h>
 #include <BASE/bitmap.h>
 #include <BASE/bmap2.h>
@@ -80,20 +79,26 @@ i16 combatManager::Main(struct tag_message& message) {
         if (CheckWin(&message))
             return MESSAGE_DISPATCH_FORWARD;
     }
-    if (m_autoCombat) {
-        while (message.type != MESSAGE_KEY_DOWN && message.type != MESSAGE_LEFT_BUTTON_DOWN
-               && message.type != MESSAGE_RIGHT_BUTTON_DOWN && message.type != MESSAGE_NONE)
-            message = gInputManager->GetEvent();
-        if (message.type != MESSAGE_NONE) {
-            m_autoCombat = false;
-            gMouseManager->ReallyShowPointer();
+    if (m_quickCombat) {
+        message.type = MESSAGE_NONE;
+    } else {
+        const bool stopKey = message.type == MESSAGE_KEY_DOWN
+                             && (TranslateShortcut(message.keyCode, SHORTCUT_BATTLE) == INPUT_SCAN_A
+                                 || message.keyCode == INPUT_SCAN_ESCAPE);
+        const i8 side = stopKey ? AutoCombatInterruptSide() : m_autoCombatStopRequested;
+        m_autoCombatStopRequested = COMBAT_SIDE_NONE;
+        if (side != COMBAT_SIDE_NONE && m_autoCombatSides[side]) {
+            NormalDialog(localization::Tr("combat.auto.interrupt"), NORMAL_DIALOG_TYPE_YES_NO);
+            if (gWindowManager->m_dialogResult == NORMAL_DIALOG_CONFIRM)
+                m_autoCombatSides[side] = false;
+            return MESSAGE_DISPATCH_CONSUME;
         }
     }
     CheckChangeSelector();
 processAction:
     if (gNextAction == ACTION_NONE) {
         if (m_playerId[m_currentSide] == GAME_PLAYER_NONE
-            || !gThisNetHumanPlayer[m_playerId[m_currentSide]] || m_autoCombat)
+            || !gThisNetHumanPlayer[m_playerId[m_currentSide]] || IsAutoCombat())
             CheckGetAIMove();
         else
             result = ProcessCombatMsg(message);
@@ -301,7 +306,7 @@ void combatManager::CheckSetMouseDirection(i32 mouseX, i32 mouseY, i32 targetHex
     army* enemyArmy;
     army* movingUnit;
 
-    if (m_autoCombat)
+    if (IsAutoCombat())
         return;
     if (m_validDirectionCount <= 1 && m_mouseDirection >= COMBAT_DIRECTION_FIRST)
         return;
@@ -447,7 +452,7 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
         case MESSAGE_WIDGET:
             switch (message.command) {
                 case WIDGET_COMMAND_HOVER:
-                    if (m_autoCombat)
+                    if (IsAutoCombat())
                         break;
                     switch (message.id) {
                         case COMBAT_CONTROL_FIELD:
@@ -500,8 +505,11 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                     switch (message.id) {
                         case COMBAT_CONTROL_AUTO_COMBAT:
                             if (!(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)) {
-                                m_autoCombat = true;
-                                gMouseManager->ReallyHidePointer();
+                                NormalDialog(localization::Tr("combat.mode.title"), NORMAL_DIALOG_TYPE_COMBAT_MODES);
+                                if (gWindowManager->m_dialogResult == NORMAL_DIALOG_BUTTON_YES)
+                                    m_autoCombatSides[m_currentSide] = true;
+                                else if (gWindowManager->m_dialogResult == NORMAL_DIALOG_BUTTON_NO && !gRemoteOn)
+                                    StartQuickCombat();
                             }
                             break;
                         case COMBAT_CONTROL_SKIP_TURN:
@@ -510,17 +518,54 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                             break;
                     }
                     break;
+                case WIDGET_NOTIFY_RIGHT_CLICK:
+                    if (message.id == COMBAT_CONTROL_AUTO_COMBAT)
+                        NormalDialog(localization::Tr("combat.mode.help"), NORMAL_DIALOG_TYPE_QUICK_VIEW);
+                    break;
             }
             break;
         case MESSAGE_KEY_DOWN:
-            switch (message.keyCode) {
+            switch (TranslateShortcut(message.keyCode, SHORTCUT_BATTLE)) {
                 case INPUT_SCAN_F2:
                     PopNetBox(NULL);
                     break;
                 case INPUT_SCAN_SPACE:
                     gNextAction = ACTION_SKIP_TURN;
                     break;
+                case INPUT_SCAN_A:
+                    NormalDialog(localization::Tr("combat.auto.confirm"), NORMAL_DIALOG_TYPE_YES_NO);
+                    if (gWindowManager->m_dialogResult == NORMAL_DIALOG_CONFIRM)
+                        m_autoCombatSides[m_currentSide] = true;
+                    break;
+                case INPUT_SCAN_P:
+                    if (!gRemoteOn) {
+                        gConfig.autoCombatSpells = !gConfig.autoCombatSpells;
+                        WritePrefs();
+                        strcpy(gText, gConfig.autoCombatSpells
+                                          ? localization::Tr("combat.autospells.on")
+                                          : localization::Tr("combat.autospells.off"));
+                        CombatMessage(gText, true);
+                    }
+                    break;
+                case INPUT_SCAN_Q:
+                    if (!gRemoteOn) {
+                        NormalDialog(localization::Tr("combat.quick.confirm"), NORMAL_DIALOG_TYPE_YES_NO);
+                        if (gWindowManager->m_dialogResult == NORMAL_DIALOG_CONFIRM)
+                            StartQuickCombat();
+                    }
+                    break;
+                case INPUT_SCAN_R:
+                    if (m_heroes[m_currentSide]
+                        && (m_currentSide != COMBAT_DEFENDER_SIDE || !m_combatTowns[COMBAT_DEFENDER_SIDE])
+                        && !m_sideRetreated[COMBAT_DEFENDER_SIDE] && !m_sideRetreated[COMBAT_ATTACKER_SIDE])
+                        DoCommand(COMBAT_MESSAGE_COMMAND_RETREAT);
+                    break;
+                case INPUT_SCAN_S:
+                    if (m_heroes[m_currentSide] && m_heroes[COMBAT_OPPOSING_SIDE(m_currentSide)])
+                        DoCommand(COMBAT_MESSAGE_COMMAND_SURRENDER);
+                    break;
                 case INPUT_SCAN_H:
+                case INPUT_SCAN_O:
                     if (m_heroes[m_currentSide]) {
                         gMouseManager->SetPointer(COMBAT_POINTER_DEFAULT);
                         ViewGeneral(m_currentSide, true, false);
@@ -528,6 +573,15 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                     }
                     break;
                 case INPUT_SCAN_T:
+                    m_showTurnOrder = !m_showTurnOrder;
+                    gConfig.showCombatOrder = m_showTurnOrder;
+                    WritePrefs();
+                    if (m_showTurnOrder)
+                        ShowTurnOrder();
+                    else
+                        DrawFrame(true);
+                    break;
+                case INPUT_SCAN_U:
                     gMouseManager->SetPointer(COMBAT_POINTER_DEFAULT);
                     ViewArmy(&m_armies[m_currentSide][m_currentArmyIndex], m_currentSide, false);
                     ResetMouse();
@@ -572,6 +626,41 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
     return MESSAGE_DISPATCH_CONSUME;
 }
 
+i8 combatManager::AutoCombatInterruptSide() const {
+    if (m_active != 1 || m_quickCombat || !gThisNetHasControl)
+        return COMBAT_SIDE_NONE;
+    const i8 player = m_playerId[m_currentSide];
+    const i8 side = player != GAME_PLAYER_NONE && gThisNetHumanPlayer[player]
+                        ? m_currentSide : COMBAT_OPPOSING_SIDE(m_currentSide);
+    return m_autoCombatSides[side] ? side : static_cast<i8>(COMBAT_SIDE_NONE);
+}
+
+bool combatManager::RequestAutoCombatStop() {
+    if (gInDialog)
+        return false;
+    const i8 side = AutoCombatInterruptSide();
+    if (side == COMBAT_SIDE_NONE)
+        return false;
+    m_autoCombatStopRequested = side;
+    return true;
+}
+
+void combatManager::StartQuickCombat() {
+    m_quickCombat = true;
+    gWindowManager->m_skipScreenUpdates = true;
+    StopAllSamples();
+    SuspendSamples();
+    gMouseManager->ReallyHidePointer();
+}
+
+void combatManager::StopQuickCombat() {
+    if (m_quickCombat) {
+        m_quickCombat = false;
+        gWindowManager->m_skipScreenUpdates = false;
+        ResumeSamples();
+    }
+}
+
 void combatManager::ResetRound(void) {
     i32 unusedRoundWord;
     i32 armyIndex;
@@ -601,6 +690,37 @@ void combatManager::ResetRound(void) {
     m_currentSpeed = CREATURE_SPEED_BLAZING;
 }
 
+namespace {
+
+constexpr i16 kRestartBattle = 0x7840;
+
+void AddBattleReviewActions(heroWindow& window) {
+    for (widget* item = window.m_widgetListHead; item; item = item->m_next) {
+        if (item->m_id != DIALOG_BUTTON_0)
+            continue;
+        const i16 top = item->m_y;
+        const i16 height = item->m_height;
+        item->m_x -= 68;
+        char* label = strdup(localization::Tr("combat.quick.restart"));
+        if (!label)
+            MemError();
+        auto* restart = new textWidget(172, top, 122, height, label, "bigfont.fnt",
+                                       TEXT_WIDGET_PLAIN_COLOR, kRestartBattle, WIDGET_KIND_TEXT);
+        window.AddWidget(restart, WINDOW_Z_ORDER_APPEND);
+        break;
+    }
+    window.SetConfirmButton(DIALOG_BUTTON_0, true);
+}
+
+bool BattleRestartRequested(const tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN)
+        return message.keyCode == INPUT_SCAN_R;
+    return message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_DESELECT
+           && message.id == kRestartBattle && !(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON);
+}
+
+}  // namespace
+
 b32 combatManager::CheckWin(struct tag_message* message) {
     i32 pos;
     b8 combatEnded;
@@ -624,7 +744,21 @@ b32 combatManager::CheckWin(struct tag_message* message) {
                              : static_cast<i8>(COMBAT_RESULT_ATTACKER);
     }
     if (combatEnded) {
-        DoVictory(m_combatResult);
+        if (m_quickCombat) {
+            StopQuickCombat();
+            gInputManager->Flush();
+            if (m_autoResolveAtStart) {
+                BlitBitmap(m_autoResolveBackground, 0, 0, LOGICAL_SCREEN_WIDTH, LOGICAL_SCREEN_HEIGHT,
+                           gWindowManager->m_screen, 0, 0);
+                gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, m_combatPalette);
+                m_replayRequested = ReviewAutoBattle();
+            } else {
+                DrawFrame(false);
+                UpdateCombatArea();
+            }
+        }
+        if (!m_replayRequested)
+            DoVictory(m_combatResult);
         message->type = MESSAGE_EXECUTIVE;
         message->executiveCommand = EXECUTIVE_COMMAND_TERMINATE_LOOP;
     }
@@ -767,7 +901,7 @@ void combatManager::DoCommand(i8 command) {
         case COMBAT_MESSAGE_COMMAND_ATTACK:
             gNextActionGridIndex = m_selectedHex;
             if (m_playerId[m_currentSide] == GAME_PLAYER_NONE
-                || !gHumanPlayer[m_playerId[m_currentSide]] || m_autoCombat) {
+                || !gHumanPlayer[m_playerId[m_currentSide]] || IsAutoCombat()) {
                 gNextAction = ACTION_MOVE;
                 gNextActionExtra = ARMY_HEX_INVALID;
             } else {
@@ -843,6 +977,12 @@ i16 WinCombatHandler(struct tag_message& message) {
     i32 finalDelay = 0x5a;
     i16 curFrame = 1;
 
+    if (gCombatManager->m_winLoseWindow->IsWidgetEnabled(kRestartBattle)
+        && BattleRestartRequested(message)) {
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, kRestartBattle);
+        FINISH_DIALOG_MESSAGE(message);
+        return MESSAGE_DISPATCH_FORWARD;
+    }
     if (message.type == MESSAGE_WIDGET) {
         switch (message.command) {
             case WIDGET_NOTIFY_DESELECT:
@@ -1106,6 +1246,50 @@ void combatManager::ShowDeadArmies(class heroWindow* window) {
     }
 }
 
+i32 combatManager::BattleVictoryExperience(i8 winningSide) {
+    i32 experience = ExperienceValueOfStack(COMBAT_OPPOSING_SIDE(winningSide));
+    if (gRetreatWin)
+        experience -= 500;
+    if (m_combatTowns[COMBAT_DEFENDER_SIDE] && winningSide == COMBAT_ATTACKER_SIDE)
+        experience += 500;
+    return experience;
+}
+
+bool combatManager::ReviewAutoBattle() {
+    const i8 winner = m_combatResult;
+    const i8 player = winner == COMBAT_SIDE_NONE ? GAME_PLAYER_NONE : m_playerId[winner];
+    gMouseManager->SetPointer(COMBAT_POINTER_DEFAULT);
+    gMouseManager->ReallyShowPointer();
+    if (player == GAME_PLAYER_NONE || !gThisNetHumanPlayer[player]) {
+        PlayMusic(MUSIC_TRACK_BATTLE_LOST);
+        return DoLoseWindow(true);
+    }
+
+    PlayMusic(MUSIC_TRACK_BATTLE_WON);
+    gCurTransferArtifact = -1;
+    gMaxTransferArtifacts = 0;
+    m_winLoseWindow = new heroWindow(0x9f, 2, "wincmbt.bin");
+    const i32 outcome = gCombatSurrender ? BATTLE_RESULT_ENEMY_SURRENDERED
+                      : gRetreatWin ? BATTLE_RESULT_ENEMY_FLED : BATTLE_RESULT_VICTORY;
+    strcpy(gText, gBattleResults[outcome]);
+    if (m_heroes[winner]) {
+        char experienceText[COMBAT_VICTORY_EXPERIENCE_TEXT_SIZE];
+        snprintf(experienceText, sizeof(experienceText), gBattleResults[BATTLE_RESULT_EXPERIENCE],
+                 m_heroes[winner]->m_name, BattleVictoryExperience(winner));
+        strcat(gText, experienceText);
+    }
+    tag_message message{};
+    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, WIN_LOSE_RESULT_TEXT);
+    message.text = gText;
+    m_winLoseWindow->BroadcastMessage(message);
+    ShowDeadArmies(m_winLoseWindow);
+    AddBattleReviewActions(*m_winLoseWindow);
+    gWindowManager->DoDialog(m_winLoseWindow, WinCombatHandler, false);
+    delete m_winLoseWindow;
+    m_winLoseWindow = nullptr;
+    return gWindowManager->m_dialogResult == kRestartBattle;
+}
+
 void combatManager::DoVictory(i8 winningSide) {
     i32 levelsGained;
     tag_message message;
@@ -1122,18 +1306,16 @@ void combatManager::DoVictory(i8 winningSide) {
     gMouseManager->SetPointer(COMBAT_POINTER_DEFAULT);
     switch (winningSide) {
         case COMBAT_SIDE_NONE:
-            PlayMusic(MUSIC_TRACK_BATTLE_LOST);
-            DoLoseWindow();
+            if (!m_autoResolveAtStart) {
+                PlayMusic(MUSIC_TRACK_BATTLE_LOST);
+                DoLoseWindow();
+            }
             break;
         case COMBAT_DEFENDER_SIDE:
         case COMBAT_ATTACKER_SIDE:
             if (m_heroes[winningSide]) {
                 m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)] =
-                    ExperienceValueOfStack(COMBAT_OPPOSING_SIDE(winningSide));
-                if (gRetreatWin)
-                    m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)] -= 500;
-                if (m_combatTowns[COMBAT_DEFENDER_SIDE] && winningSide == COMBAT_ATTACKER_SIDE)
-                    m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)] += 500;
+                    BattleVictoryExperience(winningSide);
                 levelsGained = gAdvManager->GiveExperience(
                     m_heroes[winningSide],
                     m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)],
@@ -1164,49 +1346,60 @@ void combatManager::DoVictory(i8 winningSide) {
                     m_playerId[winningSide] == GAME_PLAYER_NONE
                     || !gThisNetHumanPlayer[m_playerId[winningSide]]
                 )) {
-                PlayMusic(MUSIC_TRACK_BATTLE_WON);
-                m_winLoseWindow = new heroWindow(0x9f, 2, "wincmbt.bin");
-                if (m_winLoseWindow == NULL)
-                    MemError();
-                if (m_heroes[winningSide]) {
-                    if (gCombatSurrender)
-                        sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_SURRENDERED]);
-                    else if (gRetreatWin)
-                        sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_FLED]);
-                    else
-                        sprintf(gText, gBattleResults[BATTLE_RESULT_VICTORY]);
-                    if (levelsGained > 0 && winningSide == COMBAT_DEFENDER_SIDE
-                        && gNumHumanPlayers > 1)
-                        sprintf(
-                            experienceText,
-                            gBattleResults[BATTLE_RESULT_EXPERIENCE_AND_LEVELS],
-                            m_heroes[winningSide]->m_name,
-                            m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)],
-                            levelsGained
-                        );
-                    else
-                        sprintf(
-                            experienceText,
-                            gBattleResults[BATTLE_RESULT_EXPERIENCE],
-                            m_heroes[winningSide]->m_name,
-                            m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)]
-                        );
-                    strcat(gText, experienceText);
+                if (m_heroes[winningSide])
                     m_heroes[winningSide]->ApplyBattleWinTemps();
-                } else {
-                    if (gCombatSurrender)
-                        sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_SURRENDERED]);
-                    else if (gRetreatWin)
-                        sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_FLED]);
-                    else
-                        sprintf(gText, gBattleResults[BATTLE_RESULT_VICTORY]);
+                if (!m_autoResolveAtStart || gMaxTransferArtifacts > 0) {
+                    PlayMusic(MUSIC_TRACK_BATTLE_WON);
+                    m_winLoseWindow = new heroWindow(0x9f, 2, "wincmbt.bin");
+                    if (m_winLoseWindow == NULL)
+                        MemError();
+                    if (m_heroes[winningSide]) {
+                        if (gCombatSurrender)
+                            sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_SURRENDERED]);
+                        else if (gRetreatWin)
+                            sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_FLED]);
+                        else
+                            sprintf(gText, gBattleResults[BATTLE_RESULT_VICTORY]);
+                        if (levelsGained > 0 && winningSide == COMBAT_DEFENDER_SIDE
+                            && gNumHumanPlayers > 1)
+                            sprintf(
+                                experienceText,
+                                gBattleResults[BATTLE_RESULT_EXPERIENCE_AND_LEVELS],
+                                m_heroes[winningSide]->m_name,
+                                m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)],
+                                levelsGained
+                            );
+                        else
+                            sprintf(
+                                experienceText,
+                                gBattleResults[BATTLE_RESULT_EXPERIENCE],
+                                m_heroes[winningSide]->m_name,
+                                m_experienceValue[COMBAT_OPPOSING_SIDE(winningSide)]
+                            );
+                        strcat(gText, experienceText);
+                    } else {
+                        if (gCombatSurrender)
+                            sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_SURRENDERED]);
+                        else if (gRetreatWin)
+                            sprintf(gText, gBattleResults[BATTLE_RESULT_ENEMY_FLED]);
+                        else
+                            sprintf(gText, gBattleResults[BATTLE_RESULT_VICTORY]);
+                    }
+                    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, WIN_LOSE_RESULT_TEXT);
+                    message.text = gText;
+                    m_winLoseWindow->BroadcastMessage(message);
+                    if (m_autoResolveAtStart) {
+                        memset(m_winLoseBottomWidgets, 0, sizeof(m_winLoseBottomWidgets));
+                        memset(m_winLoseBottomTextWidgets, 0, sizeof(m_winLoseBottomTextWidgets));
+                        gCurTransferArtifact = 0;
+                        ShowWinLoseArtifact(m_winLoseWindow, gTransferArtifacts[0]);
+                    } else {
+                        ShowDeadArmies(m_winLoseWindow);
+                    }
+                    m_winLoseWindow->SetConfirmButton(DIALOG_BUTTON_0);
+                    gWindowManager->DoDialog(m_winLoseWindow, WinCombatHandler, false);
+                    delete m_winLoseWindow;
                 }
-                SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, WIN_LOSE_RESULT_TEXT);
-                message.text = gText;
-                m_winLoseWindow->BroadcastMessage(message);
-                ShowDeadArmies(m_winLoseWindow);
-                gWindowManager->DoDialog(m_winLoseWindow, WinCombatHandler, false);
-                delete m_winLoseWindow;
                 if (m_heroes[COMBAT_OPPOSING_SIDE(winningSide)])
                     m_heroes[COMBAT_OPPOSING_SIDE(winningSide)]->ApplyBattleLossTemps();
             } else {
@@ -1214,8 +1407,10 @@ void combatManager::DoVictory(i8 winningSide) {
                     m_heroes[winningSide]->ApplyBattleWinTemps();
                 if (m_heroes[COMBAT_OPPOSING_SIDE(winningSide)])
                     m_heroes[COMBAT_OPPOSING_SIDE(winningSide)]->ApplyBattleLossTemps();
-                PlayMusic(MUSIC_TRACK_BATTLE_LOST);
-                DoLoseWindow();
+                if (!m_autoResolveAtStart) {
+                    PlayMusic(MUSIC_TRACK_BATTLE_LOST);
+                    DoLoseWindow();
+                }
             }
             break;
     }
@@ -1223,7 +1418,7 @@ void combatManager::DoVictory(i8 winningSide) {
     gMapY = gAdvManager->m_mapOriginY;
 }
 
-void combatManager::DoLoseWindow(void) {
+bool combatManager::DoLoseWindow(bool review) {
     i16 walkFrame;
     i16 scrollX;
     i16 walkPosX;
@@ -1241,6 +1436,7 @@ void combatManager::DoLoseWindow(void) {
     i16 areaWidth;
     i16 stopRequested;
     i32 delay;
+    bool restart = false;
 
     delay = 0xb4;
     animationX = 0x31;
@@ -1272,7 +1468,9 @@ void combatManager::DoLoseWindow(void) {
     gLoadingMonoIcon = true;
     walkIcon = gResourceManager->GetIcon("losewalk.icn");
     gLoadingMonoIcon = false;
-    if (m_heroes[losingParty]) {
+    if (review && m_combatResult == COMBAT_RESULT_DRAW) {
+        strcpy(gText, localization::Tr("combat.quick.draw"));
+    } else if (m_heroes[losingParty]) {
         if (gCombatSurrender)
             sprintf(
                 gText,
@@ -1299,6 +1497,10 @@ void combatManager::DoLoseWindow(void) {
     msg.text = gText;
     loseWindow->BroadcastMessage(msg);
     ShowDeadArmies(loseWindow);
+    if (review)
+        AddBattleReviewActions(*loseWindow);
+    else
+        loseWindow->SetConfirmButton(DIALOG_BUTTON_0);
     gWindowManager->AddWindow(loseWindow, WINDOW_Z_ORDER_APPEND, false);
     BlitBitmap(scrollBitmap, scrollX, 0, 0xdf, 0x7d, gWindowManager->m_screen, 0xd0, 0x28);
     walkIcon->FillToBuffer(0x10e, 0x8c, walkFrame, 0, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
@@ -1321,6 +1523,10 @@ void combatManager::DoLoseWindow(void) {
         msg = gInputManager->GetEvent();
         gMouseManager->Main(msg);
         dispatchResult = gWindowManager->Main(msg);
+        if (review && BattleRestartRequested(msg)) {
+            restart = true;
+            break;
+        }
         if (dispatchResult == MESSAGE_DISPATCH_FORWARD && msg.type == MESSAGE_WIDGET
             && msg.command == WIDGET_NOTIFY_DESELECT && msg.id == DIALOG_BUTTON_0)
             stopRequested = 1;
@@ -1329,6 +1535,7 @@ void combatManager::DoLoseWindow(void) {
     delete loseWindow;
     gResourceManager->Dispose(walkIcon);
     gResourceManager->Dispose(scrollBitmap);
+    return restart;
 }
 
 i16 combatManager::DoSurrender(void) {
@@ -1363,6 +1570,7 @@ i16 combatManager::DoSurrender(void) {
         gSurrenderCost
     );
     window->BroadcastMessage(message);
+    window->SetConfirmButton(DIALOG_BUTTON_2);
     gWindowManager->DoDialog(window, TrueFalseDialogHandler, false);
     delete window;
     return gWindowManager->m_dialogResult == DIALOG_BUTTON_2;
@@ -1398,7 +1606,11 @@ void combatManager::CheckCastleAttack(void) {
 void combatManager::CheckGetAIMove(void) {
     if (AICheckRetreat())
         return;
-    if (!m_heroCastSpell[m_currentSide] && DoSpellAI(m_currentSide))
+    const i8 player = m_playerId[m_currentSide];
+    const bool localAutoCombat = !gRemoteOn && !m_quickCombat && IsAutoCombat() && player != GAME_PLAYER_NONE
+                                 && gThisNetHumanPlayer[player];
+    if ((!localAutoCombat || gConfig.autoCombatSpells)
+        && !m_heroCastSpell[m_currentSide] && DoSpellAI(m_currentSide))
         return;
     DoCompAI(m_currentSide);
 }
@@ -1424,6 +1636,8 @@ void combatManager::GetControl(void) {
         gThisNetHasControl = true;
 resetMouse:
     ResetMouse();
+    if (m_showTurnOrder && !m_quickCombat)
+        ShowTurnOrder();
 }
 
 void combatManager::ResetMouse(void) {
@@ -1532,7 +1746,7 @@ i16 combatManager::ProcessNextAction(struct tag_message& message) {
         GetNextArmy(true);
     }
     CheckChangeSelector();
-    if (gThisNetHasControl && !m_autoCombat && m_playerId[m_currentSide] != GAME_PLAYER_NONE
+    if (!m_quickCombat && gThisNetHasControl && m_playerId[m_currentSide] != GAME_PLAYER_NONE
         && gThisNetHumanPlayer[m_playerId[m_currentSide]])
         gMouseManager->ReallyShowPointer();
     else

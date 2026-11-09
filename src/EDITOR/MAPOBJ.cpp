@@ -56,14 +56,12 @@ void editManager::GenerateRandomMap(void) {
     if (gSaveUnseen)
         gGeneratingUnseen = true;
     NewMap(true);
+    ResetHistory();
     done = false;
     attempt = 0;
     while (!done && attempt < RANDOM_MAP_ATTEMPTS) {
         attempt++;
         ResetArea(0, 0, MAP_CELL_GRID_SIZE, MAP_CELL_GRID_SIZE);
-        // NewMap freed the extra records the undo copy names (see
-        // EDIT_CONTROL_NEW); the empty map is the undo state.
-        SaveUndo();
         DrawMap();
         UpdateMapView();
         DrawRadar(true);

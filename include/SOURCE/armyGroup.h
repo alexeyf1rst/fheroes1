@@ -44,6 +44,9 @@ public:
     b8 CanJoin(i8 creatureType);
     i16 GetNumArmies(void);
     i16 Add(i8 creatureType, i16 quantity, i8 slot);
+    b8 QuickArrange(i8 slot, i16 modifiers, b8 allowHalf);
+    void Redistribute(i8 source, armyGroup& target, i8 destination, i16 amount);
+    void MoveTroopsTo(armyGroup& target, b8 keepLast, i8 preferredType);
     void Swap(i8 slot, class armyGroup* otherGroup, i8 otherSlot);
     void DamageGroup(float casualtyFraction);
 };

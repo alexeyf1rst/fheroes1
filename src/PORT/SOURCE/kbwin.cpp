@@ -121,7 +121,7 @@ struct SettingField {
 };
 
 std::vector<SettingField> IntegerSettings() {
-    return {
+    std::vector<SettingField> fields = {
         {"HMM1 MusicVolume", &gConfig.musicVolume},
         {"HMM1 FXVolume", &gConfig.soundVolume},
         {"HMM1 WalkSpeed", &gConfig.walkSpeed},
@@ -133,6 +133,10 @@ std::vector<SettingField> IntegerSettings() {
         {"HMM1 ModemComPort", &gConfig.comPort[CONFIG_CONNECTION_MODEM]},
         {"HMM1 ModemBaudRate", &gConfig.baudRate[CONFIG_CONNECTION_MODEM]},
         {"HMM1 UseAutosave", &gConfig.autosave},
+        {"HMM1 AutoCombatSpells", &gConfig.autoCombatSpells},
+        {"HMM1 AutoResolveBattles", &gConfig.autoResolveBattles},
+        {"HMM1 ShowCombatOrder", &gConfig.showCombatOrder},
+        {"HMM1 DisplayScaling", &gConfig.displayScaling},
         {"HMM1 FirstMapOffset", &gConfig.firstMapOffset},
         {"HMM1 CurrentMapOffset", &gConfig.currentMapOffset},
         {"HMM1 GameShowMenu", &gConfig.gfx[CONFIG_EXECUTABLE_GAME].showMenu},
@@ -148,6 +152,9 @@ std::vector<SettingField> IntegerSettings() {
         {"HMM1 EditorWindowHeight", &gConfig.gfx[CONFIG_EXECUTABLE_EDITOR].height},
         {"HMM1 EditorFullScreen", &gConfig.gfx[CONFIG_EXECUTABLE_EDITOR].fullScreen},
     };
+    for (i16 index = 0; index < GAME_SHORTCUT_COUNT; ++index)
+        fields.push_back({gGameShortcuts[index].setting, &gConfig.shortcutKeys[index]});
+    return fields;
 }
 
 // ---------------------------------------------------------------- game data
@@ -158,7 +165,8 @@ std::string gCdRoot;
 
 void PostKey(u32 message, const platform::Event& event) {
     u32 virtualKey = event.returnKey ? INPUT_VIRTUAL_KEY_RETURN : 0;
-    i32 messageData = static_cast<i32>((static_cast<u32>(event.scanCode) << 16) | 1u);
+    i32 messageData = static_cast<i32>((static_cast<u32>(event.scanCode) << 16)
+                                      | (event.arrowKey ? INPUT_MESSAGE_EXTENDED_KEY : 0u) | 1u);
     KeyboardMessageHandler(NULL, message, virtualKey, messageData);
 }
 
@@ -227,6 +235,10 @@ void Dispatch(const platform::Event& event) {
             break;
         case platform::Event::FOCUS_LOST:
             gForegroundApp = 0;
+            if (gInputManager) {
+                gInputManager->m_tapKey = INPUT_SCAN_NONE;
+                gInputManager->m_modifiers = MESSAGE_MODIFIER_NONE;
+            }
             break;
         default:
             break;
@@ -383,7 +395,23 @@ void ResizeWindow(i32 x, i32 y, i32 width, i32 height) {
 }
 
 i32 AppMenuCommand(i32 command) {
+#ifndef HOMM1_EDITOR
+    if (command >= KBWIN_MENU_SHORTCUT_FIRST && command < KBWIN_MENU_SHORTCUT_FIRST + GAME_SHORTCUT_COUNT) {
+        if (!gInDialog) {
+            ConfigureShortcut(command - KBWIN_MENU_SHORTCUT_FIRST);
+            UpdateDfltMenu(gAppMenu);
+        }
+        return 0;
+    }
+#endif
     switch (command) {
+#ifndef HOMM1_EDITOR
+        case KBWIN_MENU_AUTO_RESOLVE:
+            gConfig.autoResolveBattles = !gConfig.autoResolveBattles;
+            UpdateDfltMenu(gAppMenu);
+            WritePrefs();
+            break;
+#endif
         case KBWIN_MENU_ABOUT:
             platform::ShowMessage(gTitle, MenuAboutText().c_str());
             break;
@@ -408,6 +436,14 @@ i32 AppMenuCommand(i32 command) {
             break;
         case KBWIN_MENU_FULLSCREEN:
             SetFullScreenStatus(1 - CURRENT_GRAPHICS_CONFIG.fullScreen);
+            break;
+        case KBWIN_MENU_SCALE_FIT:
+        case KBWIN_MENU_SCALE_INTEGER:
+        case KBWIN_MENU_SCALE_SMOOTH:
+            gConfig.displayScaling = command - KBWIN_MENU_SCALE_FIT;
+            platform::SetDisplayScaling(static_cast<platform::DisplayScaling>(gConfig.displayScaling));
+            UpdateDfltMenu(gAppMenu);
+            WritePrefs();
             break;
         default:
             return HandleAppSpecificMenuCommands(command);
@@ -546,8 +582,17 @@ void ReadPrefs(void) {
         WritePrefs();
         return;
     }
+    gConfig.autoResolveBattles = 1;
     for (const SettingField& field : IntegerSettings())
         ReadSetting(values, field.name, *field.value);
+    for (i16 index = 0; index < GAME_SHORTCUT_COUNT; ++index) {
+        if (gConfig.shortcutKeys[index] && !CanBindShortcut(index, gConfig.shortcutKeys[index]))
+            gConfig.shortcutKeys[index] = 0;
+    }
+    if (gConfig.displayScaling < platform::DISPLAY_SCALING_FIT
+        || gConfig.displayScaling > platform::DISPLAY_SCALING_SMOOTH)
+        gConfig.displayScaling = platform::DISPLAY_SCALING_FIT;
+    platform::SetDisplayScaling(static_cast<platform::DisplayScaling>(gConfig.displayScaling));
     ReadSetting(values, "HMM1 ModemInitString", gConfig.modemInitString,
                 sizeof(gConfig.modemInitString));
     SetVolumes(gConfig.soundVolume, gConfig.musicVolume);

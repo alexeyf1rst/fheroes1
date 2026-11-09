@@ -650,7 +650,6 @@ void army::SpecialAttack(void) {
     i32 landPosX;
     i32 landPosY;
     i32 maxY;
-    b8 wallPenalty;
     i32 damageDone;
 
     wasFacing = m_facing;
@@ -788,57 +787,12 @@ void army::SpecialAttack(void) {
     );
     delete backing;
     m_stats.shots--;
-    wallPenalty = false;
-    if (gCombatManager->m_castleSide[COMBAT_DEFENDER_SIDE]
-        && m_hex % COMBAT_GRID_COLUMNS <= COMBAT_CASTLE_WALL_COLUMN - 1
-        && enemyStack->m_hex % COMBAT_GRID_COLUMNS >= COMBAT_CASTLE_WALL_COLUMN + 1) {
-        i32 wallDistance;
-        i32 defenderRow;
-        i32 defenderColumn;
-        i32 archerColumn;
-        i32 unusedHex;
-        i32 wallRow;
-        i32 archerRow;
-        i32 pastWall;
-
-        archerColumn = m_hex % COMBAT_GRID_COLUMNS;
-        archerRow = m_hex / COMBAT_GRID_COLUMNS;
-        pastWall = archerColumn - COMBAT_CASTLE_WALL_COLUMN;
-        defenderColumn = enemyStack->m_hex % COMBAT_GRID_COLUMNS;
-        defenderRow = enemyStack->m_hex / COMBAT_GRID_COLUMNS;
-        wallDistance = COMBAT_CASTLE_WALL_COLUMN - archerColumn;
-        wallRow = defenderRow;
-        if (abs(defenderRow - archerRow) >= 2)
-            wallRow -= (defenderRow - archerRow) / 2;
-        if (abs(defenderRow - archerRow) % 2 == 1) {
-            if (pastWall < wallDistance
-                || pastWall == wallDistance
-                       && (archerRow == COMBAT_UPPER_WALL_ROW
-                           || archerRow == COMBAT_LOWER_WALL_ROW)) {
-                if (archerRow < defenderRow)
-                    wallRow--;
-                else
-                    wallRow++;
-            }
-        }
-        if (wallRow > COMBAT_GRID_LAST_ROW)
-            wallRow = COMBAT_GRID_LAST_ROW;
-        if (wallRow < 0)
-            wallRow = 0;
-        wallPenalty =
-            gCombatManager->m_hexCells[wallRow * COMBAT_GRID_COLUMNS + COMBAT_CASTLE_WALL_COLUMN]
-                    .m_obstacleIndex
-                == COMBAT_WALL_DAMAGED
-            || gCombatManager->m_hexCells[wallRow * COMBAT_GRID_COLUMNS + COMBAT_CASTLE_WALL_COLUMN]
-                       .m_obstacleIndex
-                   == COMBAT_WALL_INTACT;
-    }
     DamageEnemy(
         enemyStack,
         &damageDone,
         &killed,
         true,
-        wallPenalty ? ARMY_CASTLE_WALL_DEFENSE_BONUS : 0
+        RangedDefenseModifier(enemyStack)
     );
     if (killed > 0) {
         strcpy(gTargetName, gArmyNames[enemyStack->m_creatureType]);
@@ -1476,6 +1430,81 @@ void army::CheckLuck(void) {
     }
 }
 
+i32 army::RangedDefenseModifier(const army* enemyStack) const {
+    bool wallPenalty = false;
+    if (gCombatManager->m_castleSide[COMBAT_DEFENDER_SIDE]
+        && m_hex % COMBAT_GRID_COLUMNS <= COMBAT_CASTLE_WALL_COLUMN - 1
+        && enemyStack->m_hex % COMBAT_GRID_COLUMNS >= COMBAT_CASTLE_WALL_COLUMN + 1) {
+        i32 wallDistance;
+        i32 defenderRow;
+        i32 archerColumn;
+        i32 wallRow;
+        i32 archerRow;
+        i32 pastWall;
+
+        archerColumn = m_hex % COMBAT_GRID_COLUMNS;
+        archerRow = m_hex / COMBAT_GRID_COLUMNS;
+        pastWall = archerColumn - COMBAT_CASTLE_WALL_COLUMN;
+        defenderRow = enemyStack->m_hex / COMBAT_GRID_COLUMNS;
+        wallDistance = COMBAT_CASTLE_WALL_COLUMN - archerColumn;
+        wallRow = defenderRow;
+        if (abs(defenderRow - archerRow) >= 2)
+            wallRow -= (defenderRow - archerRow) / 2;
+        if (abs(defenderRow - archerRow) % 2 == 1) {
+            if (pastWall < wallDistance
+                || pastWall == wallDistance
+                       && (archerRow == COMBAT_UPPER_WALL_ROW
+                           || archerRow == COMBAT_LOWER_WALL_ROW)) {
+                if (archerRow < defenderRow)
+                    wallRow--;
+                else
+                    wallRow++;
+            }
+        }
+        if (wallRow > COMBAT_GRID_LAST_ROW)
+            wallRow = COMBAT_GRID_LAST_ROW;
+        if (wallRow < 0)
+            wallRow = 0;
+        wallPenalty =
+            gCombatManager->m_hexCells[wallRow * COMBAT_GRID_COLUMNS + COMBAT_CASTLE_WALL_COLUMN]
+                    .m_obstacleIndex
+                == COMBAT_WALL_DAMAGED
+            || gCombatManager->m_hexCells[wallRow * COMBAT_GRID_COLUMNS + COMBAT_CASTLE_WALL_COLUMN]
+                       .m_obstacleIndex
+                   == COMBAT_WALL_INTACT;
+    }
+    return wallPenalty ? ARMY_CASTLE_WALL_DEFENSE_BONUS : 0;
+}
+
+static i32 ScaleAttackDamage(const army& attacker, const army& target, float rolledTotal,
+                             b32 rangedAttack, i32 defenseModifier, i8 luck) {
+    i16 battleDiff = attacker.m_stats.attack - (target.m_stats.defense + defenseModifier);
+    if (battleDiff > STAT_CURVE_OFFSET)
+        battleDiff = STAT_CURVE_OFFSET;
+    if (battleDiff < -STAT_CURVE_OFFSET)
+        battleDiff = -STAT_CURVE_OFFSET;
+    rolledTotal *= gBattleStat[battleDiff + STAT_CURVE_OFFSET];
+    if (luck > ARMY_LUCK_NONE)
+        rolledTotal *= 2;
+    if (luck < ARMY_LUCK_NONE)
+        rolledTotal /= 2;
+    if ((attacker.m_stats.attributes & MONSTER_FLAGS_SHOOTER) && !rangedAttack)
+        rolledTotal /= 2;
+    if (attacker.m_damageMode == ARMY_DAMAGE_HALF)
+        rolledTotal /= 2;
+    return rolledTotal + 0.5;
+}
+
+void army::PreviewAttack(const army& target, b32 rangedAttack, i32& minimum, i32& maximum) const {
+    const i32 defense = rangedAttack ? RangedDefenseModifier(&target) : 0;
+    const i32 low = m_damageMode == ARMY_DAMAGE_MAXIMUM ? m_stats.damageMax : m_stats.damageMin;
+    const i32 high = m_damageMode == ARMY_DAMAGE_MINIMUM ? m_stats.damageMin : m_stats.damageMax;
+    minimum = ScaleAttackDamage(*this, target, low * m_quantity, rangedAttack, defense, ARMY_LUCK_NONE);
+    maximum = ScaleAttackDamage(*this, target, high * m_quantity, rangedAttack, defense, ARMY_LUCK_NONE);
+    minimum = minimum < 1 ? 1 : (minimum > 32000 ? 32000 : minimum);
+    maximum = maximum < 1 ? 1 : (maximum > 32000 ? 32000 : maximum);
+}
+
 void army::DamageEnemy(
     class army* target,
     i32* damageResult,
@@ -1483,13 +1512,10 @@ void army::DamageEnemy(
     b32 rangedAttack,
     i32 defenseModifier
 ) {
-    i16 defenseExtra;
-    i16 battleDiff;
     i32 genieDamage;
     i32 damage;
     float rolledTotal;
     i16 creature;
-    i16 attackAdd;
 
     if (!target)
         return;
@@ -1508,25 +1534,8 @@ void army::DamageEnemy(
                 break;
         }
     }
-    attackAdd = 0;
-    defenseExtra = 0;
-    battleDiff =
-        m_stats.attack + attackAdd - (target->m_stats.defense + defenseExtra + defenseModifier);
-    if (battleDiff > STAT_CURVE_OFFSET)
-        battleDiff = STAT_CURVE_OFFSET;
-    if (battleDiff < -STAT_CURVE_OFFSET)
-        battleDiff = -STAT_CURVE_OFFSET;
-    rolledTotal *= gBattleStat[battleDiff + STAT_CURVE_OFFSET];
-    if (m_luck > ARMY_LUCK_NONE)
-        rolledTotal *= 2;
-    if (m_luck < ARMY_LUCK_NONE)
-        rolledTotal /= 2;
+    damage = ScaleAttackDamage(*this, *target, rolledTotal, rangedAttack, defenseModifier, m_luck);
     m_luck = ARMY_LUCK_NONE;
-    if ((m_stats.attributes & MONSTER_FLAGS_SHOOTER) && !rangedAttack)
-        rolledTotal /= 2;
-    if (m_damageMode == ARMY_DAMAGE_HALF)
-        rolledTotal /= 2;
-    damage = rolledTotal + 0.5;
     if (m_creatureType == CREATURE_GENIE
         && SRandom(1, ARMY_SPECIAL_ROLL_MAX) == ARMY_GENIE_ROLL_HIT) {
         genieDamage = ((target->m_quantity + 1) / 2) * target->m_stats.hitPoints;
@@ -1543,14 +1552,18 @@ void army::DamageEnemy(
     *killedResult = target->Damage(damage);
 }
 
+i32 army::CasualtiesFromDamage(i32 damage) const {
+    const i32 killed = (damage + m_hitPointsLost) / m_stats.hitPoints;
+    return killed < m_quantity ? killed : m_quantity;
+}
+
 i32 army::Damage(i32 damage) {
     i8 oldFacing;
     i32 quantityFifth;
     i32 killed;
 
-    damage += m_hitPointsLost;
-    killed = damage / m_stats.hitPoints;
-    m_hitPointsLost = damage % m_stats.hitPoints;
+    killed = CasualtiesFromDamage(damage);
+    m_hitPointsLost = (damage + m_hitPointsLost) % m_stats.hitPoints;
     quantityFifth = m_quantity / 5;
     if (quantityFifth == 0)
         quantityFifth = 1;
@@ -1558,8 +1571,6 @@ i32 army::Damage(i32 damage) {
         m_powFrames = ARMY_POW_FRAMES_HIT;
     else
         m_powFrames = ARMY_POW_NONE;
-    if (killed > m_quantity)
-        killed = m_quantity;
     m_quantity -= killed;
     if (m_quantity <= 0)
         m_powFrames = ARMY_POW_FRAMES_KILLED;

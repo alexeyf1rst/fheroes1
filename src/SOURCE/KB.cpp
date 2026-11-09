@@ -618,6 +618,15 @@ i16 InitMenuHandler(tag_message& message) {
     i32 helpIndex;
 
     PollSound();
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE) {
+        switch (message.keyCode) {
+            case INPUT_SCAN_N: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_NEW_GAME); break;
+            case INPUT_SCAN_L: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_LOAD_GAME); break;
+            case INPUT_SCAN_H: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_HIGH_SCORES); break;
+            case INPUT_SCAN_C: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_CREDITS); break;
+            case INPUT_SCAN_Q: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_QUIT); break;
+        }
+    }
     if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) {
         if (IS_WIDGET_SELECTION_NOTIFICATION(message.command)) {
             helpIndex = MAIN_MENU_HELP_NONE;
@@ -853,6 +862,54 @@ i32 GetBuildingBaseResourceValue(
     }
 }
 
+static i16 gEditingShortcut = -1;
+void UpdateNormalDialog(char* text);
+
+static i16 CaptureShortcut(tag_message& message) {
+    if (message.type != MESSAGE_KEY_DOWN)
+        return MESSAGE_DISPATCH_CONSUME;
+    if (message.keyCode != INPUT_SCAN_ESCAPE) {
+        if (!CanBindShortcut(gEditingShortcut, message.keyCode)) {
+            strcpy(gText, localization::Tr("shortcut.invalid"));
+            UpdateNormalDialog(gText);
+            return MESSAGE_DISPATCH_CONSUME;
+        }
+        gConfig.shortcutKeys[gEditingShortcut] = message.keyCode;
+        WritePrefs();
+    }
+    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_DIALOG_SELECT, 0);
+    return MESSAGE_DISPATCH_FORWARD;
+}
+
+void ConfigureShortcut(i16 index) {
+    gEditingShortcut = index;
+    char prompt[192];
+    snprintf(prompt, sizeof(prompt), localization::Tr("shortcut.prompt"), gGameShortcuts[index].label,
+             ShortcutLetter(ShortcutKey(index)));
+    NormalDialog(prompt, NORMAL_DIALOG_TYPE_HOTKEY);
+    gEditingShortcut = -1;
+}
+
+static i16 CombatModeDialogHandler(tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN) {
+        switch (TranslateShortcut(message.keyCode, SHORTCUT_BATTLE)) {
+            case INPUT_SCAN_A:
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, NORMAL_DIALOG_BUTTON_YES);
+                break;
+            case INPUT_SCAN_Q:
+                if (!gRemoteOn)
+                    SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, NORMAL_DIALOG_BUTTON_NO);
+                break;
+            case INPUT_SCAN_ESCAPE:
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, DIALOG_BUTTON_0);
+                break;
+        }
+    }
+    if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
+        return MESSAGE_DISPATCH_CONSUME;
+    return EventWindowHandler(message);
+}
+
 void NormalDialog(
     char* text,
     i32 dialogType,
@@ -984,6 +1041,10 @@ void NormalDialog(
     gNormalDialogWindow = new heroWindow(x, y, iconFile);
     if (!gNormalDialogWindow)
         MemError();
+    if (dialogType == NORMAL_DIALOG_TYPE_YES_NO)
+        gNormalDialogWindow->SetConfirmButton(NORMAL_DIALOG_BUTTON_YES);
+    else if (dialogType == NORMAL_DIALOG_TYPE_OK || dialogType == NORMAL_DIALOG_TYPE_WAIT_OK)
+        gNormalDialogWindow->SetConfirmButton(DIALOG_BUTTON_2);
 
     message.type = MESSAGE_WIDGET;
     message.command = WIDGET_COMMAND_CLEAR_FLAGS;
@@ -1003,6 +1064,23 @@ void NormalDialog(
         gNormalDialogWindow->BroadcastMessage(message);
         message.id = NORMAL_DIALOG_BUTTON_NO;
         gNormalDialogWindow->BroadcastMessage(message);
+    }
+    if (dialogType == NORMAL_DIALOG_TYPE_COMBAT_MODES) {
+        const auto addChoice = [&](i16 left, i16 top, i16 width, const char* label, i16 id) {
+            char* copy = strdup(label);
+            if (!copy)
+                MemError();
+            auto* choice = new textWidget(left, top, width, 24, copy, "bigfont.fnt",
+                                          TEXT_WIDGET_PLAIN_COLOR, id, WIDGET_KIND_TEXT);
+            gNormalDialogWindow->AddWidget(choice, WINDOW_Z_ORDER_APPEND);
+        };
+        if (gRemoteOn)
+            addChoice(20, panelHeight - 82, 246, localization::Tr("combat.mode.auto"), NORMAL_DIALOG_BUTTON_YES);
+        else {
+            addChoice(20, panelHeight - 82, 121, localization::Tr("combat.mode.auto"), NORMAL_DIALOG_BUTTON_YES);
+            addChoice(145, panelHeight - 82, 121, localization::Tr("combat.mode.quick"), NORMAL_DIALOG_BUTTON_NO);
+        }
+        addChoice(63, panelHeight - 49, 160, localization::Tr("combat.mode.cancel"), DIALOG_BUTTON_0);
     }
 
     for (index = 0; index < NORMAL_DIALOG_RESOURCE_COUNT; index++) {
@@ -1234,7 +1312,11 @@ void NormalDialog(
     else if (gCombatManager->m_active == 1)
         gMouseManager->SetPointer(COMBAT_POINTER_DEFAULT);
 
-    if (dialogType == NORMAL_DIALOG_TYPE_WAIT_CANCEL || dialogType == NORMAL_DIALOG_TYPE_WAIT_OK) {
+    if (dialogType == NORMAL_DIALOG_TYPE_HOTKEY) {
+        gWindowManager->DoDialog(gNormalDialogWindow, CaptureShortcut, false);
+    } else if (dialogType == NORMAL_DIALOG_TYPE_COMBAT_MODES) {
+        gWindowManager->DoDialog(gNormalDialogWindow, CombatModeDialogHandler, false);
+    } else if (dialogType == NORMAL_DIALOG_TYPE_WAIT_CANCEL || dialogType == NORMAL_DIALOG_TYPE_WAIT_OK) {
         gWindowManager->DoDialog(gNormalDialogWindow, WaitHandler, false);
     } else if (dialogType == NORMAL_DIALOG_TYPE_QUICK_VIEW) {
         gMouseManager->ReallyHidePointer();

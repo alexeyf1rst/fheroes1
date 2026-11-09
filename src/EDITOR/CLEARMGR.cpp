@@ -103,7 +103,7 @@ i16 clearManager::Main(tag_message& message) {
                             gSelectionX = EDIT_NO_CELL;
                             anchorX += gEditManager->m_viewX;
                             anchorY += gEditManager->m_viewY;
-                            gEditManager->SaveUndo();
+                            gEditManager->BeginEdit();
                             event = gInputManager->GetEvent();
                             while (!IS_BUTTON_RELEASE_MESSAGE(event.type)) {
                                 Process1WindowsMessage();
@@ -150,12 +150,12 @@ i16 clearManager::Main(tag_message& message) {
                                     );
                             }
                             gSelectionX = gSelectionY = EDIT_NO_CELL;
+                            gEditManager->EndEdit();
                             gEditManager->DrawMap();
                             gEditManager->UpdateMapView();
                             gEditManager->DrawRadar(true);
                             m_lastY = EDIT_NO_CELL;
                             m_lastX = EDIT_NO_CELL;
-                            gEditManager->m_mapChanged = 1;
                             break;
                     }
                     break;

@@ -276,7 +276,7 @@ public:
     }
     void Reseed(i32, i32);
     i32 ProcessSelect(struct tag_message* message, class mapCell** eventCell);
-    i32 ProcessDeSelect(struct tag_message* message, i32* result, class mapCell** eventCell);
+    i32 ProcessDeSelect(i16 control, i32* result, class mapCell** eventCell);
     b32 ProcessSearch(i32 x, i32 y);
     i32 ProcessHover(struct tag_message* message);
     void UpdateScreen(b8 cursorUpdate, b8 forceUpdate);

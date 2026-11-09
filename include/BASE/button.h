@@ -21,6 +21,7 @@ public:
     i16 m_pressedFrame;
     i16 m_selectMode;
     i16 m_hotkey;
+    i16 m_secondaryHotkey = BUTTON_NO_HOTKEY;
     button(void);
     button(
         i16 x,

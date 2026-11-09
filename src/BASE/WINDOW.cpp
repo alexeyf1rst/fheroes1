@@ -9,6 +9,7 @@
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/iconWidget.h>
+#include <BASE/inputManager.h>
 #include <BASE/message.h>
 #include <BASE/mouseManager.h>
 #include <BASE/resourceManager.h>
@@ -19,6 +20,36 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+i16 heroWindow::HoveredWidget(i16 firstId, i16 lastId) const {
+    i16 x, y;
+    gMouseManager->MouseCoords(x, y);
+    x -= m_posX;
+    y -= m_posY;
+    for (const widget* item = m_widgetListHead; item; item = item->m_next) {
+        if (item->m_id >= firstId && item->m_id <= lastId && (item->m_flags & WIDGET_FLAG_ENABLED)
+            && WIDGET_CONTAINS_LOCAL_POINT(*item, x, y))
+            return item->m_id;
+    }
+    return WIDGET_ID_NONE;
+}
+
+bool heroWindow::IsWidgetEnabled(i16 id) const {
+    for (const widget* item = m_widgetListTail; item; item = item->m_prev) {
+        if (item->m_id == id && (item->m_flags & WIDGET_FLAG_ENABLED))
+            return true;
+    }
+    return false;
+}
+
+void heroWindow::ClearButtonHotkey(i16 id) {
+    for (widget* item = m_widgetListHead; item; item = item->m_next) {
+        if (item->m_id == id) {
+            if (auto* control = dynamic_cast<button*>(item))
+                control->m_hotkey = BUTTON_NO_HOTKEY;
+        }
+    }
+}
 
 heroWindow::heroWindow(void) {
     strcpy(m_name, "Default Construct");
@@ -179,9 +210,11 @@ void heroWindow::AddWidget(widget* newWidget, i16 zOrder) {
     if (currentWidget == NULL) {
         newWidget->m_prev = m_widgetListTail;
         newWidget->m_next = NULL;
-        m_widgetListTail = newWidget;
-        if (m_widgetListHead == NULL)
+        if (m_widgetListTail != NULL)
+            m_widgetListTail->m_next = newWidget;
+        else
             m_widgetListHead = newWidget;
+        m_widgetListTail = newWidget;
     } else if (currentWidget->m_prev == NULL) {
         newWidget->m_next = m_widgetListHead;
         newWidget->m_prev = NULL;
@@ -196,30 +229,34 @@ void heroWindow::AddWidget(widget* newWidget, i16 zOrder) {
 }
 
 void heroWindow::RemoveWidget(widget* removedWidget) {
-    if (removedWidget == NULL)
+    if (removedWidget == NULL || removedWidget->m_owner != this)
         return;
     removedWidget->Close();
-    if (removedWidget == m_widgetListTail) {
-        m_widgetListTail = removedWidget->m_prev;
-        if (m_widgetListTail == NULL)
-            m_widgetListHead = NULL;
-        else
-            m_widgetListTail->m_next = NULL;
-    } else if (removedWidget == m_widgetListHead) {
-        m_widgetListHead = removedWidget->m_next;
-        m_widgetListHead->m_prev = NULL;
-    } else {
-        removedWidget->m_next->m_prev = removedWidget->m_prev;
+    if (removedWidget->m_prev != NULL)
         removedWidget->m_prev->m_next = removedWidget->m_next;
-    }
-    widget* nextWidget = removedWidget->m_next;
-    if (nextWidget == NULL) {
-        m_widgetListHead = NULL;
-        m_widgetListTail = NULL;
-    } else {
-        nextWidget->m_prev = removedWidget->m_prev;
-        if (nextWidget->m_prev != NULL)
-            nextWidget->m_prev->m_next = nextWidget;
+    else
+        m_widgetListHead = removedWidget->m_next;
+    if (removedWidget->m_next != NULL)
+        removedWidget->m_next->m_prev = removedWidget->m_prev;
+    else
+        m_widgetListTail = removedWidget->m_prev;
+    removedWidget->m_next = removedWidget->m_prev = NULL;
+    removedWidget->m_owner = NULL;
+}
+
+void heroWindow::SetConfirmButton(i16 id, bool keepHotkey) {
+    for (widget* item = m_widgetListHead; item; item = item->m_next) {
+        auto* control = dynamic_cast<button*>(item);
+        if (!control)
+            continue;
+        if (control->m_id == id) {
+            if (keepHotkey && control->m_hotkey != INPUT_SCAN_ENTER)
+                control->m_secondaryHotkey = control->m_hotkey;
+            control->m_hotkey = INPUT_SCAN_ENTER;
+            m_enterConfirms = true;
+        } else if (control->m_hotkey == INPUT_SCAN_ENTER) {
+            control->m_hotkey = BUTTON_NO_HOTKEY;
+        }
     }
 }
 

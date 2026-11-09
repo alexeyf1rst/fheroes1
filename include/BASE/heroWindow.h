@@ -49,6 +49,7 @@ public:
     widget* m_widgetListTail;
     widget* m_widgetListHead;
     bitmap* m_savedBackground;
+    bool m_enterConfirms = false;
 
     heroWindow(void);
     heroWindow(i16 x, i16 y, i16 width, i16 height, i16 flags);
@@ -58,6 +59,10 @@ public:
     void AddWidget(class widget* newWidget, i16 zOrder);
     void RemoveWidget(class widget* removedWidget);
     i16 BroadcastMessage(struct tag_message& message);
+    i16 HoveredWidget(i16 firstId, i16 lastId) const;
+    bool IsWidgetEnabled(i16 id) const;
+    void ClearButtonHotkey(i16 id);
+    void SetConfirmButton(i16 id, bool keepHotkey = false);
     void DrawWindow(void);
     void DrawWindow(i16 updateScreen);
     void DrawWindow(i16 updateScreen, i32 firstId, i32 lastId);

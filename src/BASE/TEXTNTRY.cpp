@@ -188,6 +188,10 @@ i16 textEntryWidget::Main(tag_message& message) {
                             default:
                                 gInputManager->AsciiConvert(event);
                                 if (event.keyCode == TEXT_ENTRY_KEY_ACCEPT) {
+                                    if (m_owner->m_enterConfirms) {
+                                        event.keyCode = INPUT_SCAN_ENTER;
+                                        gInputManager->PutBackEvent(event);
+                                    }
                                     done++;
                                 } else if (event.keyCode == INPUT_ASCII_DELETE) {
                                     if (m_cursorPosition > 0) {

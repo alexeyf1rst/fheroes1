@@ -1,6 +1,8 @@
 #include <H1/Ints.h>
 
 #include <BASE/bitmap.h>
+#include <BASE/bmap2.h>
+#include <BASE/font.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -17,6 +19,69 @@
 
 #include <stdio.h>
 #include <string.h>
+
+namespace {
+constexpr i16 kOrderSlotWidth = 40;
+constexpr i16 kOrderHeight = 46;
+constexpr i16 kOrderWidth = COMBAT_TURN_ORDER_CAPACITY * kOrderSlotWidth;
+constexpr i16 kOrderX = (LOGICAL_SCREEN_WIDTH - kOrderWidth) / 2;
+}
+
+void combatManager::ShowTurnOrder() {
+    const i8 side = m_currentSide;
+    const i8 index = m_currentArmyIndex;
+    const i8 speed = m_currentSpeed;
+    m_turnOrderCount = 0;
+    if (side < COMBAT_SIDE_FIRST || side >= COMBAT_SIDE_COUNT || index < 0 || index >= m_numArmies[side])
+        return;
+    decltype(army::m_stats.attributes) flags[COMBAT_SIDE_COUNT][COMBAT_SIDE_ARMY_COUNT];
+    for (i8 team = 0; team < COMBAT_SIDE_COUNT; ++team) {
+        for (i8 slot = 0; slot < m_numArmies[team]; ++slot)
+            flags[team][slot] = m_armies[team][slot].m_stats.attributes;
+    }
+
+    for (i8 position = 0; position < COMBAT_TURN_ORDER_CAPACITY; ++position) {
+        if (position && !GetNextArmy(false, true))
+            break;
+        army& current = m_armies[m_currentSide][m_currentArmyIndex];
+        current.m_stats.attributes |= MONSTER_FLAGS_TURN_SPENT;
+        if (current.m_quantity > 0 && current.m_creatureType >= CREATURE_FIRST)
+            m_turnOrder[m_turnOrderCount++] = {current.m_creatureType, m_currentSide, current.m_quantity};
+    }
+
+    for (i8 team = 0; team < COMBAT_SIDE_COUNT; ++team) {
+        for (i8 slot = 0; slot < m_numArmies[team]; ++slot)
+            m_armies[team][slot].m_stats.attributes = flags[team][slot];
+    }
+    m_currentSide = side;
+    m_currentArmyIndex = index;
+    m_currentSpeed = speed;
+    if (m_combatWindowOpen) {
+        DrawTurnOrder();
+        gWindowManager->UpdateScreenRegion(kOrderX, 0, kOrderWidth, kOrderHeight);
+    }
+}
+
+void combatManager::DrawTurnOrder() {
+    if (!m_showTurnOrder || m_quickCombat || m_combatResult != COMBAT_RESULT_PENDING || !m_turnOrderCount)
+        return;
+    bitmap* screen = gWindowManager->m_screen;
+    FillBitmapArea(screen, kOrderX, 0, kOrderWidth, kOrderHeight, 0);
+    for (i8 index = 0; index < m_turnOrderCount; ++index) {
+        const TurnOrderEntry& entry = m_turnOrder[index];
+        const i16 x = kOrderX + index * kOrderSlotWidth;
+        const i16 color = index == 0 ? ARMY_SELECTOR_OUTLINE_COLOR
+                          : entry.side == m_currentSide ? ARMY_GOOD_SPELL_OUTLINE_COLOR
+                                                        : ARMY_BAD_SPELL_OUTLINE_COLOR;
+        FillBitmapArea(screen, x + 1, 1, kOrderSlotWidth - 2, kOrderHeight - 2, color);
+        FillBitmapArea(screen, x + 2, 2, kOrderSlotWidth - 4, kOrderHeight - 4, 0);
+        m_combatIcons[COMBAT_ICON_ORDER]->DrawToBuffer(
+            x + 4, 3, entry.creature, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
+        char count[12];
+        snprintf(count, sizeof(count), "%d", entry.quantity);
+        m_smallFont->DrawBoundedString(count, x + 2, 29, kOrderSlotWidth - 4, kOrderHeight - 30, 1, FONT_ALIGN_CENTER);
+    }
+}
 
 void combatManager::UpdateGrid(i16 hex, i16 attributes) {
     i16 row;
@@ -40,6 +105,8 @@ void combatManager::UpdateGridForMove(
 }
 
 void combatManager::CombatMessage(char* text, b32 updateScreen) {
+    if (m_quickCombat)
+        return;
     b32 oldCompute;
     tag_message message;
     b32 prevLimit;
@@ -121,6 +188,18 @@ void combatManager::CombatMessage(i16 messageType) {
                 sprintf(gText, "");
             break;
     }
+    if (targetArmy && (messageType == COMBAT_MESSAGE_COMMAND_ATTACK || messageType == COMBAT_MESSAGE_COMMAND_SHOOT)) {
+        i32 minimum, maximum;
+        currentArmy->PreviewAttack(*targetArmy, messageType == COMBAT_MESSAGE_COMMAND_SHOOT, minimum, maximum);
+        const i32 hp = targetArmy->m_stats.hitPoints;
+        if (hp > 0) {
+            char attackHint[192];
+            snprintf(attackHint, sizeof(attackHint), "%s   Damage: %d-%d   Kills: %d-%d", gText, minimum, maximum,
+                     targetArmy->CasualtiesFromDamage(minimum), targetArmy->CasualtiesFromDamage(maximum));
+            CombatMessage(attackHint, true);
+            return;
+        }
+    }
     CombatMessage(gText, true);
 }
 
@@ -151,7 +230,7 @@ void combatManager::UpdateCombatArea(void) {
     i16 baseY;
     i16 height;
 
-    if (!m_combatWindowOpen)
+    if (!m_combatWindowOpen || m_quickCombat)
         return;
     baseY = m_gridUpdateRow * COMBAT_HEX_HEIGHT + COMBAT_FIELD_TOP;
     height = (COMBAT_GRID_ROWS - m_gridUpdateRow) * COMBAT_HEX_HEIGHT;
@@ -205,6 +284,11 @@ void combatManager::DrawBackground(void) {
 }
 
 void combatManager::DrawFrame(b8 updateScreen) {
+    if (m_quickCombat) {
+        m_computeExtent = m_redrawExtent = false;
+        gComputeExtent = gLimitToExtent = false;
+        return;
+    }
     i16 col;
     b8 anyLimited;
     i32 armyRight;
@@ -319,6 +403,8 @@ void combatManager::DrawFrame(b8 updateScreen) {
         } else {
             DrawBackground();
         }
+        if (m_spellPreviewHex != ARMY_HEX_INVALID)
+            DrawSpellAreaPreview();
     }
     if (m_computeExtent) {
         gLimitToExtent = true;
@@ -493,6 +579,7 @@ void combatManager::DrawFrame(b8 updateScreen) {
             }
         }
     }
+    DrawTurnOrder();
     DrawCombatBorder();
     if (m_computeExtent || m_redrawExtent) {
         m_computeExtent = false;

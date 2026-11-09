@@ -122,6 +122,9 @@ public:
     i16 AttackTo(void);
     i16 AttackTo(i16 destination);
     void CheckLuck(void);
+    i32 RangedDefenseModifier(const army* target) const;
+    void PreviewAttack(const army& target, b32 rangedAttack, i32& minimum, i32& maximum) const;
+    i32 CasualtiesFromDamage(i32 damage) const;
     void DamageEnemy(
         class army* target,
         i32* damageResult,

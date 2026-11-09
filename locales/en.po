@@ -189,6 +189,26 @@ msgid "combat.artifact.captured"
 msgstr "You have captured an enemy artifact!"
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.auto.confirm"
+msgstr "Enable auto combat?"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.auto.interrupt"
+msgstr "Interrupt auto combat?"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.auto_resolve.setting"
+msgstr "Auto-resolve battles"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.autospells.off"
+msgstr "Auto combat spells: off"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.autospells.on"
+msgstr "Auto combat spells: on"
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.casualties.attacker"
 msgstr "Attacker"
 
@@ -255,6 +275,26 @@ msgstr "Bad luck descends on the %s"
 msgid "combat.luck.good.buka"
 msgstr "Good luck shines on the %s"
 
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.auto"
+msgstr "Auto combat"
+
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.cancel"
+msgstr "Cancel"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.mode.help"
+msgstr "Choose auto combat to watch the battle, or quick combat to finish it immediately."
+
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.quick"
+msgstr "Quick combat"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.mode.title"
+msgstr "Automatic combat modes"
+
 #: src/SOURCE/CMBTMGR.cpp
 #, c-format
 msgid "combat.morale.bad"
@@ -287,13 +327,20 @@ msgid "combat.network.town"
 msgstr "Town"
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.confirm"
+msgstr "Resolve this battle now?"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.draw"
+msgstr "Draw"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.restart"
+msgstr "Restart"
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.already_cast"
 msgstr "You have already cast a spell this round."
-
-#: src/SOURCE/SPELLS.cpp
-#, c-format
-msgid "combat.spell.cast"
-msgstr "Cast %s"
 
 #: src/SOURCE/SPELLS.cpp
 #, c-format
@@ -303,6 +350,31 @@ msgstr "Cast %s on %s"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.no_hero"
 msgstr "You have no hero to cast a spell."
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_area"
+msgstr "%s  Dmg: %d  Losses: us %d-%d, foe %d-%d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_damage"
+msgstr "%s  Damage: %d  Kills: %d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_kills"
+msgstr "%s  Kills: %d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_resist"
+msgstr "%s  Damage: 0-%d  Kills: 0-%d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_resurrect"
+msgstr "%s  Restores: %d"
 
 #: src/SOURCE/SPELLS.cpp
 msgid "combat.spell.teleport_here"
@@ -411,6 +483,10 @@ msgstr "Heroes Editor"
 #: src/SOURCE/kbwin.cpp
 msgid "editor.instance.title"
 msgstr "Heroes Editor"
+
+#: src/EDITOR/EDITMGR.cpp
+msgid "editor.map.load.discard"
+msgstr "Discard unsaved changes and load another map?"
 
 #: src/EDITOR/EDITMGR.cpp
 msgid "editor.map.new.confirm"
@@ -1042,7 +1118,7 @@ msgstr "The game you have chosen only has slots for %d human(s).  You need one w
 msgid "file.load.label"
 msgstr "File to Load:"
 
-#: src/EDITOR/EDITOR.cpp src/SOURCE/GAME.cpp src/SOURCE/KB.cpp
+#: src/EDITOR/EDITMGR.cpp src/EDITOR/EDITOR.cpp src/SOURCE/GAME.cpp src/SOURCE/KB.cpp
 #, c-format
 msgid "file.open.failed"
 msgstr "Error opening file %s!"
@@ -1097,6 +1173,22 @@ msgstr "%s meets %s"
 #, c-format
 msgid "hero.title"
 msgstr "%s the %s"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling"
+msgstr "Scaling"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fit"
+msgstr "Fit (sharp)"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.integer"
+msgstr "Integer pixels"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.smooth"
+msgstr "Fit (smooth)"
 
 #: src/SOURCE/REMOTE.cpp
 msgid "modem.connecting"
@@ -1908,6 +2000,159 @@ msgstr "Please enter your name for the high score list."
 #: src/SOURCE/SETUP.cpp
 msgid "setup.modem.initialization_prompt"
 msgstr "Please enter any special initialization string required by your modem, or hit 'ENTER' to accept the default."
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.army.dismiss"
+msgstr "Dismiss hero or troop"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.auto"
+msgstr "Auto combat"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.auto_spells"
+msgstr "Magic in auto combat"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.options"
+msgstr "Commander options"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.order"
+msgstr "Turn order"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.quick"
+msgstr "Quick combat"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.retreat"
+msgstr "Retreat"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.surrender"
+msgstr "Surrender"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.cast"
+msgstr "Cast a spell"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.army"
+msgstr "Army"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.battle"
+msgstr "Battle"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.map"
+msgstr "Adventure map"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.town"
+msgstr "Town"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.well"
+msgstr "Well"
+
+#: src/SOURCE/KB.cpp
+msgid "shortcut.invalid"
+msgstr "Choose an unused letter. Esc cancels."
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.adventure_options"
+msgstr "Adventure options"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.dig"
+msgstr "Dig for the artifact"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.end"
+msgstr "End turn"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.file_options"
+msgstr "File options"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.hero"
+msgstr "Next hero"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.load"
+msgstr "Load game"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.move"
+msgstr "Follow route"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.overview"
+msgstr "Kingdom overview"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.puzzle"
+msgstr "Puzzle map"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.save"
+msgstr "Save game"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.scenario"
+msgstr "Scenario information"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.town"
+msgstr "Next town"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.view_world"
+msgstr "View world"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.menu"
+msgstr "Hotkeys"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "shortcut.prompt"
+msgstr "%s [%c]\nPress a new letter. Esc cancels."
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.build"
+msgstr "Construction"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.exchange"
+msgstr "Exchange armies"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.magic"
+msgstr "Mage guild"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.recruit_all"
+msgstr "Buy all in the well"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.shipyard"
+msgstr "Shipyard"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.tavern"
+msgstr "Tavern"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.thieves_guild"
+msgstr "Thieves guild"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.well"
+msgstr "Recruitment overview"
 
 #: src/EDITOR/EDITOR.cpp src/SOURCE/KB.cpp
 msgid "shutdown.unexpected.title"

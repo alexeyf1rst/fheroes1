@@ -172,7 +172,7 @@ i16 overlayManager::Main(tag_message& message) {
                             if (gSelectedOverlay < 0)
                                 break;
                             ClearStatusText();
-                            gEditManager->SaveUndo();
+                            gEditManager->BeginEdit();
                             if (m_types[gSelectedOverlay].flags & OVERLAY_TYPE_RESOURCE_MARKER)
                                 objectPlaced = PlaceMineResource(
                                     &m_types[gSelectedOverlay],
@@ -186,6 +186,7 @@ i16 overlayManager::Main(tag_message& message) {
                                     gEditManager->m_viewX + gEditManager->m_cursorX,
                                     gEditManager->m_viewY + gEditManager->m_cursorY
                                 );
+                            gEditManager->EndEdit();
                             if (objectPlaced) {
                                 gEditManager->m_placedX =
                                     gEditManager->m_viewX + gEditManager->m_cursorX;
@@ -195,7 +196,6 @@ i16 overlayManager::Main(tag_message& message) {
                                 gEditManager->DrawMap();
                                 gEditManager->UpdateMapView();
                                 gEditManager->DrawRadar(true);
-                                gEditManager->m_mapChanged = 1;
                             }
                             break;
                     }
@@ -528,16 +528,20 @@ b32 PlaceOverlay(overlayType* type, i16 x, i16 y) {
                 || dest->m_triggerType == MAP_EVENT_TRIGGER(MAP_FILE_OBJECT_RANDOM_CASTLE)) {
                 // Allocated as the map reader allocates them: FreeMapExtras
                 // frees with free(), and the original's new did not match.
-                newTown = static_cast<editTownExtra*>(malloc(sizeof(editTownExtra)));
-                memset(newTown, 0, sizeof(editTownExtra));
+                static_assert(sizeof(editTownExtra) <= EDIT_EXTRA_RECORD_MAX_SIZE);
+                newTown = static_cast<editTownExtra*>(calloc(1, EDIT_EXTRA_RECORD_MAX_SIZE));
+                if (!newTown)
+                    MemError();
                 dest->m_objectMetadata = gEditManager->m_extraCount;
                 gEditManager->m_extras[gEditManager->m_extraCount] = newTown;
                 gEditManager->m_extraSizes[gEditManager->m_extraCount] = sizeof(editTownExtra);
                 gEditManager->m_extraCount++;
             }
             if (dest->m_triggerType == MAP_EVENT_TRIGGER(MAP_FILE_OBJECT_HERO)) {
-                newHero = static_cast<editHeroExtra*>(malloc(sizeof(editHeroExtra)));
-                memset(newHero, 0, sizeof(editHeroExtra));
+                static_assert(sizeof(editHeroExtra) <= EDIT_EXTRA_RECORD_MAX_SIZE);
+                newHero = static_cast<editHeroExtra*>(calloc(1, EDIT_EXTRA_RECORD_MAX_SIZE));
+                if (!newHero)
+                    MemError();
                 newHero->record.artifacts[0] = ARTIFACT_NONE;
                 newHero->record.artifacts[1] = ARTIFACT_NONE;
                 newHero->record.artifacts[2] = ARTIFACT_NONE;

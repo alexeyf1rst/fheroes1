@@ -81,6 +81,7 @@ i16 recruitUnit::Open(i16 priority) {
     );
     if (m_window == NULL)
         MemError();
+    m_window->SetConfirmButton(RECRUIT_CONFIRM_CONTROL);
     m_quantity = 0;
     m_goldTotal = 0;
     m_resourceTotal = 0;
@@ -186,6 +187,24 @@ i16 recruitUnit::Main(struct tag_message& message) {
     i32 cost;
     b8 quickView;
 
+    if (message.type == MESSAGE_KEY_DOWN) {
+        switch (message.keyCode) {
+            case INPUT_SCAN_M:
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, RECRUIT_MAXIMUM_CONTROL);
+                break;
+            case INPUT_SCAN_NUMPAD_8:
+            case INPUT_SCAN_NUMPAD_PLUS:
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, RECRUIT_INCREASE_CONTROL);
+                break;
+            case INPUT_SCAN_NUMPAD_2:
+            case INPUT_SCAN_NUMPAD_MINUS:
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, RECRUIT_DECREASE_CONTROL);
+                break;
+            case INPUT_SCAN_ESCAPE:
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, RECRUIT_CANCEL_CONTROL);
+                break;
+        }
+    }
     done = false;
     if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         quickView = true;

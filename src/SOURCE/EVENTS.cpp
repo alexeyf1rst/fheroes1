@@ -36,6 +36,7 @@
 #include <SOURCE/town.h>
 #include <SOURCE/townManager.h>
 
+#include <optional>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2771,24 +2772,50 @@ i32 advManager::DoCombat(
     }
 
     gShowIt = true;
-    gCombatManager->SetupCombat(
-        x,
-        y,
-        firstHero,
-        firstArmy,
-        combatTown,
-        secondHero,
-        secondArmy,
-        x,
-        y,
-        randomSeed
-    );
-    if (gHighMemBuffer > COMBAT_HIGH_MEMORY_LIMIT)
-        gAdvDisposeLevel = ADV_DISPOSE_FULL;
-    else if (gHighMemBuffer > COMBAT_LOW_MEMORY_LIMIT)
-        gAdvDisposeLevel = ADV_DISPOSE_PARTIAL;
-    gExec->CallManager(gCombatManager);
-    gAdvDisposeLevel = ADV_DISPOSE_NONE;
+    {
+        bool autoResolve = !gRemoteOn && gConfig.autoResolveBattles;
+        // Keep the adventure state until the local player accepts the quick
+        // result. SetupCombat can merge the garrison into its visiting hero.
+        std::optional<hero> savedAttacker, savedDefender;
+        std::optional<armyGroup> savedFirstArmy, savedSecondArmy, savedGarrison;
+        if (!gRemoteOn) {
+            if (firstHero)
+                savedAttacker = *firstHero;
+            if (secondHero)
+                savedDefender = *secondHero;
+            if (firstArmy)
+                savedFirstArmy = *firstArmy;
+            if (secondArmy)
+                savedSecondArmy = *secondArmy;
+            if (combatTown)
+                savedGarrison = combatTown->m_army;
+        }
+        for (;;) {
+            gCombatManager->SetupCombat(
+                x, y, firstHero, firstArmy, combatTown, secondHero, secondArmy, x, y, randomSeed
+            );
+            gCombatManager->m_autoResolveAtStart = autoResolve;
+            if (gHighMemBuffer > COMBAT_HIGH_MEMORY_LIMIT)
+                gAdvDisposeLevel = ADV_DISPOSE_FULL;
+            else if (gHighMemBuffer > COMBAT_LOW_MEMORY_LIMIT)
+                gAdvDisposeLevel = ADV_DISPOSE_PARTIAL;
+            gExec->CallManager(gCombatManager);
+            gAdvDisposeLevel = ADV_DISPOSE_NONE;
+            if (!gCombatManager->m_replayRequested)
+                break;
+            autoResolve = false;
+            if (savedAttacker)
+                *firstHero = *savedAttacker;
+            if (savedDefender)
+                *secondHero = *savedDefender;
+            if (savedFirstArmy)
+                *firstArmy = *savedFirstArmy;
+            if (savedSecondArmy)
+                *secondArmy = *savedSecondArmy;
+            if (savedGarrison)
+                combatTown->m_army = *savedGarrison;
+        }
+    }
 
 combatFinished:
     if (firstHero)

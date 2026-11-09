@@ -189,6 +189,26 @@ msgid "combat.artifact.captured"
 msgstr "Вы захватили вражеский артефакт!"
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.auto.confirm"
+msgstr "Включить автобой?"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.auto.interrupt"
+msgstr "Прервать автобой?"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.auto_resolve.setting"
+msgstr "Автоматически рассчитывать бои"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.autospells.off"
+msgstr "Магия в автобое: выкл."
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.autospells.on"
+msgstr "Магия в автобое: вкл."
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.casualties.attacker"
 msgstr "Нападающие:"
 
@@ -255,6 +275,26 @@ msgstr "Неудача! Атака %s наносит меньший урон."
 msgid "combat.luck.good.buka"
 msgstr "Удача! Отряд %s наносит двойной урон!"
 
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.auto"
+msgstr "Автобой"
+
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.cancel"
+msgstr "Отмена"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.mode.help"
+msgstr "В автобое можно наблюдать за сражением. Быстрый бой сразу рассчитывает результат."
+
+#: src/SOURCE/KB.cpp
+msgid "combat.mode.quick"
+msgstr "Быстрый бой"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.mode.title"
+msgstr "Режимы автобоя"
+
 #: src/SOURCE/CMBTMGR.cpp
 #, c-format
 msgid "combat.morale.bad"
@@ -287,13 +327,20 @@ msgid "combat.network.town"
 msgstr "Город"
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.confirm"
+msgstr "Рассчитать исход боя сейчас?"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.draw"
+msgstr "Ничья"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.quick.restart"
+msgstr "Переиграть"
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.already_cast"
 msgstr "Вы уже направили заклинание в этом раунде."
-
-#: src/SOURCE/SPELLS.cpp
-#, c-format
-msgid "combat.spell.cast"
-msgstr "Направить %s"
 
 #: src/SOURCE/SPELLS.cpp
 #, c-format
@@ -303,6 +350,31 @@ msgstr "Направить %s на %s"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.no_hero"
 msgstr "У вас нет героя, чтобы направлять заклинания."
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_area"
+msgstr "%s  Урон: %d  Потери: свои %d-%d, враг %d-%d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_damage"
+msgstr "%s  Урон: %d  Потери: %d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_kills"
+msgstr "%s  Потери: %d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_resist"
+msgstr "%s  Урон: 0-%d  Потери: 0-%d"
+
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.preview_resurrect"
+msgstr "%s  Воскрешает: %d"
 
 #: src/SOURCE/SPELLS.cpp
 msgid "combat.spell.teleport_here"
@@ -411,6 +483,10 @@ msgstr "Редактор Героев"
 #: src/SOURCE/kbwin.cpp
 msgid "editor.instance.title"
 msgstr "Редактор Героев"
+
+#: src/EDITOR/EDITMGR.cpp
+msgid "editor.map.load.discard"
+msgstr "Отменить несохранённые изменения и загрузить другую карту?"
 
 #: src/EDITOR/EDITMGR.cpp
 msgid "editor.map.new.confirm"
@@ -1042,7 +1118,7 @@ msgstr "Выбранная вами игра позволяет играть т�
 msgid "file.load.label"
 msgstr "Загрузить:"
 
-#: src/EDITOR/EDITOR.cpp src/SOURCE/GAME.cpp src/SOURCE/KB.cpp
+#: src/EDITOR/EDITMGR.cpp src/EDITOR/EDITOR.cpp src/SOURCE/GAME.cpp src/SOURCE/KB.cpp
 #, c-format
 msgid "file.open.failed"
 msgstr "Ошибка открытия файла %s!"
@@ -1097,6 +1173,22 @@ msgstr "Встречаются %s и %s"
 #, c-format
 msgid "hero.title"
 msgstr "%s %s"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling"
+msgstr "Масштаб"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fit"
+msgstr "По окну, чётко"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.integer"
+msgstr "Целые пиксели"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.smooth"
+msgstr "По окну, сглаженно"
 
 #: src/SOURCE/REMOTE.cpp
 msgid "modem.connecting"
@@ -1908,6 +2000,159 @@ msgstr "Наберите ваше имя русскими буквами."
 #: src/SOURCE/SETUP.cpp
 msgid "setup.modem.initialization_prompt"
 msgstr "Пожалуйста, укажите значения строки инициализации модема или нажмите 'ENTER'."
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.army.dismiss"
+msgstr "Распустить героя или отряд"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.auto"
+msgstr "Автобой"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.auto_spells"
+msgstr "Магия в автобое"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.options"
+msgstr "Действия командира"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.order"
+msgstr "Очередь ходов"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.quick"
+msgstr "Быстрый бой"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.retreat"
+msgstr "Отступить"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.battle.surrender"
+msgstr "Сдаться"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.cast"
+msgstr "Применить заклинание"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.army"
+msgstr "Армия"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.battle"
+msgstr "Бой"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.map"
+msgstr "Карта"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.town"
+msgstr "Замок"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.context.well"
+msgstr "Колодец"
+
+#: src/SOURCE/KB.cpp
+msgid "shortcut.invalid"
+msgstr "Выбери свободную букву. Esc отменяет."
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.adventure_options"
+msgstr "Действия на карте"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.dig"
+msgstr "Искать артефакт"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.end"
+msgstr "Завершить ход"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.file_options"
+msgstr "Меню игры"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.hero"
+msgstr "Следующий герой"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.load"
+msgstr "Загрузить игру"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.move"
+msgstr "Движение по маршруту"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.overview"
+msgstr "Обзор королевства"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.puzzle"
+msgstr "Карта-загадка"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.save"
+msgstr "Сохранить игру"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.scenario"
+msgstr "О сценарии"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.town"
+msgstr "Следующий замок"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.map.view_world"
+msgstr "Обзор мира"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "shortcut.menu"
+msgstr "Горячие клавиши"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "shortcut.prompt"
+msgstr "%s [%c]\nНажми новую букву. Esc отменяет."
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.build"
+msgstr "Строительство"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.exchange"
+msgstr "Обмен войсками"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.magic"
+msgstr "Гильдия магов"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.recruit_all"
+msgstr "Нанять всех у колодца"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.shipyard"
+msgstr "Верфь"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.tavern"
+msgstr "Таверна"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.thieves_guild"
+msgstr "Гильдия воров"
+
+#: src/SOURCE/KBCOMMON.cpp
+msgid "shortcut.town.well"
+msgstr "Обзор найма"
 
 #: src/EDITOR/EDITOR.cpp src/SOURCE/KB.cpp
 msgid "shutdown.unexpected.title"

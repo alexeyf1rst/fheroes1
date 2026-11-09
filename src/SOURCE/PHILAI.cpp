@@ -2379,11 +2379,11 @@ b32 philAI::QuickCombat(
             attackerHero->ApplyBattleLossTemps();
         }
         if (defenderHero != NULL)
-            attackerHero->ApplyBattleWinTemps();
+            defenderHero->ApplyBattleWinTemps();
         defenderCasualtyFraction = lostFraction * diff;
         attackerCasualtyFraction = 1.0f;
         if (attackerCasualtyFraction >= 0.99 && defenderHero != NULL)
-            gAdvManager->GiveExperience(defenderHero, defExp, true);
+            gAdvManager->GiveExperience(defenderHero, atkExp, true);
     }
     if (attackerCasualtyFraction > 0.99)
         gAdvManager->TransferArtifacts(attackerHero, defenderHero);

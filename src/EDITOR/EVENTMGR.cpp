@@ -172,9 +172,7 @@ i16 eventsManager::Main(tag_message& message) {
 }
 
 void eventsManager::EditCell(i16 x, i16 y) {
-    mapCell original;
     char text[20];
-    editMapCellPair savedPair;
 
     if (gDebugLevel < EVENTS_CELL_EDIT_DEBUG_LEVEL_MIN) {
         NormalDialog(localization::Tr("editor.events.cell.unavailable"), NORMAL_DIALOG_TYPE_OK);
@@ -185,7 +183,6 @@ void eventsManager::EditCell(i16 x, i16 y) {
     tag_message msg;
     gEditCell = &gEditManager->m_map.cells[x][y];
     gEditCellPair = &gEditManager->m_map.cellPairs[x][y];
-    original = *gEditCell;
     gEditDialog = new heroWindow(EVENTS_DIALOG_X, EVENTS_DIALOG_Y, "cellwin.bin");
     msg.type = MESSAGE_WIDGET;
     msg.command = WIDGET_COMMAND_SET_TEXT;
@@ -226,12 +223,13 @@ void eventsManager::EditCell(i16 x, i16 y) {
     sprintf(text, "%d", gEditCellPair->overlayId);
     msg.id = firstByteId + CELL_FIELD_OVERLAY_ID;
     gEditDialog->BroadcastMessage(msg);
+    gEditManager->BeginEdit();
     gWindowManager->DoDialog(gEditDialog, CellWindowHandler, false);
     delete gEditDialog;
     if (gWindowManager->m_dialogResult == EVENTS_DIALOG_CANCEL)
-        gEditManager->m_map.cells[x][y] = original;
+        gEditManager->CancelEdit();
     else
-        gEditManager->m_mapChanged = 1;
+        gEditManager->EndEdit();
     gEditManager->DrawMap();
     gEditManager->UpdateMapView();
 }
@@ -372,9 +370,10 @@ void eventsManager::EditTown(i16 x, i16 y) {
     gWindowManager->DoDialog(gEditDialog, TownWindowHandler, false);
     delete gEditDialog;
     if (gWindowManager->m_dialogResult != EVENTS_DIALOG_CANCEL) {
-        gEditManager->m_mapChanged = 1;
+        gEditManager->BeginEdit();
         *static_cast<editTownExtra*>(gEditManager->m_extras[gEditCell->m_objectMetadata]) =
             gTownEdit;
+        gEditManager->EndEdit();
     }
     gEditManager->DrawMap();
     gEditManager->UpdateMapView();
@@ -597,8 +596,9 @@ void eventsManager::EditMonster(i16 x, i16 y) {
     gWindowManager->DoDialog(gEditDialog, MonsterWindowHandler, false);
     delete gEditDialog;
     if (gWindowManager->m_dialogResult != EVENTS_DIALOG_CANCEL) {
-        gEditManager->m_mapChanged = 1;
+        gEditManager->BeginEdit();
         gEditCell->m_objectMetadata = gMonsterCountEdit;
+        gEditManager->EndEdit();
     }
     gEditManager->DrawMap();
     gEditManager->UpdateMapView();
@@ -681,9 +681,10 @@ void eventsManager::EditHero(i16 x, i16 y) {
     gWindowManager->DoDialog(gEditDialog, HeroWindowHandler, false);
     delete gEditDialog;
     if (gWindowManager->m_dialogResult != EVENTS_DIALOG_CANCEL) {
-        gEditManager->m_mapChanged = 1;
+        gEditManager->BeginEdit();
         *static_cast<editHeroExtra*>(gEditManager->m_extras[gEditCell->m_objectMetadata]) =
             gHeroEdit;
+        gEditManager->EndEdit();
     }
     gEditManager->DrawMap();
     gEditManager->UpdateMapView();
@@ -871,7 +872,7 @@ b32 ClearOptionsDialog(void) {
     delete gClearWindow;
     if (gWindowManager->m_dialogResult == EVENTS_DIALOG_OK
         && (gClearFlags & CLEAR_FLAG_WHOLE_MAP)) {
-        gEditManager->SaveUndo();
+        gEditManager->BeginEdit();
         gEditManager->ClearArea(
             0,
             0,
@@ -880,6 +881,7 @@ b32 ClearOptionsDialog(void) {
             gClearFlags & EDIT_CLEAR_ALL,
             false
         );
+        gEditManager->EndEdit();
     }
     gEditManager->DrawMap();
     gEditManager->UpdateMapView();
@@ -949,9 +951,6 @@ i16 ClearWindowHandler(tag_message& message) {
 }
 
 b32 MapDetailsDialog(b32) {
-    SMapHeader saved;
-
-    saved = *gMapHeader;
     gDetailsWindow = new heroWindow(EVENTS_DIALOG_X, EVENTS_DIALOG_Y, "dtlwind.bin");
     if (gDetailsWindow == NULL)
         MemError();
@@ -960,14 +959,18 @@ b32 MapDetailsDialog(b32) {
         EVENTS_WINDOW_TEXT_MAP_DETAILS
     );
     UpdateMapDetailsWindow();
+    gEditManager->BeginEdit();
     gWindowManager->DoDialog(gDetailsWindow, MapDetailsWindowHandler, false);
     delete gDetailsWindow;
     gDetailsWindow = NULL;
+    const bool accepted = gWindowManager->m_dialogResult != EVENTS_DIALOG_CANCEL;
+    if (accepted)
+        gEditManager->EndEdit();
+    else
+        gEditManager->CancelEdit();
     gEditManager->DrawMap();
     gEditManager->UpdateMapView();
-    if (gWindowManager->m_dialogResult == EVENTS_DIALOG_CANCEL)
-        *gMapHeader = saved;
-    return gWindowManager->m_dialogResult != EVENTS_DIALOG_CANCEL;
+    return accepted;
 }
 
 void UpdateMapDetailsWindow(void) {

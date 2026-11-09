@@ -53,6 +53,7 @@ enum CombatPointerCode {
 enum CombatGridConstant {
     COMBAT_HEX_COUNT = 45,
     COMBAT_SIDE_ARMY_COUNT = 6,
+    COMBAT_TURN_ORDER_CAPACITY = 6,
     COMBAT_CASTLE_WALL_COLUMN = 5,
     COMBAT_ARMY_INDEX_NONE = -1
 };
@@ -131,6 +132,7 @@ public:
     char* m_savedBorder;
     class icon* m_combatIcons[COMBAT_ICON_COUNT];
     class bitmap* m_backgroundBuffer;
+    class bitmap* m_autoResolveBackground = nullptr;
     b8 m_backgroundDrawn;
     class mapCell* m_battlefieldCell;
     class town* m_combatTowns[COMBAT_SIDE_COUNT];
@@ -142,11 +144,25 @@ public:
     i32 m_experienceValue[COMBAT_SIDE_COUNT];
     b8 m_heroCastSpell[COMBAT_SIDE_COUNT];
     i16 m_numArmies[COMBAT_SIDE_COUNT];
+    i8 m_armyGroupSlots[COMBAT_SIDE_COUNT][ARMY_GROUP_SLOT_COUNT];
     army m_armies[COMBAT_SIDE_COUNT][COMBAT_SIDE_ARMY_COUNT];
     i8 m_currentSide;
     i8 m_currentArmyIndex;
     i8 m_currentSpeed;
-    b8 m_autoCombat;
+    bool m_autoCombatSides[COMBAT_SIDE_COUNT] = {};
+    b8 m_showTurnOrder = false;
+    struct TurnOrderEntry {
+        i8 creature;
+        i8 side;
+        i16 quantity;
+    };
+    TurnOrderEntry m_turnOrder[COMBAT_TURN_ORDER_CAPACITY];
+    i8 m_turnOrderCount = 0;
+    bool m_quickCombat = false;
+    bool m_autoResolveAtStart = false;
+    i8 m_autoCombatStopRequested = COMBAT_SIDE_NONE;
+    bool m_replayRequested = false;
+    i16 m_spellPreviewHex = ARMY_HEX_INVALID;
     b8 m_selectorVisible;
     i8 m_selectorHex;
     b8 m_showArmyQuantities;
@@ -203,12 +219,16 @@ public:
     void UpdateGrid(i16 hex, i16 attributes);
     void DrawBackground(void);
     void DrawFrame(b8 updateScreen);
+    void DrawTurnOrder();
     void SetDrawRightToLeft(i8 rightToLeft);
     i8 ViewGeneral(i32 side, b32 allowActions, b32 quickView);
     void ViewArmy(class army* viewedArmy, i32 side, b32 quickView);
     b8 ViewSpells(i32);
     b8 ValidSpellTarget(i8 spell, i8 hex);
     void SpellMessage(i8 spell, i8 hex);
+    void SetSpellAreaPreview(i16 hex);
+    void DrawSpellAreaPreview();
+    i32 SpellDamage(i8 spell) const;
     void
     CastSpell(i8 spell, i8 targetHex, b8 castByCreature, i8 teleportDest);
     void DefaultSpell(i8 targetHex);
@@ -232,7 +252,9 @@ public:
     void ShowWinLoseArtifact(class heroWindow* window, i32 artifact);
     void ShowDeadArmies(class heroWindow* window);
     void DoVictory(i8 winningSide);
-    void DoLoseWindow(void);
+    bool DoLoseWindow(bool review = false);
+    bool ReviewAutoBattle();
+    i32 BattleVictoryExperience(i8 winningSide);
     i16 DoSurrender(void);
     void CheckChangeSelector(void);
     void CheckCastleAttack(void);
@@ -245,17 +267,10 @@ public:
     i32 EffectSpellCreateCreature(i32 hex, i32 spell);
     i32 RawEffectSpellInfluence(class army* target, i32 spell);
     void ClearEffects(void);
-    void NextPos(i32* hex);
-    b32 FirstArmy(i32 startHex, i32 side, i32* hex);
     i32 FirstResurrectable(i32 startHex, i32* hex, i32 spell);
     void EffectSpellCure(i32* effect, i32 targetSide, b8 cureOnly);
     void EffectSpellResurrect(i32* effect, i32 hex);
-    void EffectSpellDamage(
-        i32* effect,
-        i32 spell,
-        i32 damagePerPower,
-        i32 targetHex
-    );
+    void EffectSpellDamage(i32* effect, i32 spell, i32 targetHex);
     void CombineGroups(class armyGroup* sourceGroup, class armyGroup* targetGroup);
     void SetupCombat(
         i32 mapX,
@@ -281,7 +296,13 @@ public:
     i16 GetGridIndex(i16 x, i16 y);
     void CheckApplyGoodMorale(i32 side, i32 index);
     b32 CheckApplyBadMorale(i32 side, i32 index);
-    b8 GetNextArmy(b32 checkMorale);
+    b8 GetNextArmy(b32 checkMorale, bool preview = false);
+    void ShowTurnOrder();
+    bool IsAutoCombat() const { return m_quickCombat || m_autoCombatSides[m_currentSide]; }
+    i8 AutoCombatInterruptSide() const;
+    bool RequestAutoCombatStop();
+    void StartQuickCombat();
+    void StopQuickCombat();
     b8 IsWinner(i8 side);
     void CatAttack(i8 side);
     void KeepAttack(void);

@@ -14,6 +14,7 @@
 #include <SOURCE/gameTypes.h>
 #include <SOURCE/hero.h>
 #include <SOURCE/highScoreManager.h>
+#include <SOURCE/hotkeys.h>
 #include <SOURCE/mapCell.h>
 #include <SOURCE/REMOTE.h>
 #include <SOURCE/resourceTypes.h>
@@ -303,6 +304,11 @@ struct configStruct {
     i32 comPort[CONFIG_CONNECTION_COUNT];
     i32 baudRate[CONFIG_CONNECTION_COUNT];
     char modemInitString[100];
+    i32 autoCombatSpells;
+    i32 autoResolveBattles;
+    i32 showCombatOrder;
+    i32 displayScaling;
+    i32 shortcutKeys[GAME_SHORTCUT_COUNT];
 };
 #define CURRENT_GRAPHICS_CONFIG (gConfig.gfx[gCurExe])
 struct tag_tilePoint {

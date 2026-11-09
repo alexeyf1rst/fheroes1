@@ -1,6 +1,7 @@
 #include <H1/Ints.h>
 
 #include <BASE/audio.h>
+#include <BASE/bmap2.h>
 #include <BASE/display.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -29,6 +30,68 @@
 #include <stdlib.h>
 #include <string.h>
 
+namespace {
+constexpr int kSpellAreaSize = COMBAT_DIRECTION_ADJACENT_COUNT + 1;
+i16 gSpellHoverHex = COMBAT_HEX_COUNT;
+
+void SpellArea(i16 center, i16 (&hexes)[kSpellAreaSize]) {
+    hexes[0] = center;
+    for (i16 direction = 0; direction < COMBAT_DIRECTION_ADJACENT_COUNT; ++direction)
+        hexes[direction + 1] = GetAdjacentCellIndexNoArmy(center, direction);
+}
+
+i32 ResurrectionCount(const army& target, i32 power) {
+    const i32 restored = power * 50 / target.m_stats.hitPoints;
+    const i32 missing = target.m_initialQuantity - target.m_quantity;
+    return restored < missing ? restored : missing;
+}
+}
+
+i32 combatManager::SpellDamage(i8 spell) const {
+    const hero* caster = m_heroes[m_currentSide];
+    if (!caster)
+        return 0;
+    const i32 power = caster->m_primaryStats[HERO_PRIMARY_SPELL_POWER];
+    switch (spell) {
+        case SPELL_FIREBALL:
+            return power * 10;
+        case SPELL_LIGHTNING_BOLT:
+        case SPELL_METEOR_SHOWER:
+        case SPELL_STORM:
+            return power * 25;
+        case SPELL_ARMAGEDDON:
+            return power * 50;
+        default:
+            return 0;
+    }
+}
+
+void combatManager::SetSpellAreaPreview(i16 hex) {
+    if (m_spellPreviewHex == hex)
+        return;
+    m_spellPreviewHex = hex;
+    DrawFrame(true);
+}
+
+void combatManager::DrawSpellAreaPreview() {
+    i16 hexes[kSpellAreaSize];
+    SpellArea(m_spellPreviewHex, hexes);
+    for (const i16 hex : hexes) {
+        const i16 column = hex % COMBAT_GRID_COLUMNS;
+        if (!ValidHex(hex) || column < COMBAT_GRID_FIRST_INNER_COLUMN
+            || column > COMBAT_GRID_LAST_INNER_COLUMN)
+            continue;
+        const hexcell& cell = m_hexCells[hex];
+        const i16 centerY = cell.m_y - 18;
+        const i16 color = hex == m_spellPreviewHex ? ARMY_SELECTOR_OUTLINE_COLOR : ARMY_BAD_SPELL_OUTLINE_COLOR;
+        for (i16 offset = -12; offset <= 12; ++offset) {
+            const i16 halfWidth = (12 - abs(offset)) * 2;
+            FillBitmapArea(gWindowManager->m_screen, cell.m_x - halfWidth, centerY + offset, 2, 1, color);
+            FillBitmapArea(gWindowManager->m_screen, cell.m_x + halfWidth, centerY + offset, 2, 1, color);
+        }
+    }
+}
+
 b8 combatManager::ViewSpells(i32) {
     m_selectedSpell =
         gGame->ViewSpells(m_heroes[gCurGeneral], SPELL_TYPE_COMBAT, CombatSpecialHandler, false);
@@ -48,7 +111,13 @@ b8 combatManager::ViewSpells(i32) {
                     "spelmous.mse",
                     m_selectedSpell
                 );
+                tag_message hover{};
+                hover.type = MESSAGE_MOUSE_MOVE;
+                gMouseManager->MouseCoords(hover.x, hover.y);
+                gSpellHoverHex = COMBAT_HEX_COUNT;
+                HandleCastSpell(hover);
                 gWindowManager->DoDialog(NULL, HandleCastSpell, false);
+                SetSpellAreaPreview(ARMY_HEX_INVALID);
                 break;
         }
         gMouseManager->SetPointer("cmbtmous.mse", 0);
@@ -78,9 +147,18 @@ i16 CombatSpecialHandler(struct tag_message& message) {
                     case SPELL_BOOK_ENTRY_FIRST:
                     case SPELL_BOOK_ENTRY_FIRST + 1:
                     case SPELL_BOOK_ENTRY_FIRST + 2:
-                    case SPELL_BOOK_ENTRY_LAST:
+                    case SPELL_BOOK_ENTRY_LAST: {
+                        const i16 index = gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST;
+                        if (index <= gGame->m_spellLast) {
+                            const i8 spell = gGame->m_viewSpellsHero->m_spells[index];
+                            if (spell == SPELL_ARMAGEDDON || spell == SPELL_STORM) {
+                                gCombatManager->SpellMessage(spell, ARMY_HEX_INVALID);
+                                break;
+                            }
+                        }
                         gCombatManager->CombatMessage(gSpellHelp[SPELL_HELP_SELECT_SPELL], true);
                         break;
+                    }
                     default:
                         gCombatManager->CombatMessage(
                             gSpellHelp[SPELL_HELP_VIEW_COMBAT_SPELLS],
@@ -94,17 +172,16 @@ i16 CombatSpecialHandler(struct tag_message& message) {
     return MESSAGE_DISPATCH_CONSUME;
 }
 
-#define gSpellTargetHex indexToCastOn
 i16 HandleCastSpell(struct tag_message& message) {
-    static i8 gSpellTargetHex = ARMY_HEX_INVALID;
     i16 hex;
 
     switch (message.type) {
         case MESSAGE_MOUSE_MOVE:
             hex = gCombatManager->GetGridIndex(message.x, message.y);
-            if (hex != gSpellTargetHex) {
+            if (hex != gSpellHoverHex) {
+                gSpellHoverHex = hex;
                 if (!gCombatManager->ValidSpellTarget(gCombatManager->m_selectedSpell, hex)) {
-                    gSpellTargetHex = ARMY_HEX_INVALID;
+                    gCombatManager->SetSpellAreaPreview(ARMY_HEX_INVALID);
                     gMouseManager->SetPointer(SPELL_POINTER_NO_TARGET);
                     if (gCombatManager->m_selectedSpell == SPELL_TELEPORT && gInTeleportGetDest)
                         gCombatManager->CombatMessage(
@@ -117,7 +194,9 @@ i16 HandleCastSpell(struct tag_message& message) {
                             true
                         );
                 } else {
-                    gSpellTargetHex = hex;
+                    if (gCombatManager->m_selectedSpell == SPELL_FIREBALL
+                        || gCombatManager->m_selectedSpell == SPELL_METEOR_SHOWER)
+                        gCombatManager->SetSpellAreaPreview(hex);
                     gMouseManager->SetPointer(
                         gCombatManager->m_selectedSpell
                     );
@@ -126,21 +205,15 @@ i16 HandleCastSpell(struct tag_message& message) {
             }
             break;
         case MESSAGE_LEFT_BUTTON_DOWN:
-            // The target is remembered from the last pointer move, across
-            // casts and combats; a click without moving cast at a hex that
-            // may since have emptied, and the spell then used a missing
-            // target. It is checked again.
-            if (gSpellTargetHex != ARMY_HEX_INVALID
-                && !gCombatManager->ValidSpellTarget(gCombatManager->m_selectedSpell, gSpellTargetHex))
-                gSpellTargetHex = ARMY_HEX_INVALID;
-            if (gSpellTargetHex != ARMY_HEX_INVALID) {
+            hex = gCombatManager->GetGridIndex(message.x, message.y);
+            if (gCombatManager->ValidSpellTarget(gCombatManager->m_selectedSpell, hex)) {
                 if (gInTeleportGetDest)
-                    gNextActionGridIndex2 = gSpellTargetHex;
+                    gNextActionGridIndex2 = hex;
                 else {
-                    gNextActionGridIndex = gSpellTargetHex;
+                    gNextActionGridIndex = hex;
                     if (gCombatManager->m_selectedSpell == SPELL_TELEPORT) {
                         gInTeleportGetDest = true;
-                        gSpellTargetHex = ARMY_HEX_INVALID;
+                        gSpellHoverHex = COMBAT_HEX_COUNT;
                         message.type = MESSAGE_MOUSE_MOVE;
                         gMouseManager->MouseCoords(message.x, message.y);
                         HandleCastSpell(message);
@@ -234,21 +307,75 @@ b8 combatManager::ValidSpellTarget(i8 spell, i8 hex) {
 }
 
 void combatManager::SpellMessage(i8 spell, i8 hex) {
+    char hint[192];
+    const i32 damage = SpellDamage(spell);
     switch (spell) {
         case SPELL_FIREBALL:
         case SPELL_ARMAGEDDON:
         case SPELL_STORM:
-        case SPELL_METEOR_SHOWER:
-            sprintf(gText, localization::Tr("combat.spell.cast"), gSpellNames[spell]);
+        case SPELL_METEOR_SHOWER: {
+            const bool area = spell == SPELL_FIREBALL || spell == SPELL_METEOR_SHOWER;
+            bool inArea[COMBAT_SIDE_COUNT][COMBAT_SIDE_ARMY_COUNT] = {};
+            if (area) {
+                i16 hexes[kSpellAreaSize];
+                SpellArea(hex, hexes);
+                for (const i16 cell : hexes) {
+                    if (!ValidHex(cell))
+                        continue;
+                    const hexcell& occupied = m_hexCells[cell];
+                    if (occupied.m_occupantSide != COMBAT_SIDE_NONE)
+                        inArea[occupied.m_occupantSide][occupied.m_occupantIndex] = true;
+                }
+            }
+            i32 minimum[COMBAT_SIDE_COUNT] = {};
+            i32 maximum[COMBAT_SIDE_COUNT] = {};
+            for (i8 side = COMBAT_SIDE_FIRST; side < COMBAT_SIDE_COUNT; ++side) {
+                for (i8 slot = 0; slot < m_numArmies[side]; ++slot) {
+                    const army& stack = m_armies[side][slot];
+                    if (stack.m_quantity <= 0 || stack.m_stats.hitPoints <= 0 || ARMY_IGNORES_SPELLS(&stack)
+                        || (area && (!inArea[side][slot] || stack.m_powFrames != ARMY_POW_NONE)))
+                        continue;
+                    const i32 killed = stack.CasualtiesFromDamage(damage);
+                    maximum[side] += killed;
+                    if (stack.m_creatureType != CREATURE_DWARF)
+                        minimum[side] += killed;
+                }
+            }
+            const i8 enemy = COMBAT_OPPOSING_SIDE(m_currentSide);
+            snprintf(hint, sizeof(hint), localization::Tr("combat.spell.preview_area"), gSpellNames[spell],
+                     damage, minimum[m_currentSide], maximum[m_currentSide], minimum[enemy], maximum[enemy]);
             break;
+        }
+        case SPELL_LIGHTNING_BOLT:
+        case SPELL_TURN_UNDEAD:
+        case SPELL_RESURRECT: {
+            const hexcell& cell = m_hexCells[hex];
+            const army& target = m_armies[cell.m_occupantSide][cell.m_occupantIndex];
+            if (spell == SPELL_TURN_UNDEAD) {
+                snprintf(hint, sizeof(hint), localization::Tr("combat.spell.preview_kills"),
+                         gSpellNames[spell], target.m_quantity);
+            } else if (spell == SPELL_RESURRECT) {
+                const i32 power = m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER];
+                snprintf(hint, sizeof(hint), localization::Tr("combat.spell.preview_resurrect"),
+                         gSpellNames[spell], ResurrectionCount(target, power));
+            } else if (target.m_creatureType == CREATURE_DWARF) {
+                snprintf(hint, sizeof(hint), localization::Tr("combat.spell.preview_resist"),
+                         gSpellNames[spell], damage, target.CasualtiesFromDamage(damage));
+            } else {
+                snprintf(hint, sizeof(hint), localization::Tr("combat.spell.preview_damage"),
+                         gSpellNames[spell], damage, target.CasualtiesFromDamage(damage));
+            }
+            break;
+        }
         case SPELL_TELEPORT:
             if (gInTeleportGetDest) {
-                sprintf(gText, localization::Tr("combat.spell.teleport_here"));
+                snprintf(hint, sizeof(hint), "%s", localization::Tr("combat.spell.teleport_here"));
                 break;
             }
+            [[fallthrough]];
         default:
-            sprintf(
-                gText,
+            snprintf(
+                hint, sizeof(hint),
                 localization::Tr("combat.spell.cast_target"),
                 gSpellNames[spell],
                 gArmyNames[m_armies[m_hexCells[hex].m_occupantSide][m_hexCells[hex].m_occupantIndex]
@@ -256,7 +383,7 @@ void combatManager::SpellMessage(i8 spell, i8 hex) {
             );
             break;
     }
-    CombatMessage(gText, true);
+    CombatMessage(hint, true);
 }
 
 void combatManager::CastSpell(
@@ -407,12 +534,12 @@ void combatManager::CastSpell(
             sprintf(
                 gText,
                 localization::Tr("spell.lightning.damage"),
-                m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER] * 25,
+                SpellDamage(spell),
                 CREATURE_DISPLAY_NAME(target->m_creatureType, target->m_quantity)
             );
             CombatMessage(gText, true);
             target->SpellEffect(COMBAT_EFFECT_LIGHTNING_BOLT, 0);
-            target->Damage(m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER] * 25);
+            target->Damage(SpellDamage(spell));
             target->PowEffect(COMBAT_POW_RED_FIRE);
             if (!(target->m_stats.attributes & MONSTER_FLAGS_DEAD))
                 target->Stand(true);
@@ -424,10 +551,8 @@ void combatManager::CastSpell(
             target->SpellEffect(COMBAT_EFFECT_RESURRECT, 0);
             target->SpellEffect(COMBAT_EFFECT_RESURRECT, 0);
             quantityBefore = target->m_quantity;
-            target->m_quantity += m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER]
-                                  * 50 / target->m_stats.hitPoints;
-            if (target->m_quantity > target->m_initialQuantity)
-                target->m_quantity = target->m_initialQuantity;
+            target->m_quantity += ResurrectionCount(
+                *target, m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER]);
             if (target->m_quantity - quantityBefore > 1)
                 sprintf(
                     gText,
@@ -707,11 +832,8 @@ void combatManager::Fireball(i8 targetHex) {
     }
     gResourceManager->Dispose(fireballIcon);
     target = &m_armies[m_currentSide][m_currentArmyIndex];
-    affectedHexes[0] = targetHex;
-    for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT; i++)
-        affectedHexes[i + 1] =
-            target->GetAdjacentCellIndex(targetHex, i);
-    baseDamage = m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER] * 10;
+    SpellArea(targetHex, affectedHexes);
+    baseDamage = SpellDamage(SPELL_FIREBALL);
     ClearEffects();
     anyAffected = false;
     for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT + 1; i++) {
@@ -762,10 +884,7 @@ void combatManager::MeteorShower(i8 targetHex) {
         return;
     meteorIcon = gResourceManager->GetIcon("meteor.icn");
     target = &m_armies[m_currentSide][m_currentArmyIndex];
-    affectedHexes[0] = targetHex;
-    for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT; i++)
-        affectedHexes[i + 1] =
-            target->GetAdjacentCellIndex(targetHex, i);
+    SpellArea(targetHex, affectedHexes);
     for (frame = 0; frame < 10; frame++) {
         gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 112.5;
         m_gridUpdateRow = 0;
@@ -784,7 +903,7 @@ void combatManager::MeteorShower(i8 targetHex) {
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
     }
     gResourceManager->Dispose(meteorIcon);
-    baseDamage = m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER] * 25;
+    baseDamage = SpellDamage(SPELL_METEOR_SHOWER);
     ClearEffects();
     anyAffected = false;
     for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT + 1; i++) {
@@ -856,7 +975,7 @@ void combatManager::ElementalStorm(void) {
     }
     gResourceManager->Dispose(storm);
     anyAffected = false;
-    damage = m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER] * 25;
+    damage = SpellDamage(SPELL_STORM);
     for (side = COMBAT_SIDE_FIRST; side < COMBAT_SIDE_COUNT; side++) {
         for (armyIdx = 0; armyIdx < m_numArmies[side]; armyIdx++) {
             target = &m_armies[side][armyIdx];
@@ -895,7 +1014,7 @@ void combatManager::Armageddon(void) {
     i16 armyIdx;
     b8 hit;
 
-    damage = m_heroes[m_currentSide]->m_primaryStats[HERO_PRIMARY_SPELL_POWER] * 50;
+    damage = SpellDamage(SPELL_ARMAGEDDON);
     hit = false;
     for (combatSideIndex = COMBAT_SIDE_FIRST; combatSideIndex < COMBAT_SIDE_COUNT;
          combatSideIndex++) {

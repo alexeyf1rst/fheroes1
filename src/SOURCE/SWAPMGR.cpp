@@ -180,6 +180,50 @@ i16 swapManager::Main(struct tag_message& message) {
         return MESSAGE_DISPATCH_CONTINUE;
     }
     switch (message.type) {
+        case MESSAGE_KEY_UP: {
+            const i16 tap = ArmyShortcutTap(message);
+            if (!tap || quickView)
+                break;
+            const i16 left = m_window->HoveredWidget(CONTROL_LEFT_ARMY_FIRST, CONTROL_LEFT_ARMY_LAST);
+            const i16 right = m_window->HoveredWidget(CONTROL_RIGHT_ARMY_FIRST, CONTROL_RIGHT_ARMY_LAST);
+            if (left != WIDGET_ID_NONE
+                && m_heroes[SWAP_SIDE_LEFT]->m_army.QuickArrange(left - CONTROL_LEFT_ARMY_FIRST, tap, true)) {
+                Reset();
+                Update();
+                m_window->DrawWindow();
+            } else if (right != WIDGET_ID_NONE
+                       && m_heroes[SWAP_SIDE_RIGHT]->m_army.QuickArrange(right - CONTROL_RIGHT_ARMY_FIRST, tap, true)) {
+                Reset();
+                Update();
+                m_window->DrawWindow();
+            }
+            break;
+        }
+        case MESSAGE_KEY_DOWN: {
+            armyGroup& left = m_heroes[SWAP_SIDE_LEFT]->m_army;
+            armyGroup& right = m_heroes[SWAP_SIDE_RIGHT]->m_army;
+            const i8 preferred = m_itemType == SWAP_ITEM_ARMY && m_selectedSide != SWAP_SIDE_NONE
+                                     ? m_heroes[m_selectedSide]->m_army.m_creatureTypes[m_selectedSlot]
+                                     : static_cast<i8>(CREATURE_NONE);
+            if (message.keyCode == INPUT_SCAN_NUMPAD_4) {
+                right.MoveTroopsTo(left, true, preferred);
+            } else if (message.keyCode == INPUT_SCAN_NUMPAD_6) {
+                left.MoveTroopsTo(right, true, preferred);
+            } else if (TranslateShortcut(message.keyCode, SHORTCUT_ARMY) == INPUT_SCAN_X) {
+                const armyGroup previous = left;
+                left = right;
+                right = previous;
+            } else if (message.keyCode == INPUT_SCAN_ESCAPE) {
+                nowCloseRequested = true;
+                break;
+            } else {
+                break;
+            }
+            Reset();
+            Update();
+            m_window->DrawWindow();
+            break;
+        }
         case MESSAGE_RIGHT_BUTTON_DOWN:
             if (quickView)
                 break;
@@ -346,6 +390,12 @@ i16 swapManager::Main(struct tag_message& message) {
                         case CONTROL_LEFT_ARMY_FIRST + 2:
                         case CONTROL_LEFT_ARMY_FIRST + 3:
                         case CONTROL_LEFT_ARMY_LAST:
+                            if (!quickView && m_heroes[SWAP_SIDE_LEFT]->m_army.QuickArrange(
+                                    message.id - CONTROL_LEFT_ARMY_FIRST, message.modifiers,
+                                    m_itemType != SWAP_ITEM_ARMY)) {
+                                Reset();
+                                break;
+                            }
                             if (quickView) {
                                 if (m_heroes[SWAP_SIDE_LEFT]
                                         ->m_army
@@ -412,6 +462,12 @@ i16 swapManager::Main(struct tag_message& message) {
                         case CONTROL_RIGHT_ARMY_FIRST + 2:
                         case CONTROL_RIGHT_ARMY_FIRST + 3:
                         case CONTROL_RIGHT_ARMY_LAST:
+                            if (!quickView && m_heroes[SWAP_SIDE_RIGHT]->m_army.QuickArrange(
+                                    message.id - CONTROL_RIGHT_ARMY_FIRST, message.modifiers,
+                                    m_itemType != SWAP_ITEM_ARMY)) {
+                                Reset();
+                                break;
+                            }
                             if (quickView) {
                                 if (m_heroes[SWAP_SIDE_RIGHT]
                                         ->m_army
@@ -727,6 +783,7 @@ void swapManager::SplitMons(void) {
     message.id = TOWN_SPLIT_AMOUNT_CONTROL;
     message.text = gText;
     gTownManager->m_childWindow->BroadcastMessage(message);
+    gTownManager->m_childWindow->SetConfirmButton(DIALOG_BUTTON_2);
     gWindowManager->DoDialog(gTownManager->m_childWindow, SplitArmyHandler, false);
     delete gTownManager->m_childWindow;
     if (gWindowManager->m_dialogResult == DIALOG_BUTTON_2) {

@@ -270,7 +270,7 @@ i16 terrainManager::Main(tag_message& message) {
                             gEditManager->ScreenToCell(anchorX, anchorY);
                             anchorX += gEditManager->m_viewX;
                             anchorY += gEditManager->m_viewY;
-                            gEditManager->SaveUndo();
+                            gEditManager->BeginEdit();
                             event = gInputManager->GetEvent();
                             while (!IS_BUTTON_RELEASE_MESSAGE(event.type)) {
                                 Process1WindowsMessage();
@@ -332,12 +332,12 @@ i16 terrainManager::Main(tag_message& message) {
                                 );
                             gSelectionX = gSelectionY = EDIT_NO_CELL;
                             gEditManager->BlendTerrain(m_terrain, 0, 1, 0, 0);
+                            gEditManager->EndEdit();
                             gEditManager->DrawMap();
                             gEditManager->UpdateMapView();
                             gEditManager->DrawRadar(true);
                             m_lastY = EDIT_NO_CELL;
                             m_lastX = EDIT_NO_CELL;
-                            gEditManager->m_mapChanged = 1;
                             break;
                     }
                     break;
@@ -363,8 +363,12 @@ i16 terrainManager::Main(tag_message& message) {
         case MESSAGE_KEY_DOWN:
             switch (message.keyCode) {
                 case INPUT_SCAN_R:
+                    if (!(message.modifiers & MESSAGE_MODIFIER_SHIFT_KEYS)
+                        || (message.modifiers & MESSAGE_MODIFIER_CONTROL_KEYS))
+                        break;
+                    gEditManager->BeginEdit();
                     RandomizeTiles();
-                    gEditManager->m_mapChanged = 1;
+                    gEditManager->EndEdit();
                     gEditManager->DrawMap();
                     gEditManager->UpdateMapView();
                     gEditManager->DrawRadar(true);

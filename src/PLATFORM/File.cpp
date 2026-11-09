@@ -118,6 +118,16 @@ bool FileResolve(const char* path, FileOpenMode, char* buffer, size_t capacity) 
     return true;
 }
 
+u64 FileModificationTime(const char* path) {
+    char resolved[FILE_PATH_CAPACITY];
+    WIN32_FILE_ATTRIBUTE_DATA attributes;
+    if (!FileResolve(path, FILE_OPEN_READ, resolved, sizeof(resolved))
+        || !GetFileAttributesExA(resolved, GetFileExInfoStandard, &attributes))
+        return 0;
+    return (static_cast<u64>(attributes.ftLastWriteTime.dwHighDateTime) << 32)
+           | attributes.ftLastWriteTime.dwLowDateTime;
+}
+
 i32 FileOpen(const char* path, FileOpenMode mode) {
     char resolved[FILE_PATH_CAPACITY];
     if (!FileResolve(path, mode, resolved, sizeof(resolved)))
@@ -558,6 +568,29 @@ bool FileResolve(const char* path, FileOpenMode mode, char* buffer, size_t capac
         return false;
     memcpy(buffer, resolved.c_str(), resolved.size() + 1);
     return true;
+}
+
+u64 FileModificationTime(const char* path) {
+    std::string resolved;
+    if (!Resolve(path, FILE_OPEN_READ, resolved))
+        return 0;
+#if defined(_WIN32)
+    WIN32_FILE_ATTRIBUTE_DATA attributes;
+    if (!GetFileAttributesExW(Wide(resolved).c_str(), GetFileExInfoStandard, &attributes))
+        return 0;
+    return (static_cast<u64>(attributes.ftLastWriteTime.dwHighDateTime) << 32)
+           | attributes.ftLastWriteTime.dwLowDateTime;
+#else
+    struct stat attributes;
+    if (stat(resolved.c_str(), &attributes) != 0)
+        return 0;
+#if defined(__APPLE__)
+    const auto& time = attributes.st_mtimespec;
+#else
+    const auto& time = attributes.st_mtim;
+#endif
+    return static_cast<u64>(time.tv_sec) * 1000000000u + time.tv_nsec;
+#endif
 }
 
 i32 FileOpen(const char* path, FileOpenMode mode) {

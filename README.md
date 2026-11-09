@@ -1,4 +1,10 @@
-# Heroes of Might and Magic — native port
+# fheroes1
+
+A Heroes of Might and Magic I quality-of-life build for Windows, tested in Parallels. Use your own installation of Heroes I as the source of game assets.
+
+This branch contains the current port and scenario editor, based on the Buka 2003 reconstruction by sushi-shi. The local changes cover hotkeys, army splitting and transfer, castle controls, battle preview and replay, GOG audio and resource support, and display updates. [Upstream native port](https://github.com/sushi-shi/homm1-decomp/tree/port)
+
+The sections below document the upstream port and its build options.
 
 A Linux, Windows and browser port of the 2003 Buka edition of Heroes of Might
 and Magic and its scenario editor, built from the reconstructed C++ source.

@@ -15,6 +15,13 @@
 
 namespace platform {
 
+enum DisplayScaling {
+    DISPLAY_SCALING_FIT = 0,
+    DISPLAY_SCALING_INTEGER,
+    DISPLAY_SCALING_SMOOTH
+};
+void SetDisplayScaling(DisplayScaling scaling);
+
 // ---------------------------------------------------------------- startup
 
 struct StartupOptions {
@@ -202,6 +209,7 @@ struct Event {
     Type type = NONE;
     int scanCode = 0;
     bool returnKey = false;  // the main or keypad Enter key
+    bool arrowKey = false;   // an arrow key outside the keypad
     int x = 0;  // display coordinates; y < 0 on the chrome bar
     int y = 0;
     Button button = BUTTON_LEFT;

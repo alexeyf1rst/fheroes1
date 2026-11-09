@@ -93,13 +93,16 @@ i16 button::Main(tag_message& message) {
             return widget::Main(message);
         return MESSAGE_DISPATCH_CONTINUE;
     }
+    const bool matchesHotkey = (message.type == MESSAGE_KEY_DOWN || message.type == MESSAGE_KEY_UP)
+        && ((m_hotkey != BUTTON_NO_HOTKEY && m_hotkey == message.keyCode)
+            || (m_secondaryHotkey != BUTTON_NO_HOTKEY && m_secondaryHotkey == message.keyCode));
     switch (message.type) {
         case MESSAGE_KEY_DOWN:
-            if (m_hotkey != BUTTON_NO_HOTKEY && m_hotkey == message.keyCode)
+            if (!(m_flags & WIDGET_FLAG_DIMMED) && matchesHotkey)
                 return Select(message);
             return MESSAGE_DISPATCH_CONTINUE;
         case MESSAGE_KEY_UP:
-            if (m_hotkey != BUTTON_NO_HOTKEY && m_hotkey == message.keyCode)
+            if (matchesHotkey)
                 return Deselect(message);
             return MESSAGE_DISPATCH_CONTINUE;
         case MESSAGE_LEFT_BUTTON_DOWN:

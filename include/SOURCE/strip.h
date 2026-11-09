@@ -24,7 +24,6 @@ enum StripConstant {
 };
 
 class armyGroup;
-class border;
 class font;
 class heroWindow;
 class icon;
@@ -37,7 +36,6 @@ public:
     i16 m_y;
     i8 m_unusedStripType;
     i8 m_selectedSlot;
-    border* m_borders[6];
     font* m_font;
     icon* m_stripIcon;
     icon* m_monsterIcon;

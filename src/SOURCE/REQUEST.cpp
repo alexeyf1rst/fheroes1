@@ -24,6 +24,8 @@
 #include <PLATFORM/File.h>
 #include <PLATFORM/Records.h>
 
+#include <algorithm>
+#include <vector>
 #include <stdio.h>
 #include <string.h>
 
@@ -132,6 +134,9 @@ fileRequester::fileRequester(
         strcpy(m_extensions[entryIndex].text, "");
     }
 
+    const bool sortByDate = mode == FILE_REQUESTER_LOAD
+                            && (!strnicmp(defaultExtension, ".GM", 3) || !stricmp(defaultExtension, ".CGM"));
+    std::vector<u64> timestamps(sortByDate ? m_fileCount : 0);
     insertCount = 0;
     sprintf(gText, "%s%s", directory, pattern);
     findHandle = FileFindFirst(gText, &findFileData);
@@ -139,17 +144,27 @@ fileRequester::fileRequester(
         found = true;
         while (found && insertCount < m_fileCount) {
             if (ShowThisMap(findFileData.name)) {
+                u64 modified = 0;
+                if (sortByDate) {
+                    snprintf(fullFileName, sizeof(fullFileName), "%s%s", directory, findFileData.name);
+                    modified = FileModificationTime(fullFileName);
+                }
                 strcpy(nameBuffer, findFileData.name);
+                extension[0] = '\0';
                 extensionStart = FindLastToken(nameBuffer, '.');
                 if (extensionStart) {
                     strcpy(extension, extensionStart);
                     *extensionStart = '\0';
                 }
                 for (entryIndex = 0; entryIndex < insertCount; entryIndex++) {
-                    if (strcmpi(nameBuffer, m_fileNames[entryIndex].text) < 0) {
+                    const u64 otherDate = sortByDate ? timestamps[entryIndex] : 0;
+                    if (modified > otherDate
+                        || (modified == otherDate && strcmpi(nameBuffer, m_fileNames[entryIndex].text) < 0)) {
                         for (shiftRow = insertCount; shiftRow > entryIndex; shiftRow--) {
                             strcpy(m_fileNames[shiftRow].text, m_fileNames[shiftRow - 1].text);
                             strcpy(m_extensions[shiftRow].text, m_extensions[shiftRow - 1].text);
+                            if (sortByDate)
+                                timestamps[shiftRow] = timestamps[shiftRow - 1];
                         }
                         goto insert;
                     }
@@ -157,6 +172,8 @@ fileRequester::fileRequester(
             insert:
                 strcpy(m_fileNames[entryIndex].text, nameBuffer);
                 strcpy(m_extensions[entryIndex].text, extension);
+                if (sortByDate)
+                    timestamps[entryIndex] = modified;
                 insertCount++;
             }
             found = FileFindNext(findHandle, &findFileData);
@@ -242,6 +259,7 @@ i16 fileRequester::Open(i16 priority) {
     m_window = new heroWindow(m_x, m_y, "request.bin");
     if (!m_window)
         MemError();
+    m_window->SetConfirmButton(DIALOG_BUTTON_2);
     m_scrollKnob = new iconWidget(
         283,
         56,
@@ -367,26 +385,41 @@ i16 fileRequester::Main(tag_message& message) {
         return MESSAGE_DISPATCH_CONSUME;
 
     switch (message.type) {
-        case MESSAGE_KEY_DOWN:
+        case MESSAGE_KEY_DOWN: {
+            if (!m_fileCount)
+                break;
+            i32 selected = m_selectedIndex;
             switch (message.keyCode) {
                 case INPUT_SCAN_NUMPAD_8:
-                    if (m_selectedIndex > 0) {
-                        m_selectedIndex--;
-                        if (m_topIndex > m_selectedIndex)
-                            m_topIndex--;
-                        Update(true);
-                    }
+                    selected = std::max<i32>(0, selected - 1);
                     break;
                 case INPUT_SCAN_NUMPAD_2:
-                    if (m_selectedIndex < m_fileCount - 1) {
-                        m_selectedIndex++;
-                        if (m_topIndex + FILE_REQUESTER_VISIBLE_ROWS <= m_selectedIndex)
-                            m_topIndex++;
-                        Update(true);
-                    }
+                    selected = std::min<i32>(m_fileCount - 1, selected + 1);
+                    break;
+                case INPUT_SCAN_NUMPAD_7:
+                    selected = 0;
+                    break;
+                case INPUT_SCAN_NUMPAD_1:
+                    selected = m_fileCount - 1;
+                    break;
+                case INPUT_SCAN_NUMPAD_9:
+                    selected = std::max<i32>(0, selected - FILE_REQUESTER_VISIBLE_ROWS);
+                    break;
+                case INPUT_SCAN_NUMPAD_3:
+                    selected = std::min<i32>(m_fileCount - 1, selected + FILE_REQUESTER_VISIBLE_ROWS);
                     break;
             }
+            if (selected != m_selectedIndex) {
+                m_selectedIndex = selected;
+                if (selected < m_topIndex)
+                    m_topIndex = selected;
+                else if (selected >= m_topIndex + FILE_REQUESTER_VISIBLE_ROWS)
+                    m_topIndex = selected - FILE_REQUESTER_VISIBLE_ROWS + 1;
+                SetOK(true);
+                Update(true);
+            }
             break;
+        }
         case MESSAGE_WIDGET:
             switch (message.command) {
                 case WIDGET_NOTIFY_DESELECT:

@@ -44,6 +44,7 @@ public:
     bitmap* m_fizzleWork;
     i16 m_screenshotIndex;
     i16 m_colorCycling;
+    bool m_skipScreenUpdates = false;
     i32 m_dialogResult;
     i8 m_lastHoverId;
 

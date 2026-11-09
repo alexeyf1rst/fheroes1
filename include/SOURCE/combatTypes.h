@@ -121,7 +121,8 @@ enum CombatIconSlot {
     COMBAT_ICON_CLOUD = 6,
     COMBAT_ICON_KEEP = 7,
     COMBAT_ICON_SPELLS = 8,
-    COMBAT_ICON_COUNT = 9
+    COMBAT_ICON_ORDER = 9,
+    COMBAT_ICON_COUNT = 10
 };
 
 enum CombatHeroHex {
@@ -143,13 +144,6 @@ enum CombatGridDimension {
     COMBAT_GRID_LAST_ROW = 4,
     COMBAT_GRID_FIRST_INNER_COLUMN = 1,
     COMBAT_GRID_LAST_INNER_COLUMN = 7
-};
-
-enum CombatSpellAIGrid {
-    COMBAT_SPELL_AI_ROW_END_OFFSET = 2,
-    COMBAT_SPELL_AI_ROW_SKIP = 3,
-    COMBAT_SPELL_AI_HEX_FIRST = 1,
-    COMBAT_SPELL_AI_HEX_LAST = 0x2b
 };
 
 #endif

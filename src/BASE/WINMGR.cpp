@@ -314,6 +314,8 @@ i16 heroWindowManager::DoDialog(
 }
 
 void heroWindowManager::UpdateScreen(void) {
+    if (m_skipScreenUpdates)
+        return;
     PollSound();
     BitmapToScreen(m_screen);
     PollSound();
@@ -321,6 +323,8 @@ void heroWindowManager::UpdateScreen(void) {
 }
 
 void heroWindowManager::UpdateScreenRegion(i16 x, i16 y, i16 width, i16 height) {
+    if (m_skipScreenUpdates)
+        return;
     i16 top, left, bottom, right;
     i16 pointerInside;
     i16 mousePosX, mouseY;

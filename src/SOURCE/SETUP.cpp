@@ -412,6 +412,10 @@ b8 game::PickLoadGame(void) {
 i16 SetupCampaignGameHandler(tag_message& message) {
     i32 helpIndex;
 
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE
+        && message.keyCode >= INPUT_SCAN_1 && message.keyCode <= INPUT_SCAN_4)
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, CHOICE_ONE + message.keyCode - INPUT_SCAN_1);
+
     if ((message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         && IS_WIDGET_SELECTION_NOTIFICATION(message.command)) {
         helpIndex = SETUP_CAMPAIGN_HELP_NONE;
@@ -563,6 +567,10 @@ i16 SetupModemGameHandler(tag_message& message) {
 i16 SetupMultiPlayerGameHandler(tag_message& message) {
     i32 helpIndex;
 
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE
+        && message.keyCode == INPUT_SCAN_H)
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, CHOICE_ONE);
+
     if ((message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         && IS_WIDGET_SELECTION_NOTIFICATION(message.command)) {
         helpIndex = SETUP_MULTIPLAYER_HELP_NONE;
@@ -615,6 +623,13 @@ i16 SetupNetworkGameHandler(tag_message& message) {
 i16 SetupGameHandler(tag_message& message) {
     i32 helpIndex;
 
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE) {
+        switch (message.keyCode) {
+            case INPUT_SCAN_S: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, CHOICE_ONE); break;
+            case INPUT_SCAN_C: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, CHOICE_TWO); break;
+            case INPUT_SCAN_M: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, CHOICE_THREE); break;
+        }
+    }
     if ((message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         && IS_WIDGET_SELECTION_NOTIFICATION(message.command)) {
         helpIndex = SETUP_GAME_HELP_NONE;
@@ -642,6 +657,8 @@ i16 BaseSetupHandler(tag_message& message) {
     b32 handled = false;
 
     PollSound();
+    if (message.type == MESSAGE_KEY_DOWN && message.keyCode == INPUT_SCAN_ESCAPE)
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, DIALOG_CANCEL);
     if (message.type == MESSAGE_WIDGET) {
         switch (message.command) {
             case WIDGET_NOTIFY_DESELECT:

@@ -623,6 +623,9 @@ i16 NewGameHandler(tag_message& message) {
     i32 iPlayer;
     i32 i;
     i32 helpIndex;
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE
+        && message.keyCode == INPUT_SCAN_S)
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, NEW_GAME_SCENARIO_SELECT);
     if (message.type == MESSAGE_WIDGET) {
         if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) {
             if (IS_WIDGET_SELECTION_NOTIFICATION(message.command)) {
@@ -969,6 +972,7 @@ b8 game::NewGame(void) {
         }
     }
     UpdateNewGameWindow();
+    m_newGameWindow->SetConfirmButton(DIALOG_BUTTON_2);
     gMouseManager->ReallyShowPointer();
     gWindowManager->DoDialog(m_newGameWindow, NewGameHandler, false);
     delete m_newGameWindow;
@@ -2335,6 +2339,7 @@ void game::ViewArmy(
         gWindowManager->RemoveWindow(m_viewArmyWindow);
         gMouseManager->ReallyShowPointer();
     } else {
+        m_viewArmyWindow->SetConfirmButton(VIEW_ARMY_CLOSE, true);
         gWindowManager->DoDialog(m_viewArmyWindow, ViewArmyHandler, false);
         if (gDismissArmy && theGroup) {
             for (m = 0; m < ARMY_GROUP_SLOT_COUNT; m++) {
@@ -2354,6 +2359,10 @@ i16 ViewArmyHandler(tag_message& message) {
     i16 offset;
     gDismissArmy = false;
     frameDelay = 5;
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE
+        && TranslateShortcut(message.keyCode, SHORTCUT_ARMY) == INPUT_SCAN_D
+        && gGame->m_viewArmyWindow->IsWidgetEnabled(VIEW_ARMY_DISMISS))
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, VIEW_ARMY_DISMISS);
     if (message.type == MESSAGE_WIDGET) {
         switch (message.command) {
             case WIDGET_NOTIFY_DESELECT:
@@ -2621,6 +2630,7 @@ void game::Overview(void) {
     if (!baseWin)
         MemError();
     SetWinText(baseWin, WINDOW_TEXT_OVERVIEW);
+    baseWin->SetConfirmButton(DIALOG_BUTTON_0, true);
     SET_WIDGET_MESSAGE(activeMessage, WIDGET_COMMAND_SET_TEXT, OVERVIEW_DATE);
     sprintf(gText, gOverviewText[0], m_month, m_week, m_day);
     activeMessage.text = gText;

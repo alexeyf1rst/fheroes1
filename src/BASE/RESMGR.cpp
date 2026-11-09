@@ -250,7 +250,6 @@ void resourceManager::Close(void) {
 }
 
 i16 resourceManager::LoadAggregateHeader(char* aggregateName) {
-    i16 directoryBytes;
     i32 aggregateFd = FileOpen(aggregateName, FILE_OPEN_READ);
     if (aggregateFd == FILE_DESCRIPTOR_INVALID) {
         sprintf(gText, localization::Tr("file.aggregate.open_failed"), aggregateName);
@@ -263,22 +262,38 @@ i16 resourceManager::LoadAggregateHeader(char* aggregateName) {
         free(m_aggregateDir);
     m_aggregateFd = aggregateFd;
     m_aggregateEntryCount = ReadWord();
-    // The directory is decoded entry by entry from its 10-byte records, and
-    // an archive whose directory does not fit the file is refused.
-    i32 fileLength = FileLength(m_aggregateFd);
-    i32 directoryLength = m_aggregateEntryCount * AGG_ENTRY_RECORD_SIZE;
-    std::vector<u8> directory(directoryLength > 0 ? directoryLength : 1);
-    if (m_aggregateEntryCount <= 0 || directoryLength + 2 > fileLength
+    const i32 fileLength = FileLength(m_aggregateFd);
+    const i32 directoryStart = sizeof(i16);
+    u8 firstRecord[AGG_ENTRY_RECORD_SIZE];
+    if (m_aggregateEntryCount <= 0 || !FileReadExact(m_aggregateFd, firstRecord, sizeof(firstRecord))) {
+        sprintf(gText, localization::Tr("file.aggregate.open_failed"), aggregateName);
+        ShutDown(gText);
+        return RESOURCE_MANAGER_LOAD_ERROR;
+    }
+
+    // The GOG archives put a second size field after each Buka-format record.
+    // In these archives the first resource starts immediately after the table.
+    RecordReader first(firstRecord, sizeof(firstRecord));
+    aggEntry firstEntry;
+    ReadAggEntry(first, firstEntry);
+    const i32 gogRecordSize = AGG_ENTRY_RECORD_SIZE + sizeof(u32);
+    const bool gog = firstEntry.offset == directoryStart + m_aggregateEntryCount * gogRecordSize;
+    const i32 recordSize = gog ? gogRecordSize : AGG_ENTRY_RECORD_SIZE;
+    const i32 directoryLength = m_aggregateEntryCount * recordSize;
+    std::vector<u8> directory(directoryLength);
+    if (directoryLength + directoryStart > fileLength
+        || FileSeek(m_aggregateFd, directoryStart, FILE_SEEK_SET) != directoryStart
         || !FileReadExact(m_aggregateFd, &directory[0], directoryLength)) {
         sprintf(gText, localization::Tr("file.aggregate.open_failed"), aggregateName);
         ShutDown(gText);
         return RESOURCE_MANAGER_LOAD_ERROR;
     }
-    directoryBytes = static_cast<i16>(m_aggregateEntryCount * sizeof(aggEntry));
     m_aggregateDir = static_cast<aggEntry*>(malloc(m_aggregateEntryCount * sizeof(aggEntry)));
     RecordReader entries(&directory[0], directoryLength);
     for (i32 entry = 0; entry < m_aggregateEntryCount; entry++) {
         ReadAggEntry(entries, m_aggregateDir[entry]);
+        if (gog)
+            entries.Skip(sizeof(u32));
         if (m_aggregateDir[entry].offset < 0 || m_aggregateDir[entry].offset > fileLength
             || m_aggregateDir[entry].size > static_cast<u32>(fileLength - m_aggregateDir[entry].offset)) {
             sprintf(gText, localization::Tr("file.aggregate.open_failed"), aggregateName);

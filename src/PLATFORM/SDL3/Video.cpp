@@ -23,14 +23,28 @@ SDL_Window* gWindow = nullptr;
 SDL_Renderer* gRenderer = nullptr;
 SDL_Texture* gTexture = nullptr;
 bool gFullscreen = false;
+DisplayScaling gScaling = DISPLAY_SCALING_FIT;
 
 std::array<u8, kWidth * kHeight> gIndexed{};
 std::array<u32, kWidth * kCanvasHeight> gPixels{};
 std::array<u8, kWidth * kCanvasHeight> gChrome{};
 std::array<u8, kWidth * kCanvasHeight> gChromeMask{};
 int gBar = 0;
+
+void ApplyLogicalPresentation() {
+    if (!gRenderer)
+        return;
+    SDL_RendererLogicalPresentation mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;
+    int width, height;
+    if (gScaling == DISPLAY_SCALING_INTEGER && SDL_GetRenderOutputSize(gRenderer, &width, &height)
+        && width >= kWidth && height >= kHeight + gBar)
+        mode = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+    SDL_SetRenderLogicalPresentation(gRenderer, kWidth, kHeight + gBar, mode);
+}
 std::array<Color, PALETTE_SIZE> gPalette{};
 bool gDirty = false;
+SDL_Rect gDamage{};
+SDL_Rect gLastCursorBounds{};
 u32 gLastPresent = 0;
 const u8* gReference = nullptr;
 
@@ -49,9 +63,31 @@ u32 Rgb(const Color& color) {
     return (static_cast<u32>(color.r) << 16) | (static_cast<u32>(color.g) << 8) | color.b;
 }
 
-void DrawCursor() {
+SDL_Rect CursorBounds() {
     if (!gCursorSet || gCursorCount < 0 || !gPointerInside)
-        return;
+        return {};
+    const SDL_Rect cursor = {gPointerX - gCursor.hotX, gPointerY + gBar - gCursor.hotY,
+                             CURSOR_SIZE, CURSOR_SIZE};
+    const SDL_Rect canvas = {0, 0, kWidth, kHeight + gBar};
+    SDL_Rect visible{};
+    if (!SDL_GetRectIntersection(&cursor, &canvas, &visible))
+        return {};
+    return visible;
+}
+
+void InvalidatePixels(const SDL_Rect& rect) {
+    if (!SDL_RectEmpty(&rect))
+        SDL_GetRectUnion(&gDamage, &rect, &gDamage);
+    gDirty = true;
+}
+
+void InvalidateCanvas() {
+    gDamage = {0, 0, kWidth, kHeight + gBar};
+    gLastCursorBounds = {};
+    gDirty = true;
+}
+
+void DrawCursor() {
     for (int y = 0; y < CURSOR_SIZE; y++) {
         int screenY = gPointerY + gBar - gCursor.hotY + y;
         if (screenY < 0 || screenY >= kHeight + gBar)
@@ -137,6 +173,7 @@ void WindowToDisplay(float windowX, float windowY, int& x, int& y, bool& inside)
 }
 
 void MarkDisplayDirty() {
+    ApplyLogicalPresentation();
     gDirty = true;
 }
 
@@ -166,19 +203,18 @@ bool OpenDisplay() {
         return false;
     }
     SDL_SetRenderVSync(gRenderer, 0);
-    SDL_SetRenderLogicalPresentation(gRenderer, kWidth, kHeight + gBar,
-                                     SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    ApplyLogicalPresentation();
     gTexture = SDL_CreateTexture(
         gRenderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, kWidth, kCanvasHeight);
     if (gTexture == nullptr) {
         Log("cannot create the display texture: %s", SDL_GetError());
         return false;
     }
-    SDL_SetTextureScaleMode(gTexture, SDL_SCALEMODE_NEAREST);
+    SetDisplayScaling(gScaling);
     if (gFullscreen)
         SDL_SetWindowFullscreen(gWindow, true);
     UpdateSystemCursor();
-    gDirty = true;
+    InvalidateCanvas();
     Present(true);
     return true;
 }
@@ -242,37 +278,49 @@ void UpdateDisplay(
             &gIndexed[static_cast<size_t>((destinationY + row) * kWidth + destinationX)],
             pixels + static_cast<size_t>((sourceY + row) * pitch + sourceX),
             static_cast<size_t>(width));
-    gDirty = true;
+    InvalidatePixels({destinationX, destinationY + gBar, width, height});
     Present(false);
 }
 
 void SetPalette(const Color* colors, int first, int count) {
     for (int i = 0; i < count && first + i < PALETTE_SIZE; i++)
         gPalette[static_cast<size_t>(first + i)] = colors[i];
-    gDirty = true;
+    InvalidateCanvas();
     Present(false);
 }
 
 void Present(bool force) {
-    if (gRenderer == nullptr || !gDirty)
+    if (gTexture == nullptr || !gDirty)
         return;
     u32 now = Ticks();
     if (!force && now - gLastPresent < kPresentInterval)
         return;
     gLastPresent = now;
+    // Recompose both cursor positions to restore the pixels it covered.
+    const SDL_Rect cursorBounds = CursorBounds();
+    InvalidatePixels(gLastCursorBounds);
+    InvalidatePixels(cursorBounds);
+    gLastCursorBounds = cursorBounds;
     gDirty = false;
-    std::array<u32, PALETTE_SIZE> lookup;
-    for (size_t i = 0; i < lookup.size(); i++)
-        lookup[i] = Rgb(gPalette[i]);
-    const size_t barPixels = static_cast<size_t>(gBar * kWidth);
-    for (size_t i = 0; i < barPixels; i++)
-        gPixels[i] = lookup[gChrome[i]];
-    for (size_t i = 0; i < gIndexed.size(); i++) {
-        size_t canvas = barPixels + i;
-        gPixels[canvas] = lookup[gChromeMask[canvas] != 0 ? gChrome[canvas] : gIndexed[i]];
+    if (!SDL_RectEmpty(&gDamage)) {
+        std::array<u32, PALETTE_SIZE> lookup;
+        for (size_t i = 0; i < lookup.size(); i++)
+            lookup[i] = Rgb(gPalette[i]);
+        const auto barPixels = static_cast<size_t>(gBar * kWidth);
+        for (int y = gDamage.y; y < gDamage.y + gDamage.h; ++y) {
+            const auto begin = static_cast<size_t>(y * kWidth + gDamage.x);
+            const auto end = begin + static_cast<size_t>(gDamage.w);
+            for (size_t pixel = begin; pixel < end; ++pixel)
+                gPixels[pixel] = lookup[pixel < barPixels || gChromeMask[pixel] != 0
+                                            ? gChrome[pixel]
+                                            : gIndexed[pixel - barPixels]];
+        }
+        if (!SDL_RectEmpty(&cursorBounds))
+            DrawCursor();
+        SDL_UpdateTexture(gTexture, &gDamage, gPixels.data() + gDamage.y * kWidth + gDamage.x,
+                          kWidth * static_cast<int>(sizeof(u32)));
+        gDamage = {};
     }
-    DrawCursor();
-    SDL_UpdateTexture(gTexture, nullptr, gPixels.data(), kWidth * static_cast<int>(sizeof(u32)));
     SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 255);
     SDL_RenderClear(gRenderer);
     SDL_FRect source = {0, 0, static_cast<float>(kWidth), static_cast<float>(kHeight + gBar)};
@@ -284,6 +332,7 @@ void SetWindowSize(int width, int height) {
     if (gWindow == nullptr || gFullscreen || width <= 0 || height <= 0)
         return;
     SDL_SetWindowSize(gWindow, width, height + gBar * height / kHeight);
+    ApplyLogicalPresentation();
     gDirty = true;
 }
 
@@ -308,14 +357,13 @@ void SetChromeBar(int height) {
     gBar = height;
     gChromeMask.fill(0);
     if (gRenderer != nullptr) {
-        SDL_SetRenderLogicalPresentation(gRenderer, kWidth, kHeight + gBar,
-                                         SDL_LOGICAL_PRESENTATION_LETTERBOX);
+        ApplyLogicalPresentation();
         if (!gFullscreen && windowHeight > 0) {
             int imageHeight = windowHeight * kHeight / (kHeight + oldBar);
             SDL_SetWindowSize(gWindow, windowWidth, imageHeight + gBar * imageHeight / kHeight);
         }
     }
-    gDirty = true;
+    InvalidateCanvas();
 }
 
 int ChromeBar() {
@@ -327,13 +375,22 @@ void UpdateChrome(const u8* pixels, const u8* mask) {
     std::memcpy(gChrome.data(), pixels, count);
     std::memcpy(gChromeMask.data(), mask, count);
     std::fill(gChromeMask.begin() + static_cast<std::ptrdiff_t>(count), gChromeMask.end(), u8{0});
-    gDirty = true;
+    InvalidateCanvas();
 }
 
 void SetFullscreen(bool fullscreen) {
     gFullscreen = fullscreen;
     if (gWindow != nullptr)
         SDL_SetWindowFullscreen(gWindow, fullscreen);
+    ApplyLogicalPresentation();
+    gDirty = true;
+}
+
+void SetDisplayScaling(DisplayScaling scaling) {
+    gScaling = scaling;
+    ApplyLogicalPresentation();
+    if (gTexture)
+        SDL_SetTextureScaleMode(gTexture, scaling == DISPLAY_SCALING_SMOOTH ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
     gDirty = true;
 }
 

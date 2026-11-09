@@ -6,6 +6,9 @@
 #include <BASE/Misc.h>
 #include <BASE/mouseManager.h>
 #include <SOURCE/KB.h>
+#ifndef HOMM1_EDITOR
+#include <SOURCE/combatManager.h>
+#endif
 #include <SOURCE/kbwin.h>
 #include <SOURCE/philAI.h>
 #include <SOURCE/wingraph.h>
@@ -25,6 +28,7 @@ static u8 gInputCharacterMap[0x80] = localization::Chars("locale.keyboard");
 static inline void ResetEventQueue(inputManager* manager) {
     manager->m_writeIndex = 0;
     manager->m_readIndex = 0;
+    manager->m_tapKey = INPUT_SCAN_NONE;
 }
 
 b32 KeyboardMessageHandler(void* window, u32 message, u32 virtualKey, i32 messageData) {
@@ -39,6 +43,7 @@ b32 KeyboardMessageHandler(void* window, u32 message, u32 virtualKey, i32 messag
     event->y = 0;
     event->keyCode = INPUT_SCAN_NONE;
 
+    const i16 previousModifiers = gInputManager->m_modifiers;
     switch (message) {
         case INPUT_MESSAGE_KEY_DOWN:
             event->type = MESSAGE_KEY_DOWN;
@@ -90,6 +95,17 @@ b32 KeyboardMessageHandler(void* window, u32 message, u32 virtualKey, i32 messag
 
     if (event->type != MESSAGE_NONE) {
         event->modifiers = gInputManager->m_modifiers;
+        if (messageData & INPUT_MESSAGE_EXTENDED_KEY)
+            event->modifiers |= MESSAGE_MODIFIER_ARROW;
+        i16& tap = gInputManager->m_tapKey;
+        if (event->type == MESSAGE_KEY_DOWN && tap != event->keyCode)
+            tap = previousModifiers == MESSAGE_MODIFIER_NONE
+                          && gInputManager->m_modifiers != MESSAGE_MODIFIER_NONE
+                      ? event->keyCode : static_cast<i16>(INPUT_SCAN_NONE);
+        if (event->type == MESSAGE_KEY_UP && tap == event->keyCode) {
+            event->modifiers |= MESSAGE_MODIFIER_TAP;
+            tap = INPUT_SCAN_NONE;
+        }
         gInputManager->m_writeIndex++;
         gInputManager->m_writeIndex %= INPUT_EVENT_RING_CAPACITY;
         if (gInputManager->m_readIndex == gInputManager->m_writeIndex) {
@@ -166,7 +182,16 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
     }
 
     event->modifiers = MESSAGE_MODIFIER_NONE;
+#ifndef HOMM1_EDITOR
+    if ((event->type == MESSAGE_LEFT_BUTTON_DOWN || event->type == MESSAGE_RIGHT_BUTTON_DOWN)
+        && gCombatManager && gCombatManager->RequestAutoCombatStop()) {
+        gInputManager->m_tapKey = INPUT_SCAN_NONE;
+        event->type = MESSAGE_NONE;
+    }
+#endif
     if (event->type != MESSAGE_NONE) {
+        if (event->type != MESSAGE_MOUSE_MOVE)
+            gInputManager->m_tapKey = INPUT_SCAN_NONE;
         event->modifiers = gInputManager->m_modifiers;
         gInputManager->m_writeIndex++;
         gInputManager->m_writeIndex %= INPUT_EVENT_RING_CAPACITY;
@@ -244,6 +269,14 @@ tag_message inputManager::GetEvent(void) {
             AsciiConvert(event);
     }
     return event;
+}
+
+void inputManager::PutBackEvent(const tag_message& event) {
+    const i16 slot = (m_readIndex + INPUT_EVENT_RING_CAPACITY - 1) % INPUT_EVENT_RING_CAPACITY;
+    if (slot != m_writeIndex) {
+        m_eventRing[slot] = event;
+        m_readIndex = slot;
+    }
 }
 
 void inputManager::SetRelativeMouse(i16 relative) {

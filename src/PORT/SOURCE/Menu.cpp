@@ -597,6 +597,62 @@ KBMenu KBLoadMenu(const char* name) {
         menu->name = resource.name;
         i32 index = 0;
         Build(resource.items, resource.count, index, 0, menu->items);
+        for (MenuItem& top : menu->items) {
+            if (!FindCommand(top.children, KBWIN_MENU_FULLSCREEN))
+                continue;
+            MenuItem scaling;
+            scaling.popup = true;
+            scaling.text = localization::Tr("menu.scaling");
+            const char* labels[] = {
+                localization::Tr("menu.scaling.fit"),
+                localization::Tr("menu.scaling.integer"),
+                localization::Tr("menu.scaling.smooth")
+            };
+            for (i32 command = KBWIN_MENU_SCALE_FIT; command <= KBWIN_MENU_SCALE_SMOOTH; ++command) {
+                MenuItem choice;
+                choice.command = command;
+                choice.text = labels[command - KBWIN_MENU_SCALE_FIT];
+                scaling.children.push_back(choice);
+            }
+            top.children.push_back(scaling);
+            break;
+        }
+#ifndef HOMM1_EDITOR
+        MenuItem combat;
+        combat.popup = true;
+        combat.text = localization::Tr("shortcut.context.battle");
+        MenuItem autoResolve;
+        autoResolve.command = KBWIN_MENU_AUTO_RESOLVE;
+        autoResolve.text = localization::Tr("combat.auto_resolve.setting");
+        combat.children.push_back(autoResolve);
+        menu->items.push_back(combat);
+
+        MenuItem hotkeys;
+        hotkeys.popup = true;
+        hotkeys.text = localization::Tr("shortcut.menu");
+        const char* contexts[] = {
+            localization::Tr("shortcut.context.map"),
+            localization::Tr("shortcut.context.battle"),
+            localization::Tr("shortcut.context.town"),
+            localization::Tr("shortcut.context.army"),
+            localization::Tr("shortcut.context.well")
+        };
+        for (i16 context = 0; context < SHORTCUT_CONTEXT_COUNT; ++context) {
+            MenuItem category;
+            category.popup = true;
+            category.text = contexts[context];
+            for (i16 shortcut = 0; shortcut < GAME_SHORTCUT_COUNT; ++shortcut) {
+                if (gGameShortcuts[shortcut].context != context)
+                    continue;
+                MenuItem binding;
+                binding.command = KBWIN_MENU_SHORTCUT_FIRST + shortcut;
+                binding.text = gGameShortcuts[shortcut].label;
+                category.children.push_back(binding);
+            }
+            hotkeys.children.push_back(category);
+        }
+        menu->items.push_back(hotkeys);
+#endif
         return menu;
     }
     return NULL;
@@ -700,6 +756,14 @@ void UpdateDfltMenu(KBMenu menu) {
     // that file the item is unavailable.
     if (!HelpAvailable())
         MenuEnableItem(menu, KBWIN_MENU_HELP, false);
+    for (i32 command = KBWIN_MENU_SCALE_FIT; command <= KBWIN_MENU_SCALE_SMOOTH; ++command)
+        KBCheckMenuItem(menu, command, command - KBWIN_MENU_SCALE_FIT == gConfig.displayScaling);
+    KBCheckMenuItem(menu, KBWIN_MENU_AUTO_RESOLVE, gConfig.autoResolveBattles != 0);
+    for (i16 index = 0; index < GAME_SHORTCUT_COUNT; ++index) {
+        MenuItem* binding = FindCommand(menu->items, KBWIN_MENU_SHORTCUT_FIRST + index);
+        if (binding)
+            binding->shortcut.assign(1, ShortcutLetter(ShortcutKey(index)));
+    }
 }
 
 std::string MenuAboutText() {

@@ -8934,7 +8934,6 @@ editManager::editManager(void) {
     gNextObjectId = 1;
     m_zoomedOut = EDIT_ZOOM_OUT;
     ResetArea(0, 0, MAP_CELL_GRID_SIZE, MAP_CELL_GRID_SIZE);
-    SaveUndo();
     gMapHeader = EDIT_MAP_HEADER();
     m_animationFrame = 0;
     m_tool = EDIT_TOOL_NONE;
@@ -8964,6 +8963,7 @@ i16 editManager::Open(i16 priority) {
     gResourceManager->Dispose(borderImage);
     m_statusFont = gResourceManager->GetFont("smalfont.fnt");
     m_window = new heroWindow(0, 0, "editwind.bin");
+    m_window->ClearButtonHotkey(EDIT_CONTROL_RANDOM_MAP);
     m_horizontalTrack = new iconWidget(
         32,
         464,
@@ -9059,6 +9059,7 @@ void editManager::Close(void) {
     i32 i;
 
     NewMap(false);
+    ResetHistory();
     ClearErrors();
     SelectTool(EDIT_TOOL_NONE);
     gWindowManager->RemoveWindow(m_window);
@@ -9081,7 +9082,6 @@ i16 editManager::Main(tag_message& message) {
     i32 spare1;
     i32 spare2;
     i32 helpIndex;
-    editMap* swap;
 
     if (!(message.type & m_dispatchMask)) {
         if (message.type) {
@@ -9110,12 +9110,19 @@ i16 editManager::Main(tag_message& message) {
                         case EDIT_CONTROL_ERASER:
                             SelectTool(EDIT_TOOL_ERASER);
                             break;
-                        case EDIT_CONTROL_LOAD:
+                        case EDIT_CONTROL_LOAD: {
+                            if (m_mapChanged && !Confirm(localization::Tr("editor.map.load.discard")))
+                                break;
+                            char previousName[EDIT_MAP_FILE_NAME_SIZE];
+                            memcpy(previousName, m_mapFileName, sizeof(previousName));
                             if (!PickMap("", "map", FILE_REQUESTER_LOAD))
                                 break;
                             if (LoadMap(m_mapFileName) == BASE_MANAGER_SUCCESS) {
                                 m_mapChanged = 0;
                                 m_placedX = m_placedY = EDIT_NO_CELL;
+                                m_placedState = -1;
+                            } else {
+                                memcpy(m_mapFileName, previousName, sizeof(previousName));
                             }
                             m_viewX = m_viewY = 0;
                             m_window->DrawWindow(0);
@@ -9123,6 +9130,7 @@ i16 editManager::Main(tag_message& message) {
                             DrawMap();
                             UpdateMapView();
                             break;
+                        }
                         case EDIT_CONTROL_SAVE:
                             if (!(SaveMap(m_mapFileName))) {
                                 sprintf(
@@ -9154,25 +9162,14 @@ i16 editManager::Main(tag_message& message) {
                             if (Confirm(localization::Tr("editor.map.new.confirm"))) {
                                 ResetArea(0, 0, MAP_CELL_GRID_SIZE, MAP_CELL_GRID_SIZE);
                                 NewMap(false);
-                                // NewMap frees the extra records the undo copy
-                                // still names; the original's Undo brought back
-                                // cells pointing at them. The empty map is the
-                                // undo state now.
-                                SaveUndo();
+                                ResetHistory();
                                 DrawMap();
                                 UpdateMapView();
                                 DrawRadar(true);
                             }
                             break;
                         case EDIT_CONTROL_UNDO:
-                            swap = static_cast<editMap*>(malloc(sizeof(editMap)));
-                            memcpy(swap, &m_map, sizeof(editMap));
-                            memcpy(&m_map, &m_undoMap, sizeof(editMap));
-                            memcpy(&m_undoMap, swap, sizeof(editMap));
-                            free(swap);
-                            DrawView(m_viewX, m_viewY);
-                            UpdateMapView();
-                            DrawRadar(true);
+                            ApplyHistory(false);
                             break;
                         case EDIT_CONTROL_SCROLL_UP:
                             Scroll(0, -1);
@@ -9309,7 +9306,47 @@ i16 editManager::Main(tag_message& message) {
             }
             return MESSAGE_DISPATCH_CONTINUE;
         case MESSAGE_KEY_DOWN:
+            if (message.modifiers & MESSAGE_MODIFIER_CONTROL_KEYS) {
+                i16 command = WIDGET_ID_NONE;
+                switch (message.keyCode) {
+                    case INPUT_SCAN_S:
+                        command = EDIT_CONTROL_SAVE;
+                        break;
+                    case INPUT_SCAN_O:
+                        command = EDIT_CONTROL_LOAD;
+                        break;
+                    case INPUT_SCAN_Z:
+                        ApplyHistory((message.modifiers & MESSAGE_MODIFIER_SHIFT_KEYS) != 0);
+                        return MESSAGE_DISPATCH_CONSUME;
+                    case INPUT_SCAN_Y:
+                        ApplyHistory(true);
+                        return MESSAGE_DISPATCH_CONSUME;
+                }
+                if (command != WIDGET_ID_NONE) {
+                    SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, command);
+                    return Main(message);
+                }
+            }
             switch (message.keyCode) {
+                case INPUT_SCAN_U:
+                case INPUT_SCAN_R:
+                    if (message.modifiers == MESSAGE_MODIFIER_NONE) {
+                        ApplyHistory(message.keyCode == INPUT_SCAN_R);
+                        return MESSAGE_DISPATCH_CONSUME;
+                    }
+                    break;
+                case INPUT_SCAN_NUMPAD_4:
+                    Scroll(-1, 0);
+                    break;
+                case INPUT_SCAN_NUMPAD_6:
+                    Scroll(1, 0);
+                    break;
+                case INPUT_SCAN_NUMPAD_8:
+                    Scroll(0, -1);
+                    break;
+                case INPUT_SCAN_NUMPAD_2:
+                    Scroll(0, 1);
+                    break;
                 case INPUT_SCAN_F3:
                     ScatterDetails();
                     DrawMap();
@@ -9330,8 +9367,92 @@ i16 editManager::Main(tag_message& message) {
     return MESSAGE_DISPATCH_CONTINUE;
 }
 
-void editManager::SaveUndo(void) {
-    memcpy(&m_undoMap, &m_map, sizeof(m_undoMap));
+std::unique_ptr<editManager::MapSnapshot> editManager::CaptureMap() const {
+    auto snapshot = std::make_unique<MapSnapshot>();
+    memcpy(&snapshot->map, &m_map, sizeof(m_map));
+    memcpy(&snapshot->header, gMapHeader, sizeof(snapshot->header));
+    memcpy(snapshot->fileName, m_mapFileName, sizeof(m_mapFileName));
+    snapshot->nextObjectId = gNextObjectId;
+    snapshot->newFormat = gNewMapFormat;
+    snapshot->extras.reserve(m_extraCount - MAP_EXTRA_FIRST_RECORD);
+    for (i32 i = MAP_EXTRA_FIRST_RECORD; i < m_extraCount; ++i) {
+        const i32 size = m_extraSizes[i];
+        const auto* bytes = static_cast<const u8*>(m_extras[i]);
+        const i32 capacity = size > EDIT_EXTRA_RECORD_MAX_SIZE ? size : EDIT_EXTRA_RECORD_MAX_SIZE;
+        snapshot->extras.push_back({size, std::vector<u8>(bytes, bytes + capacity)});
+    }
+    return snapshot;
+}
+
+void editManager::RestoreMap(const MapSnapshot& snapshot) {
+    FreeMapExtras();
+    memcpy(&m_map, &snapshot.map, sizeof(m_map));
+    memcpy(gMapHeader, &snapshot.header, sizeof(snapshot.header));
+    memcpy(m_mapFileName, snapshot.fileName, sizeof(m_mapFileName));
+    gNextObjectId = snapshot.nextObjectId;
+    gNewMapFormat = snapshot.newFormat;
+    for (const auto& record : snapshot.extras) {
+        void* data = malloc(record.data.size());
+        if (!data)
+            MemError();
+        memcpy(data, record.data.data(), record.data.size());
+        m_extraSizes[m_extraCount] = record.size;
+        m_extras[m_extraCount++] = data;
+    }
+}
+
+void editManager::BeginEdit() {
+    m_beforeEdit = CaptureMap();
+}
+
+void editManager::EndEdit() {
+    const auto& before = *m_beforeEdit;
+    bool changed = memcmp(&before.map, &m_map, sizeof(m_map)) != 0
+                   || memcmp(&before.header, gMapHeader, sizeof(before.header)) != 0
+                   || strcmp(before.fileName, m_mapFileName) != 0
+                   || before.nextObjectId != gNextObjectId
+                   || before.extras.size() != static_cast<size_t>(m_extraCount - MAP_EXTRA_FIRST_RECORD);
+    for (i32 i = MAP_EXTRA_FIRST_RECORD; !changed && i < m_extraCount; ++i) {
+        const auto& record = before.extras[i - MAP_EXTRA_FIRST_RECORD];
+        changed = record.size != m_extraSizes[i]
+                  || memcmp(record.data.data(), m_extras[i], record.data.size()) != 0;
+    }
+    if (!changed) {
+        m_beforeEdit.reset();
+        return;
+    }
+    constexpr size_t historyLimit = 32;
+    m_undoHistory.push_back(std::move(m_beforeEdit));
+    if (m_undoHistory.size() > historyLimit)
+        m_undoHistory.pop_front();
+    m_redoHistory.clear();
+    m_mapChanged = 1;
+}
+
+void editManager::CancelEdit() {
+    RestoreMap(*m_beforeEdit);
+    m_beforeEdit.reset();
+}
+
+void editManager::ApplyHistory(bool redo) {
+    auto& source = redo ? m_redoHistory : m_undoHistory;
+    auto& destination = redo ? m_undoHistory : m_redoHistory;
+    if (source.empty() || m_beforeEdit)
+        return;
+    destination.push_back(CaptureMap());
+    RestoreMap(*source.back());
+    source.pop_back();
+    m_mapChanged = 1;
+    m_placedX = m_placedY = EDIT_NO_CELL;
+    m_placedState = -1;
+    DrawView(m_viewX, m_viewY);
+    UpdateMapView();
+    DrawRadar(true);
+}
+
+void editManager::ResetHistory() {
+    m_undoHistory.clear();
+    m_redoHistory.clear();
 }
 
 void editManager::UpdateMapView(void) {
@@ -9902,7 +10023,7 @@ void editManager::BlendTerrain(
                 if (!((north && west) || (north && east) || (south && west) || (south && east))) {
                     if (fromUndo)
                         m_map.cells[x][y].m_tileIndex =
-                            (CELL_TERRAIN(&m_undoMap.cells[x][y]))
+                            (CELL_TERRAIN(&m_beforeEdit->map.cells[x][y]))
                             * MAP_CELL_TILES_PER_TERRAIN;
                     else
                         m_map.cells[x][y].m_tileIndex =
@@ -9934,7 +10055,7 @@ void editManager::BlendTerrain(
                     && !m_map.cells[x][y].m_objectTileset) {
                     if (fromUndo)
                         m_map.cells[x][y].m_tileIndex =
-                            (CELL_TERRAIN(&m_undoMap.cells[x][y]))
+                            (CELL_TERRAIN(&m_beforeEdit->map.cells[x][y]))
                             * MAP_CELL_TILES_PER_TERRAIN;
                     else
                         m_map.cells[x][y].m_tileIndex =
@@ -10895,18 +11016,21 @@ i16 editManager::LoadMap(char* name) {
     char fileName[40];
     RecordReader file;
 
-    FreeMapExtras();
     sprintf(fileName, ".\\maps\\%s", name);
     if (!file.LoadFile(fileName))
         return BASE_MANAGER_ERROR;
+    auto previousMap = CaptureMap();
+    FreeMapExtras();
     gMouseManager->SetPointer(EDIT_POINTER_WAIT);
     if (!ReadMapFile(file)) {
+        RestoreMap(*previousMap);
         gMouseManager->SetPointer(EDIT_POINTER_DEFAULT);
-        FileError(fileName);
+        sprintf(gText, localization::Tr("file.open.failed"), fileName);
+        NormalDialog(gText, NORMAL_DIALOG_TYPE_OK);
         return BASE_MANAGER_ERROR;
     }
     gMouseManager->SetPointer(EDIT_POINTER_DEFAULT);
-    gEditManager->SaveUndo();
+    ResetHistory();
     if (!gNewMapFormat)
         NormalDialog(localization::Tr("editor.map.old_format"), NORMAL_DIALOG_TYPE_OK);
     return BASE_MANAGER_SUCCESS;
@@ -11311,7 +11435,7 @@ void ScatterDetails(void) {
     i32 y;
     mapCell* cell;
 
-    gEditManager->SaveUndo();
+    gEditManager->BeginEdit();
     for (x = 0; x < MAP_CELL_GRID_SIZE; x++) {
         for (y = 0; y < MAP_CELL_GRID_SIZE; y++) {
             cell = &gEditManager->m_map.cells[x][y];
@@ -11359,4 +11483,5 @@ void ScatterDetails(void) {
             }
         }
     }
+    gEditManager->EndEdit();
 }

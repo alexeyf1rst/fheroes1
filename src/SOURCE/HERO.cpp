@@ -3,6 +3,7 @@
 #include <BASE/audio.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
+#include <BASE/inputManager.h>
 #include <BASE/message.h>
 #include <BASE/Misc.h>
 #include <BASE/miscwin.h>
@@ -23,9 +24,12 @@
 #include <SOURCE/town.h>
 #include <SOURCE/townManager.h>
 
+#include <limits>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static b8 s_heroArmyReadOnly = false;
 
 hero::hero(void) {
     m_id = 0;
@@ -339,7 +343,11 @@ b8 hero::HeroView(b8 viewOnly) {
     RedrawHeroScreen();
     gWindowManager->FadeScreen(WINDOW_FADE_IN, 8, NULL);
     gInfoViewedHero = this;
+    const b8 previousReadOnly = s_heroArmyReadOnly;
+    s_heroArmyReadOnly = viewOnly;
+    gHeroScreenWindow->SetConfirmButton(HERO_SCREEN_EXIT, true);
     gWindowManager->DoDialog(gHeroScreenWindow, HeroHandler, false);
+    s_heroArmyReadOnly = previousReadOnly;
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, 8, NULL);
     delete gHeroScreenWindow;
     gHeroWin = NULL;
@@ -831,8 +839,24 @@ i16 HeroHandler(struct tag_message& message) {
     b8 quickViewVal;
     b8 complete = false;
     i16 slot;
-    i16 temporaryVal;
     i32 curSpare;
+
+    if (const i16 tap = ArmyShortcutTap(message); tap && !s_heroArmyReadOnly
+        && !gTownManager->m_castleDialogActive) {
+        const i16 hovered = gHeroWin->HoveredWidget(
+            HERO_SCREEN_ARMY_SLOT_FIRST, HERO_SCREEN_ARMY_SLOT_FIRST + ARMY_GROUP_SLOT_COUNT - 1);
+        if (hovered != WIDGET_ID_NONE
+            && gInfoViewedHero->m_army.QuickArrange(hovered - HERO_SCREEN_ARMY_SLOT_FIRST, tap, true)) {
+            gHeroScreenSrcIndex = HERO_SCREEN_SOURCE_NONE;
+            gInfoViewedHero->HeroScreenUpdate();
+            UpdateHeroScreenStatusBar(hovered);
+            return MESSAGE_DISPATCH_CONSUME;
+        }
+    }
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE
+        && TranslateShortcut(message.keyCode, SHORTCUT_ARMY) == INPUT_SCAN_D
+        && gHeroWin->IsWidgetEnabled(HERO_SCREEN_DISMISS))
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, HERO_SCREEN_DISMISS);
 
     if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         quickViewVal = true;
@@ -915,9 +939,30 @@ i16 HeroHandler(struct tag_message& message) {
                     case HERO_SCREEN_ARMY_SLOT_FIRST + 1:
                     case HERO_SCREEN_ARMY_SLOT_FIRST + 2:
                     case HERO_SCREEN_ARMY_SLOT_FIRST + 3:
-                    case HERO_SCREEN_ARMY_SLOT_FIRST + 4:
+                    case HERO_SCREEN_ARMY_SLOT_FIRST + 4: {
                         slot = message.id - HERO_SCREEN_ARMY_SLOT_FIRST;
-                        if (!quickViewVal && gHeroScreenSrcIndex == HERO_SCREEN_SOURCE_NONE) {
+                        armyGroup& army = gInfoViewedHero->m_army;
+                        const i8 source = static_cast<i8>(gHeroScreenSrcIndex);
+                        const bool selected = source != HERO_SCREEN_SOURCE_NONE;
+                        const bool canEdit = !s_heroArmyReadOnly && !gTownManager->m_castleDialogActive;
+                        const i8 target = static_cast<i8>(slot);
+                        const i8 targetType = army.m_creatureTypes[target];
+                        if (canEdit && selected && source != target
+                            && (quickViewVal || (message.modifiers & MESSAGE_MODIFIER_SHIFT_KEYS))
+                            && (targetType == CREATURE_NONE || targetType == army.m_creatureTypes[source])) {
+                            const i16 room = std::numeric_limits<i16>::max()
+                                             - (targetType == CREATURE_NONE ? 0 : army.m_creatureCounts[target]);
+                            const i16 maximum = static_cast<i16>(army.m_creatureCounts[source] - 1);
+                            char prompt[160];
+                            snprintf(prompt, sizeof(prompt), "%s", gArmyNamesPlural[army.m_creatureTypes[source]]);
+                            const i16 amount = gTownManager->PromptArmySplit(maximum < room ? maximum : room, prompt);
+                            army.Redistribute(source, army, target, amount);
+                            gHeroScreenSrcIndex = HERO_SCREEN_SOURCE_NONE;
+                            gInfoViewedHero->HeroScreenUpdate();
+                        } else if (!quickViewVal && canEdit && army.QuickArrange(target, message.modifiers, !selected)) {
+                            gHeroScreenSrcIndex = HERO_SCREEN_SOURCE_NONE;
+                            gInfoViewedHero->HeroScreenUpdate();
+                        } else if (!quickViewVal && gHeroScreenSrcIndex == HERO_SCREEN_SOURCE_NONE) {
                             if (gInfoViewedHero->m_army.m_creatureTypes[slot] != CREATURE_NONE) {
                                 gHeroScreenSrcIndex = slot;
                                 gInfoViewedHero->HeroScreenUpdate();
@@ -951,16 +996,16 @@ i16 HeroHandler(struct tag_message& message) {
                                 gInfoViewedHero->HeroScreenUpdate();
                             }
                         } else if (!quickViewVal) {
-                            temporaryVal = gInfoViewedHero->m_army.m_creatureTypes[slot];
-                            gInfoViewedHero->m_army.m_creatureTypes[slot] =
-                                gInfoViewedHero->m_army.m_creatureTypes[gHeroScreenSrcIndex];
-                            gInfoViewedHero->m_army.m_creatureTypes[gHeroScreenSrcIndex] =
-                                temporaryVal;
-                            temporaryVal = gInfoViewedHero->m_army.m_creatureCounts[slot];
-                            gInfoViewedHero->m_army.m_creatureCounts[slot] =
-                                gInfoViewedHero->m_army.m_creatureCounts[gHeroScreenSrcIndex];
-                            gInfoViewedHero->m_army.m_creatureCounts[gHeroScreenSrcIndex] =
-                                temporaryVal;
+                            const i32 combined = static_cast<i32>(army.m_creatureCounts[slot])
+                                                 + army.m_creatureCounts[gHeroScreenSrcIndex];
+                            if (!s_heroArmyReadOnly
+                                && army.m_creatureTypes[slot] == army.m_creatureTypes[gHeroScreenSrcIndex]
+                                && combined <= std::numeric_limits<i16>::max()) {
+                                army.m_creatureCounts[slot] = static_cast<i16>(combined);
+                                army.Dismiss(static_cast<i8>(gHeroScreenSrcIndex));
+                            } else {
+                                army.Swap(static_cast<i8>(gHeroScreenSrcIndex), &army, static_cast<i8>(slot));
+                            }
                             gHeroScreenSrcIndex = HERO_SCREEN_SOURCE_NONE;
                             gInfoViewedHero->HeroScreenUpdate();
                         }
@@ -969,6 +1014,7 @@ i16 HeroHandler(struct tag_message& message) {
                             UpdateHeroScreenStatusBar(message.id);
                         }
                         break;
+                    }
                     case HERO_SCREEN_ARTIFACT_FIRST:
                     case HERO_SCREEN_ARTIFACT_FIRST + 1:
                     case HERO_SCREEN_ARTIFACT_FIRST + 2:

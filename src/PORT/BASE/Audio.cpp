@@ -51,27 +51,26 @@ bool ValidTrack(int track) {
     return track >= 0 && track < 100;
 }
 
-// The host path of a track: SOUND\HEROESnn.ogg, or the CD's
-// TRACKS\nn-AudioTrack nn.ogg under the CD folder the host found.
+// Prefer the selected CD soundtrack, then the game's digital tracks.
 std::string TrackPath(int track) {
     char name[FILE_PATH_CAPACITY];
     char resolved[FILE_PATH_CAPACITY];
-    if (gMusicSource == SOUND_MUSIC_SOURCE_DIGITAL || CdRoot().empty()) {
-        std::snprintf(name, sizeof(name), "%sHeroes%02d.ogg", gSoundPath, track);
+    const int discTrack = kCDTrackMap[track];
+    if (gMusicSource == SOUND_MUSIC_SOURCE_CD && !CdRoot().empty() && discTrack >= 0) {
+        const std::string root = FileRoot();
+        FileSetRoot(CdRoot().c_str());
+        std::snprintf(name, sizeof(name), "%s%02d-AudioTrack %02d.ogg", gTracksPath, discTrack, discTrack);
+        const bool found = FileResolve(name, FILE_OPEN_READ, resolved, sizeof(resolved));
+        FileSetRoot(root.c_str());
+        if (found)
+            return resolved;
+    }
+    for (const char* extension : {"ogg", "62s", "82m"}) {
+        std::snprintf(name, sizeof(name), "%sHeroes%02d.%s", gSoundPath, track, extension);
         if (FileResolve(name, FILE_OPEN_READ, resolved, sizeof(resolved)))
             return resolved;
-        return std::string();
     }
-    int discTrack = kCDTrackMap[track];
-    if (discTrack < 0)
-        return std::string();
-    std::string root = FileRoot();
-    FileSetRoot(CdRoot().c_str());
-    std::snprintf(name, sizeof(name), "%s%02d-AudioTrack %02d.ogg", gTracksPath, discTrack,
-                  discTrack);
-    bool found = FileResolve(name, FILE_OPEN_READ, resolved, sizeof(resolved));
-    FileSetRoot(root.c_str());
-    return found ? std::string(resolved) : std::string();
+    return {};
 }
 
 void RememberPosition() {

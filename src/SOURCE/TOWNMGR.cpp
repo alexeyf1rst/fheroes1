@@ -37,6 +37,9 @@
 #include <SOURCE/townManager.h>
 #include <SOURCE/townObject.h>
 
+#include <algorithm>
+#include <limits>
+#include <string>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +47,10 @@
 static char s_pendingArmyName[1024];
 static char s_armyCommandText[1024];
 static char s_dwellingArmyLabel[1024];
+
+static i16 WellRecruitHandler(tag_message& message);
+static const i16 kWellRecruitMaximum = 100;
+enum TownTransferControl { TOWN_TRANSFER_TO_HERO = 1000, TOWN_TRANSFER_TO_GARRISON, TOWN_SWAP_ARMIES };
 
 townObject::townObject(char* name) {
     char fileNameText[16];
@@ -240,6 +247,8 @@ i16 townManager::Open(i16 priority) {
     m_bankBox = new bankBox(TOWN_BANK_BOX_X, TOWN_BANK_BOX_Y, gCurPlayerData);
     if (m_bankBox == NULL)
         MemError();
+    AddTransferButtons();
+    m_garrisonStrip->Draw();
     m_hoverStrip = m_sourceStrip = m_targetStrip = NULL;
     m_hoverArmySlot = m_sourceArmySlot = m_targetArmySlot = STRIP_SLOT_NONE;
     DrawTown(false, false);
@@ -385,6 +394,12 @@ void townManager::SetCommandAndText(struct tag_message& message) {
     id = message.id;
     m_command = TOWN_ARMY_COMMAND_NONE;
     switch (id) {
+        case TOWN_TRANSFER_TO_HERO:
+            strcpy(m_statusText, "Move troops to the hero (Down)");
+            break;
+        case TOWN_TRANSFER_TO_GARRISON:
+            strcpy(m_statusText, "Move troops to the garrison (Up)");
+            break;
         case TOWN_CLOSE_CONTROL:
             strcpy(m_statusText, gTownCommand[TOWN_TEXT_EXIT]);
             break;
@@ -621,6 +636,7 @@ i16 townManager::Main(struct tag_message& message) {
                                     if (m_buildingWindow == NULL)
                                         MemError();
                                     SetWinText(m_buildingWindow, WINDOW_TEXT_CASTLE);
+                                    m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                     SetupCastle(m_buildingWindow);
                                     m_castleDialogActive = true;
                                     gWindowManager
@@ -664,6 +680,7 @@ i16 townManager::Main(struct tag_message& message) {
                                                 message.value = WIDGET_FLAG_ENABLED;
                                                 m_buildingWindow->BroadcastMessage(message);
                                             }
+                                            m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_2);
                                             gWindowManager->DoDialog(
                                                 m_buildingWindow,
                                                 TrueFalseDialogHandler,
@@ -686,6 +703,7 @@ i16 townManager::Main(struct tag_message& message) {
                                         if (m_buildingWindow == NULL)
                                             MemError();
                                         SetWinText(m_buildingWindow, WINDOW_TEXT_MAGE_GUILD);
+                                        m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                         SetupMage(m_buildingWindow);
                                         gWindowManager
                                             ->DoDialog(m_buildingWindow, MageGuildHandler, false);
@@ -696,15 +714,28 @@ i16 townManager::Main(struct tag_message& message) {
                                     m_buildingWindow = new heroWindow(0, 0, "wellwind.bin");
                                     if (m_buildingWindow == NULL)
                                         MemError();
+                                    {
+                                        char* label = static_cast<char*>(malloc(sizeof("MAX [M]")));
+                                        if (!label)
+                                            MemError();
+                                        strcpy(label, "MAX [M]");
+                                        textWidget* maximum = new textWidget(
+                                            16, 243, 80, 18, label, "smalfont.fnt",
+                                            TEXT_WIDGET_PLAIN_COLOR, kWellRecruitMaximum, WIDGET_KIND_TEXT
+                                        );
+                                        m_buildingWindow->AddWidget(maximum, WINDOW_Z_ORDER_APPEND);
+                                    }
                                     SetupWell(m_buildingWindow);
+                                    m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                     gWindowManager
-                                        ->DoDialog(m_buildingWindow, TrueFalseDialogHandler, false);
+                                        ->DoDialog(m_buildingWindow, WellRecruitHandler, false);
                                     break;
                                 case BUILDING_SLOT_THIEVES_GUILD:
                                     m_buildingWindow = new heroWindow(0, 0, "thiefwin.bin");
                                     if (m_buildingWindow == NULL)
                                         MemError();
                                     SetWinText(m_buildingWindow, WINDOW_TEXT_THIEVES_GUILD);
+                                    m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                     SetupThievesGuild(
                                         m_buildingWindow,
                                         THIEVES_CATEGORIES_BY_GUILDS
@@ -813,6 +844,7 @@ i16 townManager::Main(struct tag_message& message) {
                                     message.value = WIDGET_FLAG_ENABLED;
                                     m_buildingWindow->BroadcastMessage(message);
                                 }
+                                m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_2);
                                 gWindowManager
                                     ->DoDialog(m_buildingWindow, TrueFalseDialogHandler, false);
                                 delete m_buildingWindow;
@@ -846,6 +878,11 @@ i16 townManager::Main(struct tag_message& message) {
                             if (rightButton)
                                 break;
                             done++;
+                            break;
+                        case TOWN_TRANSFER_TO_HERO:
+                        case TOWN_TRANSFER_TO_GARRISON:
+                            if (!rightButton)
+                                TransferArmies(message.id);
                             break;
                         default:
                             if (rightButton) {
@@ -886,17 +923,25 @@ i16 townManager::Main(struct tag_message& message) {
                                     );
                                 }
                             } else {
+                                strip* clickedStrip = NULL;
+                                i8 clickedSlot = STRIP_SLOT_NONE;
                                 if (message.id >= TOWN_GARRISON_SLOT_FIRST
                                     && message.id <= TOWN_GARRISON_SLOT_LAST) {
-                                    m_hoverStrip = m_garrisonStrip;
-                                    m_hoverArmySlot = message.id - TOWN_GARRISON_SLOT_FIRST;
+                                    clickedStrip = m_garrisonStrip;
+                                    clickedSlot = message.id - TOWN_GARRISON_SLOT_FIRST;
                                 }
                                 if (message.id >= TOWN_HERO_SLOT_FIRST
                                     && message.id <= TOWN_HERO_SLOT_LAST) {
-                                    m_hoverStrip = m_heroStrip;
-                                    m_hoverArmySlot = message.id - TOWN_HERO_SLOT_FIRST;
+                                    clickedStrip = m_heroStrip;
+                                    clickedSlot = message.id - TOWN_HERO_SLOT_FIRST;
                                 }
-                                DoCommand(m_command);
+                                if (clickedStrip && clickedStrip->m_army && clickedStrip->m_army->QuickArrange(
+                                        clickedSlot, message.modifiers, m_sourceArmySlot == STRIP_SLOT_NONE)) {
+                                    ResetStrips();
+                                } else {
+                                    SetCommandAndText(message);
+                                    DoCommand(m_command);
+                                }
                                 SetCommandAndText(message);
                             }
                             break;
@@ -913,6 +958,23 @@ i16 townManager::Main(struct tag_message& message) {
             }
             break;
         case MESSAGE_KEY_UP:
+            if (const i16 tap = ArmyShortcutTap(message); tap) {
+                const i16 id = m_townWindow->HoveredWidget(TOWN_GARRISON_SLOT_FIRST, TOWN_HERO_SLOT_LAST);
+                strip* troops = nullptr;
+                i16 slot = 0;
+                if (id >= TOWN_HERO_SLOT_FIRST) {
+                    troops = m_heroStrip;
+                    slot = id - TOWN_HERO_SLOT_FIRST;
+                } else if (id >= TOWN_GARRISON_SLOT_FIRST && id <= TOWN_GARRISON_SLOT_LAST) {
+                    troops = m_garrisonStrip;
+                    slot = id - TOWN_GARRISON_SLOT_FIRST;
+                }
+                if (troops && troops->m_army && troops->m_army->QuickArrange(slot, tap, true)) {
+                    ResetStrips();
+                    m_townWindow->DrawWindow();
+                    return MESSAGE_DISPATCH_CONSUME;
+                }
+            }
             switch (message.keyCode) {
                 case INPUT_SCAN_LEFT_SHIFT:
                 case INPUT_SCAN_RIGHT_SHIFT:
@@ -922,17 +984,58 @@ i16 townManager::Main(struct tag_message& message) {
                     break;
             }
             break;
-        case MESSAGE_KEY_DOWN:
-            switch (message.keyCode) {
+        case MESSAGE_KEY_DOWN: {
+            i16 building = BUILDING_SLOT_NONE;
+            if (message.keyCode >= INPUT_SCAN_1 && message.keyCode <= INPUT_SCAN_6)
+                building = BUILDING_SLOT_DWELLING_FIRST + message.keyCode - INPUT_SCAN_1;
+            switch (TranslateShortcut(message.keyCode, SHORTCUT_TOWN)) {
+                case INPUT_SCAN_W:
+                    building = BUILDING_SLOT_WELL;
+                    break;
+                case INPUT_SCAN_B:
+                    building = (m_town->m_buildings & (1 << BUILDING_SLOT_CASTLE))
+                                   ? BUILDING_SLOT_CASTLE : BUILDING_SLOT_TENT;
+                    break;
+                case INPUT_SCAN_S:
+                    building = BUILDING_SLOT_MAGE_GUILD;
+                    break;
+                case INPUT_SCAN_N:
+                    building = BUILDING_SLOT_SHIPYARD;
+                    break;
+                case INPUT_SCAN_T:
+                    building = BUILDING_SLOT_THIEVES_GUILD;
+                    break;
+                case INPUT_SCAN_R:
+                    building = BUILDING_SLOT_TAVERN;
+                    break;
+                case INPUT_SCAN_NUMPAD_2:
+                    TransferArmies(TOWN_TRANSFER_TO_HERO);
+                    break;
+                case INPUT_SCAN_NUMPAD_8:
+                    TransferArmies(TOWN_TRANSFER_TO_GARRISON);
+                    break;
+                case INPUT_SCAN_X:
+                    TransferArmies(TOWN_SWAP_ARMIES);
+                    break;
+                case INPUT_SCAN_I:
+                    DoCommand(TOWN_ARMY_COMMAND_KINGDOM_OVERVIEW);
+                    break;
                 case INPUT_SCAN_LEFT_SHIFT:
                 case INPUT_SCAN_RIGHT_SHIFT:
                     ShiftQualChange();
                     break;
+                case INPUT_SCAN_ENTER:
                 case INPUT_SCAN_ESCAPE:
                     done++;
                     break;
             }
+            if (building != BUILDING_SLOT_NONE
+                && (building == BUILDING_SLOT_TENT || (m_town->m_buildings & (1 << building)))) {
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, building);
+                return Main(message);
+            }
             break;
+        }
     }
     if (done == 1) {
         message.type = MESSAGE_EXECUTIVE;
@@ -1088,6 +1191,7 @@ void townManager::SplitArmy(void) {
     message.id = TOWN_SPLIT_SETUP_AMOUNT_CONTROL;
     message.text = gText;
     m_childWindow->BroadcastMessage(message);
+    m_childWindow->SetConfirmButton(DIALOG_BUTTON_2);
     gWindowManager->DoDialog(m_childWindow, SplitArmyHandler, false);
     delete m_childWindow;
     if (gWindowManager->m_dialogResult == DIALOG_BUTTON_2) {
@@ -1108,6 +1212,33 @@ void townManager::SplitArmy(void) {
         }
         m_sourceStrip->m_army->m_creatureCounts[m_sourceArmySlot] -= m_splitAmount;
     }
+}
+
+i16 townManager::PromptArmySplit(i16 maximum, const char* prompt) {
+    if (maximum <= 0)
+        return 0;
+
+    heroWindow* previousWindow = m_childWindow;
+    m_childWindow = new heroWindow(TOWN_SPLIT_WINDOW_X, TOWN_SPLIT_WINDOW_Y, "splitwin.bin");
+    m_splitMaximum = maximum + 1;
+    m_splitAmount = (maximum + 1) / 2;
+
+    tag_message message;
+    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, TOWN_SPLIT_PROMPT_CONTROL);
+    message.text = const_cast<char*>(prompt);
+    m_childWindow->BroadcastMessage(message);
+    char amount[12];
+    snprintf(amount, sizeof(amount), "%d", m_splitAmount);
+    message.id = TOWN_SPLIT_SETUP_AMOUNT_CONTROL;
+    message.text = amount;
+    m_childWindow->BroadcastMessage(message);
+    message.id = TOWN_SPLIT_AMOUNT_CONTROL;
+    m_childWindow->BroadcastMessage(message);
+    m_childWindow->SetConfirmButton(DIALOG_BUTTON_2);
+    gWindowManager->DoDialog(m_childWindow, SplitArmyHandler, false);
+    delete m_childWindow;
+    m_childWindow = previousWindow;
+    return gWindowManager->m_dialogResult == DIALOG_BUTTON_2 ? m_splitAmount : 0;
 }
 
 void townManager::ShiftQualChange(void) {
@@ -1132,6 +1263,39 @@ void townManager::ResetStrips(void) {
     m_garrisonStrip->Draw();
     m_sourceStrip = m_targetStrip = NULL;
     m_sourceArmySlot = m_targetArmySlot = STRIP_SLOT_NONE;
+}
+
+void townManager::AddTransferButtons(void) {
+    for (i16 index = 0; index < 2; ++index) {
+        char* label = strdup(index == 0 ? "v Hero" : "^ Guard");
+        if (!label)
+            MemError();
+        auto* button = new textWidget(
+            4 + index * 51, 80, 49, 17, label, "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
+            TOWN_TRANSFER_TO_HERO + index, WIDGET_KIND_TEXT
+        );
+        m_garrisonStrip->m_window->AddWidget(button, WINDOW_Z_ORDER_APPEND);
+    }
+}
+
+void townManager::TransferArmies(i16 action) {
+    armyGroup* visitor = m_heroStrip->m_army;
+    if (!visitor)
+        return;
+    armyGroup& guard = *m_garrisonStrip->m_army;
+    const i8 preferred = m_sourceStrip && m_sourceArmySlot != STRIP_SLOT_NONE
+                             ? m_sourceStrip->m_army->m_creatureTypes[m_sourceArmySlot]
+                             : static_cast<i8>(CREATURE_NONE);
+    if (action == TOWN_TRANSFER_TO_HERO) {
+        guard.MoveTroopsTo(*visitor, false, preferred);
+    } else if (action == TOWN_TRANSFER_TO_GARRISON) {
+        visitor->MoveTroopsTo(guard, true, preferred);
+    } else if (guard.GetNumArmies()) {
+        const armyGroup previous = guard;
+        guard = *visitor;
+        *visitor = previous;
+    }
+    ResetStrips();
 }
 
 void townManager::Toggle(i8 building) {
@@ -1463,6 +1627,7 @@ i16 townManager::BuyBuild(
             msg.value = WIDGET_FLAG_DIM_REQUEST;
             panel->BroadcastMessage(msg);
         }
+        panel->SetConfirmButton(DIALOG_BUTTON_2);
         gWindowManager->DoDialog(panel, TrueFalseDialogHandler, false);
         if (gWindowManager->m_dialogResult == DIALOG_BUTTON_2) {
             m_purchasedBuilding = building;
@@ -1697,6 +1862,115 @@ void townManager::SetupWell(class heroWindow* window) {
         msg.text = gText;
         window->BroadcastMessage(msg);
     }
+    if (window == m_buildingWindow) {
+        msg.command = WIDGET_COMMAND_SET_FLAGS;
+        msg.value = WIDGET_FLAG_ENABLED;
+        for (i16 id = TOWN_WELL_FIRST_ICON_CONTROL;
+             id < TOWN_WELL_FIRST_AVAILABLE_CONTROL + BUILDING_SLOT_DWELLING_COUNT; ++id) {
+            msg.id = id;
+            window->BroadcastMessage(msg);
+        }
+    }
+}
+
+static void RecruitWellMaximum(townManager& manager) {
+    town& city = *manager.m_town;
+    armyGroup garrison = city.m_army;
+    armyGroup visitor;
+    armyGroup* visitorArmy = manager.m_heroStrip->m_army;
+    if (visitorArmy)
+        visitor = *visitorArmy;
+    i32 remaining[RESOURCE_COUNT];
+    i16 bought[BUILDING_SLOT_DWELLING_COUNT] = {};
+    std::copy_n(gCurPlayerData->m_resources, RESOURCE_COUNT, remaining);
+    std::string summary;
+    for (i16 level = BUILDING_SLOT_DWELLING_COUNT - 1; level >= 0; --level) {
+        if (!(city.m_buildings & (1 << (BUILDING_SLOT_DWELLING_FIRST + level))))
+            continue;
+        const i8 creature = gDwellingType[city.m_type][level];
+        i32 cost[RESOURCE_COUNT];
+        GetMonsterCost(creature, cost);
+        i32 quantity = city.m_dwellingAvailable[level];
+        for (i16 resource = 0; resource < RESOURCE_COUNT; ++resource) {
+            if (cost[resource] > 0)
+                quantity = std::min(quantity, remaining[resource] / cost[resource]);
+        }
+        for (armyGroup* army : {&garrison, visitorArmy ? &visitor : nullptr}) {
+            if (!army || quantity <= 0)
+                break;
+            for (i8 type : {creature, static_cast<i8>(CREATURE_NONE)}) {
+                for (i8 slot = 0; slot < ARMY_GROUP_SLOT_COUNT && quantity > 0; ++slot) {
+                    if (army->m_creatureTypes[slot] != type)
+                        continue;
+                    const i32 count = type == CREATURE_NONE ? 0 : army->m_creatureCounts[slot];
+                    const i32 add = std::min(quantity, std::numeric_limits<i16>::max() - count);
+                    army->m_creatureTypes[slot] = creature;
+                    army->m_creatureCounts[slot] = static_cast<i16>(count + add);
+                    bought[level] += add;
+                    quantity -= add;
+                }
+            }
+        }
+        if (bought[level]) {
+            summary += std::to_string(bought[level]) + " " + gArmyNamesPlural[creature] + "\n";
+            for (i16 resource = 0; resource < RESOURCE_COUNT; ++resource)
+                remaining[resource] -= bought[level] * cost[resource];
+        }
+    }
+    if (summary.empty()) {
+        NormalDialog("No troops can be recruited.", NORMAL_DIALOG_TYPE_OK);
+        return;
+    }
+    summary += "\n";
+    for (i16 resource = 0; resource < RESOURCE_COUNT; ++resource) {
+        const i32 spent = gCurPlayerData->m_resources[resource] - remaining[resource];
+        if (spent > 0)
+            summary += std::to_string(spent) + " " + gResourceNames[resource] + " ";
+    }
+    NormalDialog(&summary[0], NORMAL_DIALOG_TYPE_YES_NO);
+    if (gWindowManager->m_dialogResult != NORMAL_DIALOG_BUTTON_YES)
+        return;
+    city.m_army = garrison;
+    if (visitorArmy)
+        *visitorArmy = visitor;
+    std::copy_n(remaining, RESOURCE_COUNT, gCurPlayerData->m_resources);
+    for (i16 level = 0; level < BUILDING_SLOT_DWELLING_COUNT; ++level)
+        city.m_dwellingAvailable[level] -= bought[level];
+    manager.ResetStrips();
+    manager.m_bankBox->Update();
+}
+
+static i16 WellRecruitHandler(tag_message& message) {
+    townManager& manager = *gTownManager;
+    const bool right = (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) != 0;
+    i16 dwelling = -1;
+    if (message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_SELECT) {
+        for (const i16 first : {TOWN_WELL_FIRST_ICON_CONTROL, TOWN_WELL_FIRST_NAME_CONTROL,
+                               TOWN_WELL_FIRST_MONSTER_ICON_CONTROL, TOWN_WELL_FIRST_CREATURE_CONTROL,
+                               TOWN_WELL_FIRST_AVAILABLE_CONTROL}) {
+            if (message.id >= first && message.id < first + BUILDING_SLOT_DWELLING_COUNT)
+                dwelling = message.id - first;
+        }
+    }
+    if (message.type == MESSAGE_KEY_DOWN && message.keyCode >= INPUT_SCAN_1 && message.keyCode <= INPUT_SCAN_6)
+        dwelling = message.keyCode - INPUT_SCAN_1;
+    if (dwelling >= 0 && (manager.m_town->m_buildings & (1 << (BUILDING_SLOT_DWELLING_FIRST + dwelling)))) {
+        if (right) {
+            QuickViewRecruit(manager.m_town, dwelling);
+        } else {
+            recruitUnit recruit(manager.m_town, dwelling);
+            gExec->DoDialog(&recruit);
+        }
+    } else if ((message.type == MESSAGE_KEY_DOWN && TranslateShortcut(message.keyCode, SHORTCUT_WELL) == INPUT_SCAN_M)
+               || (message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_DESELECT
+                   && message.id == kWellRecruitMaximum && !right)) {
+        RecruitWellMaximum(manager);
+    } else {
+        return TrueFalseDialogHandler(message);
+    }
+    manager.SetupWell(manager.m_buildingWindow);
+    manager.m_buildingWindow->DrawWindow();
+    return MESSAGE_DISPATCH_CONSUME;
 }
 
 void townManager::SetupMage(class heroWindow* window) {
@@ -2073,8 +2347,10 @@ b8 townManager::RecruitHero(b8 quickView) {
         QuickViewWait();
         gWindowManager->RemoveWindow(m_childWindow);
         gMouseManager->ReallyShowPointer();
-    } else
+    } else {
+        m_childWindow->SetConfirmButton(DIALOG_BUTTON_1, true);
         gWindowManager->DoDialog(m_childWindow, RecruitHeroHandler, false);
+    }
     delete m_childWindow;
     if (m_recruitSlot != RECRUIT_HERO_NONE) {
         i32 newHeroClass;
@@ -2104,6 +2380,9 @@ b8 townManager::RecruitHero(b8 quickView) {
         m_heroRecruited = true;
         m_town->m_occupyingHeroId = m_recruitHeroes[m_recruitSlot]->m_id;
         gGame->m_heroOwners[gCurPlayerData->m_availableHeroIds[m_recruitSlot]] = gCurPlayer;
+        m_hoverStrip = m_sourceStrip = m_targetStrip = NULL;
+        m_hoverArmySlot = m_sourceArmySlot = m_targetArmySlot = STRIP_SLOT_NONE;
+        m_command = TOWN_ARMY_COMMAND_NONE;
         delete m_garrisonStrip;
         sprintf(
             gText,
@@ -2125,6 +2404,7 @@ b8 townManager::RecruitHero(b8 quickView) {
         );
         if (m_garrisonStrip == NULL)
             MemError();
+        AddTransferButtons();
         delete m_heroStrip;
         sprintf(gText, "port%04d.icn", m_recruitHeroes[m_recruitSlot]->m_portrait);
         m_heroStrip = new strip(

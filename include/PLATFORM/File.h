@@ -52,6 +52,8 @@ i32 FileSeek(i32 file, i32 offset, FileSeekOrigin origin);
 i32 FileTell(i32 file);
 i32 FileLength(i32 file);
 bool FileExists(const char* path);
+// Host modification time for ordering saves. Zero means unavailable.
+u64 FileModificationTime(const char* path);
 
 // Writes a whole file. Where the host allows it, the previous file is
 // replaced only after the new contents are completely written and flushed,
