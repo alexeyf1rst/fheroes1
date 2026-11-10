@@ -14,4 +14,4 @@ cmake --install build --config Release --prefix stage
 
 Place the runtime SDL2 and SDL2_mixer DLLs alongside `stage/bin/fheroes1.exe` if you linked the shared libraries. Copy `DATA/HEROES.AGG` and `MAPS` from your original Heroes I install alongside the executable, keeping the directory structure.
 
-This preview reads the original archive and imports map terrain and basic castle placement. Map objects, events, starting armies and campaign compatibility are still incomplete. It uses its own Windows profile directory `%APPDATA%/fheroes1`.
+This preview reads the original archive and imports terrain, static scenery and town records. Interactive map objects, custom town ownership, events, starting armies and campaign compatibility are still incomplete. It uses its own Windows profile directory `%APPDATA%/fheroes1`.

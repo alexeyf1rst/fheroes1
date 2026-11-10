@@ -43,7 +43,7 @@ namespace
 namespace ICN
 {
     // Make sure that each item ID has exactly the same location ID!
-    const std::array<ICNMapItem, LAST_VALID_FILE_ICN> icnMap
+    constexpr std::array<ICNMapItem, LAST_VALID_FILE_ICN> icnMap
         = { { { UNKNOWN, "UNKNOWN" },       { ADVBORDE, "ADVBORDE.ICN" }, { ADVBORD, "ADVBORD.ICN" },   { ADVBTNS, "ADVBTNS.ICN" },   { ADVEBTNS, "ADVEBTNS.ICN" },
               { ADVMCO, "ADVMICE.ICN" },     { AELEM, "AELEM.ICN" },       { APANBKGE, "APANBKGE.ICN" }, { APANBKG, "APANBKG.ICN" },   { APANELE, "APANELE.ICN" },
               { APANEL, "APANEL.ICN" },     { ARCHER2, "ARCHER2.ICN" },   { ARCHER, "ARCHER.ICN" },     { ARCH_MSL, "ARCH_MSL.ICN" }, { ART32, "ART32.ICN" },
@@ -172,6 +172,7 @@ namespace ICN
               { SYSTEM, "SYSTEM.ICN" },     { TAVWIN, "TAVWIN.ICN" },     { TENT, "TENT.ICN" },         { TERRAINS, "TERRAINS.ICN" }, { TEXTBACK, "TEXTBACK.ICN" },
               { TEXTBAK2, "TEXTBAK2.ICN" }, { TEXTBAR, "TEXTBAR.ICN" },   { TITANBLA, "TITANBLA.ICN" }, { TITANBLU, "TITANBLU.ICN" }, { TITANMSL, "TITANMSL.ICN" },
               { TOWNBKG0, "TOWNBKG0.ICN" }, { TOWNBKG1, "TOWNBKG1.ICN" }, { TOWNBKG2, "TOWNBKG2.ICN" }, { TOWNBKG3, "TOWNBKG3.ICN" },
+              { TOWNBKG4, "TOWNBKG4.ICN" }, { TOWNBKG5, "TOWNBKG5.ICN" },
               { TOWNFIX, "TOWNFIX.ICN" },   { TOWNNAME, "TOWNNAME.ICN" }, { TOWNWIND, "TOWNWIND.ICN" }, { TRADPOSE, "TRADPOSE.ICN" },
               { TRADPOST, "TRADPOST.ICN" }, { TREASURY, "TREASURY.ICN" }, { TREDECI, "TREDECI.ICN" },   { TREEVIL, "TREEVIL.ICN" },   { TREFALL, "TREFALL.ICN" },
               { TREFIR, "TREFIR.ICN" },     { TREJNGL, "TREJNGL.ICN" },   { TRESNOW, "TRESNOW.ICN" },   { TROLL2, "TROLL2.ICN" },     { TROLL, "TROLL.ICN" },
@@ -221,7 +222,19 @@ namespace ICN
               { ZOMBIE2, "ZOMBIE2.ICN" },   { ZOMBIE, "ZOMBIE.ICN" },     { H1BTNS, "BTNMAIN.ICN" },    { H1PANEL, "REDBACK.BMP" },   { H1BTNCAMP, "BTNCMPGN.ICN" },
               { H1NEWGAME_BMP, "NEWGAME.BMP" }, { H1NEWGAME_ICN, "NEWGAME.ICN" }, { H1BTNNEWGM, "BTNNEWGM.ICN" },
               { H1HISCORE_BMP, "HISCORE.BMP" }, { H1HISCORE_ICN, "HISCORE.ICN" }, { H1BORD_BMP, "BORD.BMP" }, { H1CREDITS_BMP, "CREDITS.BMP" },
-              { H1REQUEST_BMP, "REQUEST.BMP" }, { H1REQEXTRA_BMP, "REQEXTRA.BMP" }, { H1REQUEST_ICN, "REQUEST.ICN" } } };
+              { H1REQUEST_BMP, "REQUEST.BMP" }, { H1REQEXTRA_BMP, "REQEXTRA.BMP" }, { H1REQUEST_ICN, "REQUEST.ICN" },
+              { H1OBJ32_00, "OBJ32-00.ICN" }, { H1OBJ32_01, "OBJ32-01.ICN" }, { H1OBJ32_02, "OBJ32-02.ICN" }, { H1OBJ32_03, "OBJ32-03.ICN" },
+              { H1OBJ32_04, "OBJ32-04.ICN" }, { H1OBJ32_05, "OBJ32-05.ICN" }, { H1OBJ32_06, "OBJ32-06.ICN" }, { H1OBJ32_07, "OBJ32-07.ICN" },
+              { H1MTN32, "MTN32.ICN" }, { H1TREE32, "TREE32.ICN" }, { H1TOWN32, "TOWN32.ICN" } } };
+
+    static_assert( [] {
+        for ( std::size_t i = 0; i < icnMap.size(); ++i ) {
+            if ( icnMap[i].type != static_cast<int>( i ) || icnMap[i].string == nullptr ) {
+                return false;
+            }
+        }
+        return true;
+    }(), "ICN resource names must match their enum indices." );
 }
 
 const char * ICN::getIcnFileName( const int icnId )

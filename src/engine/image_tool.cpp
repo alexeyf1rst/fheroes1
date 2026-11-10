@@ -246,9 +246,12 @@ namespace fheroes2
         return true;
     }
 
-    Sprite decodeICNSprite( const uint8_t * data, const uint8_t * dataEnd, const ICNHeader & icnHeader )
+    Sprite decodeICNSprite( const uint8_t * data, const uint8_t * dataEnd, const ICNHeader & icnHeader, const bool isHoMM1 )
     {
         Sprite sprite( icnHeader.width, icnHeader.height, icnHeader.offsetX, icnHeader.offsetY );
+        if ( sprite.empty() ) {
+            return sprite;
+        }
         sprite.reset();
 
         uint8_t * imageTransform = sprite.transform();
@@ -362,8 +365,8 @@ namespace fheroes2
 
                     break;
                 }
-                else if ( *data < 0xC0 ) {
-                    // 0x81 to 0xBF - number of empty (transparent) pixels + 0x80. The (n - 128) pixels are transparent.
+                else if ( isHoMM1 || *data < 0xC0 ) {
+                    // Heroes I also uses 0xC0 through 0xFF for transparent pixels.
 
                     noTransformLayer = false;
 

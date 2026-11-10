@@ -38,7 +38,7 @@ namespace fheroes2
 
     bool Load( const std::string & path, Image & image );
 
-    Sprite decodeICNSprite( const uint8_t * data, const uint8_t * dataEnd, const ICNHeader & icnHeader );
+    Sprite decodeICNSprite( const uint8_t * data, const uint8_t * dataEnd, const ICNHeader & icnHeader, bool isHoMM1 = false );
 
     void decodeTILImages( const uint8_t * data, const size_t imageCount, const int32_t width, const int32_t height, std::vector<Image> & output );
 

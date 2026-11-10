@@ -487,10 +487,17 @@ namespace MP2
         OBJ_ICN_TYPE_OBJNLAV2, // Animated lava objects.
         OBJ_ICN_TYPE_X_LOC1, // Objects from The Price of Loyalty expansion.
         OBJ_ICN_TYPE_X_LOC2, // Objects from The Price of Loyalty expansion.
-        OBJ_ICN_TYPE_X_LOC3 // Objects from The Price of Loyalty expansion.
+        OBJ_ICN_TYPE_X_LOC3, // Objects from The Price of Loyalty expansion.
 
-        // IMPORTANT!!! If you want to add new types use UNUSED entries only.
+        // Imported Heroes I scenery is internal to the engine. MP2 files use six-bit IDs.
+        OBJ_ICN_TYPE_H1_SCENERY_FIRST = 128,
+        OBJ_ICN_TYPE_H1_SCENERY_LAST = OBJ_ICN_TYPE_H1_SCENERY_FIRST + 10
     };
+
+    constexpr bool isHoMM1Scenery( const ObjectIcnType type )
+    {
+        return type >= OBJ_ICN_TYPE_H1_SCENERY_FIRST && type <= OBJ_ICN_TYPE_H1_SCENERY_LAST;
+    }
 
     int getIcnIdFromObjectIcnType( const ObjectIcnType objectIcnType );
 

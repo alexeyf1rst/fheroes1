@@ -671,57 +671,6 @@ namespace
         _icnVsSprite[id][assetIndex] = fheroes2::decodeICNSprite( data, dataEnd, header1 );
     }
 
-    // Scan through sequential HoMM1 ICN sprite data to build a per-sprite byte-offset table.
-    // isMonochrome: true for font ICNs (all sprites monochrome RLE), false for colour RLE.
-    std::vector<uint32_t> buildHoMM1SpriteOffsets( const uint8_t * db, const uint32_t dbSize, const uint32_t count, const bool isMonochrome )
-    {
-        std::vector<uint32_t> offsets( count, 0 );
-        uint32_t pos = 0;
-
-        for ( uint32_t i = 0; i < count; ++i ) {
-            offsets[i] = pos;
-            if ( pos >= dbSize )
-                break;
-
-            if ( isMonochrome ) {
-                // Every byte is a 1-byte command; 0x80 = end-of-sprite.
-                while ( pos < dbSize ) {
-                    if ( db[pos++] == 0x80 )
-                        break;
-                }
-            }
-            else {
-                // Colour RLE: same encoding as HoMM2.
-                while ( pos < dbSize ) {
-                    const uint8_t b = db[pos++];
-                    if ( b == 0x80 )
-                        break;
-                    else if ( b > 0 && b < 0x80 ) {
-                        pos += b; // N colour bytes follow
-                        if ( pos > dbSize )
-                            pos = dbSize;
-                    }
-                    else if ( b == 0xC0 ) {
-                        if ( pos >= dbSize )
-                            break;
-                        const uint8_t t = db[pos++]; // transform byte
-                        if ( ( t & 0x03 ) == 0 && pos < dbSize )
-                            ++pos; // extended pixel-count byte
-                    }
-                    else if ( b > 0xC0 ) {
-                        if ( b == 0xC1 && pos < dbSize )
-                            ++pos; // pixel-count byte
-                        if ( pos < dbSize )
-                            ++pos; // colour byte
-                    }
-                    // 0x00, 0x81-0xBF: single-byte codes, already consumed by pos++
-                }
-            }
-        }
-
-        return offsets;
-    }
-
     // This function returns true if sprites were successfully loaded from AGG file.
     // WARNING: this function must be called once - only in the beginning of `loadICN()` function.
     bool readIcnFromAgg( const int id )
@@ -795,59 +744,34 @@ namespace
         const bool isHoMM1 = ( blockSize + headerSize == static_cast<uint32_t>( body.size() ) );
 
         if ( isHoMM1 ) {
-            // HoMM1 ICN format:
-            //   preamble (6 bytes): count(u16) + totalContentSize(u32)
-            //   header table: count × 12 bytes  (ox s16, oy s16, w u16, h u16, af_unused u8, advance u8, pad u16)
-            //   sprite data block: sequential RLE sprites, each terminated by 0x80
-
-            const uint32_t icnHdrStride = 12;
-            const uint32_t dataBlockOffset = headerSize + count * icnHdrStride;
-            if ( dataBlockOffset > static_cast<uint32_t>( body.size() ) )
+            // The Heroes I frame table stores a 32-bit data offset relative
+            // to the start of the table, after the six-byte file header.
+            constexpr uint32_t frameHeaderSize = 12;
+            const uint32_t frameTableSize = count * frameHeaderSize;
+            if ( frameTableSize > blockSize ) {
                 return false;
+            }
 
-            const uint32_t dataOnlySize = static_cast<uint32_t>( body.size() ) - dataBlockOffset;
-
-            // Font ICNs (FONT.ICN, SMALFONT.ICN) are monochromatic; all other HoMM1 ICNs are colour.
-            const std::string & filename = ICN::getIcnFileName( id );
-            const bool isMonoFont = ( filename.find( "FONT" ) != std::string::npos );
-
-            // Build sequential sprite offset table by scanning the data block.
-            const uint8_t * db = body.data() + dataBlockOffset;
-            const std::vector<uint32_t> spriteOffsets = buildHoMM1SpriteOffsets( db, dataOnlySize, count, isMonoFont );
-
+            const std::string filename = ICN::getIcnFileName( id );
+            const bool isMonoFont = filename.find( "FONT" ) != std::string::npos;
             _icnVsSprite[id].resize( count );
 
             for ( uint32_t i = 0; i < count; ++i ) {
-                // Construct a synthetic ICNHeader from the 12-byte HoMM1 header.
-                imageStream.seek( headerSize + i * icnHdrStride );
-                fheroes2::ICNHeader header1;
-                header1.offsetX = static_cast<int16_t>( imageStream.getLE16() );
-                header1.offsetY = static_cast<int16_t>( imageStream.getLE16() );
-                header1.width = imageStream.getLE16();
-                header1.height = imageStream.getLE16();
-                imageStream.get();    // af byte (cumulative-offset checksum, not a flag)
-                imageStream.get();    // advance byte
-                imageStream.getLE16(); // padding
+                imageStream.seek( headerSize + i * frameHeaderSize );
+                fheroes2::ICNHeader frame;
+                frame.offsetX = static_cast<int16_t>( imageStream.getLE16() );
+                frame.offsetY = static_cast<int16_t>( imageStream.getLE16() );
+                frame.width = imageStream.getLE16();
+                frame.height = imageStream.getLE16();
+                frame.offsetData = imageStream.getLE32();
+                frame.animationFrames = isMonoFont ? 0x20 : 0;
 
-                // Force the correct monochrome flag for the decoder.
-                header1.animationFrames = isMonoFont ? 0x20 : 0;
-
-                // Encode sprite data offset so the existing pointer arithmetic still holds:
-                //   body.data() + headerSize + offsetData  ==  db + spriteOffsets[i]
-                header1.offsetData = count * icnHdrStride + spriteOffsets[i];
-
-                const uint32_t dataSize = ( i + 1 != count ) ? ( spriteOffsets[i + 1] - spriteOffsets[i] )
-                                                              : ( dataOnlySize - spriteOffsets[i] );
-
-                if ( headerSize + header1.offsetData + dataSize > body.size() ) {
-                    throw fheroes2::InvalidDataResources( "ICN Id " + std::to_string( id ) + ", index " + std::to_string( i )
-                                                          + " is being corrupted. "
-                                                            "Make sure that you own an official version of the game." );
+                if ( frame.width == 0 || frame.height == 0 || frame.offsetData < frameTableSize || frame.offsetData >= blockSize ) {
+                    continue;
                 }
 
-                const uint8_t * data = body.data() + headerSize + header1.offsetData;
-                const uint8_t * dataEnd = data + dataSize;
-                _icnVsSprite[id][i] = fheroes2::decodeICNSprite( data, dataEnd, header1 );
+                const uint8_t * data = body.data() + headerSize + frame.offsetData;
+                _icnVsSprite[id][i] = fheroes2::decodeICNSprite( data, body.data() + body.size(), frame, true );
 
                 // If the sprite has no transparent pixels, decodeICNSprite disables its transform layer.
                 // Promote single-layer sprites back to double-layer so that downstream code

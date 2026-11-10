@@ -153,6 +153,11 @@ namespace Maps
             return _tilePassabilityDirections;
         }
 
+        void blockImportedTile()
+        {
+            _tilePassabilityDirections = 0;
+        }
+
         int GetGround() const
         {
             return Ground::getGroundByImageIndex( _terrainImageIndex );

@@ -117,10 +117,12 @@ void MageGuild::initialize( const int race, const bool hasLibrary )
     std::array<MageGuildLevelProps, 5> mageGuildLevels = { { { 1, hasLibrary }, { 2, hasLibrary }, { 3, hasLibrary }, { 4, hasLibrary }, { 5, hasLibrary } } };
 
     const auto addSpell = [this, hasLibrary, &spellsInUse, &mageGuildLevels]( const Spell & spell ) {
-        const size_t spellLevel = fheroes2::checkedCast<size_t>( spell.Level() ).value();
-        assert( spellLevel > 0 && spellLevel <= mageGuildLevels.size() );
+        const auto spellLevel = fheroes2::checkedCast<size_t>( spell.Level() );
+        if ( !spellLevel || *spellLevel == 0 || *spellLevel > mageGuildLevels.size() ) {
+            return;
+        }
 
-        auto & [freeSlots, hasAdventureSpell] = mageGuildLevels[spellLevel - 1];
+        auto & [freeSlots, hasAdventureSpell] = mageGuildLevels[*spellLevel - 1];
         assert( freeSlots > 0 );
 
         // Check for possible duplicates
@@ -154,9 +156,7 @@ void MageGuild::initialize( const int race, const bool hasLibrary )
 
         std::vector<int32_t> allSpellsOfLevel = Spell::getAllSpellIdsSuitableForSpellBook( fheroes2::checkedCast<int>( level ).value() );
 
-        while ( freeSlots > 0 ) {
-            assert( !allSpellsOfLevel.empty() );
-
+        while ( freeSlots > 0 && !allSpellsOfLevel.empty() ) {
             const uint32_t spellIdx = Rand::Get( 0, fheroes2::checkedCast<uint32_t>( allSpellsOfLevel.size() - 1 ).value() );
             const Spell spell( allSpellsOfLevel[spellIdx] );
 

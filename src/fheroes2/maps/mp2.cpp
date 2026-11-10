@@ -73,6 +73,10 @@ namespace
 
 int MP2::getIcnIdFromObjectIcnType( const ObjectIcnType objectIcnType )
 {
+    if ( isHoMM1Scenery( objectIcnType ) ) {
+        return ICN::H1OBJ32_00 + objectIcnType - OBJ_ICN_TYPE_H1_SCENERY_FIRST;
+    }
+
     switch ( objectIcnType ) {
     case OBJ_ICN_TYPE_UNKNOWN:
         return ICN::UNKNOWN;

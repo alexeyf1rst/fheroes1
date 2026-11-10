@@ -110,6 +110,11 @@ namespace
 
         const fheroes2::Sprite & sprite = fheroes2::AGG::GetICN( icn, part.icnIndex );
 
+        if ( MP2::isHoMM1Scenery( part.icnType ) ) {
+            area.BlitOnTile( output, sprite, sprite.x(), sprite.y(), offset, false, alphaValue );
+            return;
+        }
+
         // Ideally we need to check that the image is within a tile area. However, flags are among those for which this rule doesn't apply.
         if ( icn == ICN::FLAG32 ) {
             assert( sprite.width() <= fheroes2::tileWidthPx && sprite.height() <= fheroes2::tileWidthPx );
