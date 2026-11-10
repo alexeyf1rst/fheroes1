@@ -62,6 +62,7 @@
 #include "mp2.h"
 #include "mp2_helper.h"
 #include "players.h"
+#include "profit.h"
 #include "race.h"
 #include "rand.h"
 #include "resource.h"
@@ -1843,6 +1844,13 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
     constexpr uint8_t groundShadow = 0x80;
     constexpr uint8_t impassable = 0x80;
     constexpr uint8_t lastSceneryTileset = MP2::OBJ_ICN_TYPE_H1_SCENERY_LAST - MP2::OBJ_ICN_TYPE_H1_SCENERY_FIRST;
+    constexpr size_t maxTownRecords = 36;
+    constexpr size_t maxMineRecords = 36;
+    constexpr size_t locationRecordSize = 3;
+    const size_t townTable = tileDataOffset + tileDataSize;
+    const size_t mineTable = townTable + maxTownRecords * locationRecordSize;
+    constexpr std::array<int, 7> resources{ Resource::WOOD, Resource::MERCURY, Resource::ORE, Resource::SULFUR, Resource::CRYSTAL, Resource::GEMS,
+                                            Resource::GOLD };
 
     vec_tiles.resize( worldSize );
     for ( int32_t i = 0; i < worldSize; ++i ) {
@@ -1895,9 +1903,6 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         constexpr uint8_t monsterTileset = 12;
         constexpr uint8_t firstResourceFrame = 61;
         constexpr uint8_t lastResourceFrame = 67;
-        constexpr std::array<int, 7> resources{ Resource::WOOD, Resource::MERCURY, Resource::ORE, Resource::SULFUR, Resource::CRYSTAL, Resource::GEMS,
-                                                Resource::GOLD };
-
         const uint8_t tileset = cell[1] & tilesetMask;
         const uint8_t frame = cell[2];
         const uint8_t trigger = cell[8];
@@ -1922,17 +1927,46 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         }
     }
 
+    // The on-disk trigger metadata is assigned at game start by the original game.
+    // Use the coordinates in the mine table to link each resource producer.
+    const size_t mineCount = mineTable < data.size() ? std::min( maxMineRecords, ( data.size() - mineTable ) / locationRecordSize ) : 0;
+    for ( size_t i = 0; i < mineCount; ++i ) {
+        const uint8_t * record = data.data() + mineTable + i * locationRecordSize;
+        const int32_t x = record[0];
+        const int32_t y = record[1];
+        if ( x >= width || y >= height || record[2] >= resources.size() ) {
+            continue;
+        }
+
+        const size_t tileOff = tileDataOffset + static_cast<size_t>( x * height + y ) * kTileBytes;
+        const uint8_t trigger = data[tileOff + 8];
+        if ( trigger != 0x81 && trigger != 0x99 && trigger != 0xa0 ) {
+            continue;
+        }
+
+        const int resource = resources[record[2]];
+        const int32_t production = ProfitConditions::FromMine( resource ).getFirstValidResource().second;
+        if ( production <= 0 ) {
+            continue;
+        }
+
+        const MP2::MapObjectType type = trigger == 0x81 ? MP2::OBJ_ALCHEMIST_LAB : trigger == 0xa0 ? MP2::OBJ_SAWMILL : MP2::OBJ_MINE;
+        const int32_t tileIndex = y * width + x;
+        Maps::Tile & tile = vec_tiles[tileIndex];
+        tile.sortObjectParts();
+        tile.setMainObjectType( type );
+        Maps::setResourceOnTile( tile, resource, static_cast<uint32_t>( production ) );
+        map_captureobj.Set( tileIndex, type, PlayerColor::NONE );
+    }
+
     // Each town record stores the coordinates, faction and a high bit for fortification.
     // For this preview the first four records supply the starting towns. Custom ownership lives in the map's extra records.
-    constexpr size_t maxTownRecords = 36;
-    constexpr size_t townRecordSize = 3;
     constexpr uint8_t fortifiedFlag = 0x80;
     constexpr std::array<int, 4> races = { Race::KNGT, Race::SORC, Race::BARB, Race::WRLK };
     constexpr std::array<PlayerColor, 4> startingColors = { PlayerColor::BLUE, PlayerColor::GREEN, PlayerColor::RED, PlayerColor::YELLOW };
-    const size_t townTable = tileDataOffset + tileDataSize;
-    const size_t townCount = std::min( maxTownRecords, ( data.size() - townTable ) / townRecordSize );
+    const size_t townCount = std::min( maxTownRecords, ( data.size() - townTable ) / locationRecordSize );
     for ( size_t i = 0; i < townCount; ++i ) {
-        const uint8_t * record = data.data() + townTable + i * townRecordSize;
+        const uint8_t * record = data.data() + townTable + i * locationRecordSize;
         const int32_t x = record[0];
         const int32_t y = record[1];
         const uint8_t faction = record[2] & ~fortifiedFlag;

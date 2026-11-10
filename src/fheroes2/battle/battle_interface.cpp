@@ -2219,7 +2219,7 @@ void Battle::Interface::RedrawTroopCount( const Unit & unit )
     fheroes2::Copy( bar, 0, 0, _mainSurface, sx, sy, bar.width(), bar.height() );
 
     const fheroes2::Text text( fheroes2::abbreviateNumber( static_cast<int32_t>( unit.GetCount() ) ), fheroes2::FontType::smallWhite() );
-    text.draw( sx + ( bar.width() - text.width() ) / 2, sy + 2, _mainSurface );
+    text.draw( sx + ( bar.width() - text.width() ) / 2, sy + 9, _mainSurface );
 }
 
 void Battle::Interface::RedrawCover()

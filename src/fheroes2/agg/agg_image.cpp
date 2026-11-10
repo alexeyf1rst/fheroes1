@@ -1140,8 +1140,10 @@ namespace
             const bool isEvilInterface = ( id == ICN::BUTTON_SMALL_CANCEL_EVIL );
 
             if ( useOriginalResources() ) {
-                _icnVsSprite[id][0] = fheroes2::AGG::GetICN( isEvilInterface ? ICN::CPANELE : ICN::CPANEL, 8 );
-                _icnVsSprite[id][1] = fheroes2::AGG::GetICN( isEvilInterface ? ICN::CPANELE : ICN::CPANEL, 9 );
+                _icnVsSprite[id][0] = fheroes2::AGG::GetICN( ICN::H1REQUEST_ICN, 3 );
+                _icnVsSprite[id][1] = fheroes2::AGG::GetICN( ICN::H1REQUEST_ICN, 4 );
+                _icnVsSprite[id][0].setPosition( 0, 0 );
+                _icnVsSprite[id][1].setPosition( 0, 0 );
 
                 // To properly generate shadows and Blit the button we need to make transparent pixels in its released state the same as in the pressed state.
                 copyTransformLayer( _icnVsSprite[id][0], _icnVsSprite[id][1] );
@@ -3562,7 +3564,7 @@ namespace
                         const uint8_t bevel = pressed ? fheroes2::GetColorId( 57, 47, 32 ) : fheroes2::GetColorId( 206, 175, 80 );
                         Fill( button, 0, 0, button.width(), 1, bevel );
                         Fill( button, 0, 0, 1, button.height(), bevel );
-                        text.draw( ( button.width() - text.width() ) / 2, 4 + pressed, button );
+                        text.draw( ( button.width() - text.width() ) / 2, 11 + pressed, button );
                     }
                 };
                 drawBattleButton( 0, gettext_noop( "Skip" ) );

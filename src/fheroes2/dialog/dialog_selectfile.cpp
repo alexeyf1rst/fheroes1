@@ -350,14 +350,19 @@ namespace
         const int32_t dateTimeWidth = listRoi.width - textInputRoi.width;
         const fheroes2::Rect dateHeaderRoi( dateTimeOffsetX, nameHeaderRoi.y, dateTimeWidth, nameHeaderRoi.height );
 
-        // We divide the save-files list: file name and file date/time.
-        background.applyTextBackgroundShading( { listRoi.x, listRoi.y, textInputRoi.width, listRoi.height } );
-        background.applyTextBackgroundShading( { listRoi.x + textInputRoi.width, listRoi.y, dateTimeWidth, listRoi.height } );
-        background.applyTextBackgroundShading( nameHeaderRoi );
-        background.applyTextBackgroundShading( dateHeaderRoi );
-        background.applyTextBackgroundShading( textInputRoi );
-        // Make background for the selected file date and time.
-        background.applyTextBackgroundShading( { dateTimeOffsetX, textInputRoi.y, dateTimeWidth, textInputRoi.height } );
+        // The stock shading tables target the Heroes II palette.
+        const uint8_t panelEdge = fheroes2::GetColorId( 114, 99, 69 );
+        const uint8_t panelFill = fheroes2::GetColorId( 39, 33, 27 );
+        const auto drawField = [&display, panelEdge, panelFill]( const fheroes2::Rect & rect ) {
+            fheroes2::Fill( display, rect.x, rect.y, rect.width, rect.height, panelEdge );
+            fheroes2::Fill( display, rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, panelFill );
+        };
+        drawField( { listRoi.x, listRoi.y, textInputRoi.width, listRoi.height } );
+        drawField( { dateTimeOffsetX, listRoi.y, dateTimeWidth, listRoi.height } );
+        drawField( nameHeaderRoi );
+        drawField( dateHeaderRoi );
+        drawField( textInputRoi );
+        drawField( { dateTimeOffsetX, textInputRoi.y, dateTimeWidth, textInputRoi.height } );
 
         fheroes2::ImageRestorer textInputBackground( display, textInputRoi.x, textInputRoi.y, textInputRoi.width, textInputRoi.height );
         fheroes2::ImageRestorer dateBackground( display, dateTimeOffsetX, textInputRoi.y, dateTimeWidth, textInputRoi.height );
