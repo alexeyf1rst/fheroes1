@@ -132,11 +132,6 @@ namespace
     void redrawCastleBuilding( const Castle & castle, const fheroes2::Point & offset, const uint32_t building, const uint32_t frame,
                                const uint32_t buildingCurrentlyUnderConstruction, const uint8_t alpha = 255 )
     {
-        if ( building == BUILD_TENT ) {
-            // We don't need to draw a tent because it's on the background image.
-            return;
-        }
-
         if ( building & BUILD_MAGEGUILD ) {
             assert( ( [&castle, building]() {
                 const int mageGuildLevel = castle.GetLevelMageGuild();
@@ -177,7 +172,7 @@ namespace
             return;
         }
 
-        const uint32_t index = [building, race]() -> uint32_t {
+        const uint32_t index = [building]() -> uint32_t {
             switch ( building ) {
             case BUILD_MAGEGUILD2:
                 return 1;
@@ -432,7 +427,11 @@ CastleDialog::BuildingsRenderQueue::BuildingsRenderQueue( const Castle & castle,
     const std::vector<BuildingType> ordersBuildings = fheroes2::getBuildingDrawingPriorities( castleRace, Settings::Get().getCurrentMapInfo().version );
 
     for ( const BuildingType buildingId : ordersBuildings ) {
-        auto areas = fheroes2::getCastleBuildingArea( castleRace, buildingId );
+        const int icnId = Castle::GetICNBuilding( buildingId, castleRace );
+        const fheroes2::Sprite & sprite = fheroes2::AGG::GetICN( icnId, 0 );
+        auto areas = sprite.width() > 1 && sprite.height() > 1
+                         ? std::vector<fheroes2::Rect>{ { sprite.x(), sprite.y(), sprite.width(), sprite.height() } }
+                         : fheroes2::getCastleBuildingArea( castleRace, buildingId );
         for ( auto & area : areas ) {
             area = area + top;
         }

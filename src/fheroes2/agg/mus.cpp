@@ -23,9 +23,11 @@
 
 #include "mus.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <string>
+#include <utility>
 
 #include "ground.h"
 #include "race.h"
@@ -97,6 +99,45 @@ namespace
 
 namespace MUS
 {
+    std::string getOriginalHeroes1TrackName( const int musicTrackId )
+    {
+        static constexpr std::array<std::pair<int, int>, 27> tracks{ { { OCEAN, 0 },
+                                                                      { GRASS, 1 },
+                                                                      { SNOW, 2 },
+                                                                      { SWAMP, 3 },
+                                                                      { LAVA, 4 },
+                                                                      { DESERT, 5 },
+                                                                      { DIRT, 6 },
+                                                                      { DEMONCAVE, 7 },
+                                                                      { PUZZLE, 13 },
+                                                                      { WATERSPRING, 24 },
+                                                                      { SORCERESS_CASTLE, 29 },
+                                                                      { WARLOCK_CASTLE, 30 },
+                                                                      { BARBARIAN_CASTLE, 31 },
+                                                                      { KNIGHT_CASTLE, 32 },
+                                                                      { BATTLE1, 40 },
+                                                                      { BATTLE2, 41 },
+                                                                      { BATTLE3, 42 },
+                                                                      { LOSTGAME, 43 },
+                                                                      { BATTLELOSE, 43 },
+                                                                      { BATTLEWIN, 44 },
+                                                                      { ULTIMATE_ARTIFACT, 46 },
+                                                                      { MAINMENU, 48 },
+                                                                      { COMPUTER_TURN, 49 },
+                                                                      { NEW_WEEK, 50 },
+                                                                      { NEW_MONTH, 51 },
+                                                                      { SKILL, 52 },
+                                                                      { VICTORY, 54 } } };
+        const auto track = std::find_if( tracks.begin(), tracks.end(), [musicTrackId]( const auto & item ) { return item.first == musicTrackId; } );
+        if ( track == tracks.end() ) {
+            return {};
+        }
+
+        std::string fileName( "Heroes" );
+        addTrackId( fileName, track->second );
+        return fileName;
+    }
+
     std::string getFileName( const int musicTrackId, const ExternalMusicNamingScheme namingScheme, const char * fileExtension )
     {
         assert( fileExtension != nullptr );

@@ -491,7 +491,9 @@ namespace MP2
 
         // Imported Heroes I scenery is internal to the engine. MP2 files use six-bit IDs.
         OBJ_ICN_TYPE_H1_SCENERY_FIRST = 128,
-        OBJ_ICN_TYPE_H1_SCENERY_LAST = OBJ_ICN_TYPE_H1_SCENERY_FIRST + 10
+        OBJ_ICN_TYPE_H1_CHEST = OBJ_ICN_TYPE_H1_SCENERY_FIRST + 7,
+        OBJ_ICN_TYPE_H1_RESOURCE = OBJ_ICN_TYPE_H1_SCENERY_FIRST + 11,
+        OBJ_ICN_TYPE_H1_SCENERY_LAST = OBJ_ICN_TYPE_H1_RESOURCE
     };
 
     constexpr bool isHoMM1Scenery( const ObjectIcnType type )

@@ -23,6 +23,7 @@
 #include <array>
 #include <cassert>
 #include <cstring>
+#include <utility>
 
 namespace
 {
@@ -159,38 +160,18 @@ namespace
             151, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 151, 131, 132, 133, 135, 136,
             137, 139, 140, 141, 143, 144, 145, 147, 148, 149, 151, 142, 142, 142, 142, 140, 140, 140, 140, 131, 133, 135, 137, 141, 143, 147, 149, 151, 136,
             136, 136, 136, 136, 136, 136, 136, 136, 136, 136, 141, 144, 148, 151, 151, 151, 151, 151, 151, 151, 151, 151, 151, 151 };
-
-    struct CyclingColorSet
-    {
-        uint8_t start;
-        uint8_t length;
-        bool forward;
-    };
 }
 
 std::vector<uint8_t> PAL::GetCyclingPalette( const uint32_t stepId )
 {
     std::vector<uint8_t> palette = GetPalette( PaletteType::STANDARD );
 
-    static const std::array<CyclingColorSet, 4> cycleSet{ CyclingColorSet{ 214, 4, false }, CyclingColorSet{ 218, 4, false }, CyclingColorSet{ 231, 5, true },
-                                                          CyclingColorSet{ 238, 4, false } };
-
-    for ( const CyclingColorSet & colorSet : cycleSet ) {
-        if ( colorSet.forward ) {
-            for ( uint32_t id = 0; id < colorSet.length; ++id ) {
-                const uint32_t newColorID = colorSet.start + ( ( id + stepId ) % colorSet.length );
-                palette[colorSet.start + id] = static_cast<uint8_t>( newColorID );
-            }
-        }
-        else {
-            const uint32_t lastColorID = colorSet.length - 1;
-            const uint32_t lastColor = colorSet.start + lastColorID;
-            const uint32_t colorOffset = stepId + lastColorID;
-
-            for ( uint32_t id = 0; id < colorSet.length; ++id ) {
-                const uint32_t newColorID = lastColor - ( ( colorOffset - id ) % colorSet.length );
-                palette[colorSet.start + id] = static_cast<uint8_t>( newColorID );
-            }
+    // Heroes I rotates five independent ranges in KB.PAL.
+    static constexpr std::array<std::pair<uint8_t, uint8_t>, 5> cycleRanges{ { { 214, 4 }, { 218, 4 }, { 230, 5 }, { 235, 2 }, { 237, 4 } } };
+    for ( const auto & [start, length] : cycleRanges ) {
+        const uint32_t phase = stepId % length;
+        for ( uint32_t id = 0; id < length; ++id ) {
+            palette[start + id] = static_cast<uint8_t>( start + ( id + phase ) % length );
         }
     }
 

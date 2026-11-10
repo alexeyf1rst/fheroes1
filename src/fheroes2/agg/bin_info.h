@@ -29,6 +29,10 @@
 
 namespace Bin_Info
 {
+    constexpr size_t heroes1CreatureFrameBlockSize = 64;
+    constexpr size_t heroes1CreatureWalkOffset = heroes1CreatureFrameBlockSize;
+    constexpr size_t heroes1CreatureShootOffset = 2 * heroes1CreatureFrameBlockSize;
+
     struct MonsterAnimInfo
     {
         enum ANIM_TYPE

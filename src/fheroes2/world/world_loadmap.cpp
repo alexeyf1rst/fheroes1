@@ -1888,6 +1888,38 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         if ( ( flags & extraOverlayPart ) != 0 ) {
             addSceneryPart( cell[3] >> 4, cell[5], Maps::OBJECT_LAYER, true );
         }
+
+        constexpr uint8_t treasureTrigger = 0x86;
+        constexpr uint8_t monsterTrigger = 0x9a;
+        constexpr uint8_t resourceTrigger = 0x9d;
+        constexpr uint8_t monsterTileset = 12;
+        constexpr uint8_t firstResourceFrame = 61;
+        constexpr uint8_t lastResourceFrame = 67;
+        constexpr std::array<int, 7> resources{ Resource::WOOD, Resource::MERCURY, Resource::ORE, Resource::SULFUR, Resource::CRYSTAL, Resource::GEMS,
+                                                Resource::GOLD };
+
+        const uint8_t tileset = cell[1] & tilesetMask;
+        const uint8_t frame = cell[2];
+        const uint8_t trigger = cell[8];
+        const uint8_t quantity = cell[9];
+        if ( trigger == monsterTrigger && tileset == monsterTileset && frame < Monster::GENIE ) {
+            // Original map sprites are zero-based; Monster::UNKNOWN occupies the first engine ID.
+            Maps::setMonsterOnTile( tile, Monster( frame + 1 ), quantity & 0x7f );
+        }
+        else if ( trigger == treasureTrigger && tileset == 7 && frame == 3 ) {
+            tile.setMainObjectType( MP2::OBJ_TREASURE_CHEST );
+            if ( quantity >= 2 && quantity <= 4 ) {
+                tile.metadata()[1] = quantity * 500;
+            }
+            else {
+                Maps::updateObjectInfoTile( tile, true );
+            }
+        }
+        else if ( trigger == resourceTrigger && tileset == lastSceneryTileset && frame >= firstResourceFrame && frame <= lastResourceFrame ) {
+            tile.setMainObjectType( MP2::OBJ_RESOURCE );
+            tile.metadata()[0] = resources[frame - firstResourceFrame];
+            tile.metadata()[1] = frame == lastResourceFrame ? quantity * 100 : quantity;
+        }
     }
 
     // Each town record stores the coordinates, faction and a high bit for fortification.

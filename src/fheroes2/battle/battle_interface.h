@@ -494,6 +494,7 @@ namespace Battle
         fheroes2::Rect _interfacePosition;
         fheroes2::Rect _surfaceInnerArea{ 0, 0, fheroes2::Display::DEFAULT_WIDTH, fheroes2::Display::DEFAULT_HEIGHT };
         fheroes2::Image _mainSurface;
+        fheroes2::Image _battleGroundBase;
         fheroes2::Image _battleGround;
         fheroes2::Image _hexagonGrid;
         fheroes2::Image _hexagonShadow;
@@ -501,8 +502,6 @@ namespace Battle
         fheroes2::Image _hexagonCursorShadow;
         fheroes2::Image _hexagonHighlightShadow;
 
-        int _battleGroundIcn{ ICN::UNKNOWN };
-        int _borderObjectsIcn{ ICN::UNKNOWN };
 
         fheroes2::Button _buttonAuto;
         fheroes2::Button _buttonSettings;

@@ -87,6 +87,7 @@ namespace MUS
     };
 
     std::string getFileName( const int musicTrackId, const ExternalMusicNamingScheme namingScheme, const char * fileExtension );
+    std::string getOriginalHeroes1TrackName( int musicTrackId );
 
     int FromGround( const int groundType );
     int FromRace( const int race );

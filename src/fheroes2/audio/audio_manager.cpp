@@ -117,6 +117,17 @@ namespace
             return iter->second;
         }
 
+        const std::string heroes1TrackName = MUS::getOriginalHeroes1TrackName( musicTrackId );
+        if ( !heroes1TrackName.empty() ) {
+            for ( const char * extension : { ".ogg", ".wav" } ) {
+                std::string fullPath;
+                if ( findMusicFile( musicDirectories, heroes1TrackName + extension, fullPath ) ) {
+                    musicTrackIdToFilePath.try_emplace( musicTrackId, fullPath );
+                    return fullPath;
+                }
+            }
+        }
+
         const auto tryMusicFileType = [musicTrackId]( MusicFileType & musicFileType ) -> std::string {
             std::string fullPath;
 

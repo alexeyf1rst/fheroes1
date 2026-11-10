@@ -1385,48 +1385,43 @@ Battle::Interface::Interface( Arena & battleArena, const int32_t tileIndex )
         _contourColor = 108;
     }
 
+    int skyIcn = ICN::CBKGGRMT;
+    int groundIcn = ICN::H1_XTL_GRASS;
     switch ( groundType ) {
     case Maps::Ground::DESERT:
-        _battleGroundIcn = ICN::CBKGDSRT;
-        _borderObjectsIcn = ICN::FRNG0004;
+    case Maps::Ground::WASTELAND:
+    case Maps::Ground::BEACH:
+        skyIcn = ICN::CBKGDSRT;
+        groundIcn = ICN::H1_XTL_DESERT;
         break;
     case Maps::Ground::SNOW: {
         const bool trees = Maps::hasNearbyObject( tileIndex, MP2::OBJ_TREES );
-        _battleGroundIcn = trees ? ICN::CBKGSNTR : ICN::CBKGSNMT;
-        _borderObjectsIcn = trees ? ICN::FRNG0006 : ICN::FRNG0007;
+        skyIcn = trees ? ICN::CBKGSNTR : ICN::CBKGSNMT;
+        groundIcn = ICN::H1_XTL_SNOW;
         break;
     }
     case Maps::Ground::SWAMP:
-        _battleGroundIcn = ICN::CBKGSWMP;
-        _borderObjectsIcn = ICN::FRNG0008;
-        break;
-    case Maps::Ground::WASTELAND:
-        _battleGroundIcn = ICN::CBKGCRCK;
-        _borderObjectsIcn = ICN::FRNG0003;
-        break;
-    case Maps::Ground::BEACH:
-        _battleGroundIcn = ICN::CBKGBEAC;
-        _borderObjectsIcn = ICN::FRNG0002;
+        skyIcn = ICN::CBKGSWMP;
+        groundIcn = ICN::H1_XTL_SWAMP;
         break;
     case Maps::Ground::LAVA:
-        _battleGroundIcn = ICN::CBKGLAVA;
-        _borderObjectsIcn = ICN::FRNG0005;
+        skyIcn = ICN::CBKGLAVA;
+        groundIcn = ICN::H1_XTL_LAVA;
         break;
     case Maps::Ground::DIRT: {
         const bool trees = Maps::hasNearbyObject( tileIndex, MP2::OBJ_TREES );
-        _battleGroundIcn = trees ? ICN::CBKGDITR : ICN::CBKGDIMT;
-        _borderObjectsIcn = trees ? ICN::FRNG0010 : ICN::FRNG0009;
+        skyIcn = trees ? ICN::CBKGDITR : ICN::CBKGDIMT;
+        groundIcn = ICN::H1_XTL_DIRT;
         break;
     }
     case Maps::Ground::GRASS: {
         const bool trees = Maps::hasNearbyObject( tileIndex, MP2::OBJ_TREES );
-        _battleGroundIcn = trees ? ICN::CBKGGRTR : ICN::CBKGGRMT;
-        _borderObjectsIcn = trees ? ICN::FRNG0011 : ICN::FRNG0012;
+        skyIcn = trees ? ICN::CBKGGRTR : ICN::CBKGGRMT;
         break;
     }
     case Maps::Ground::WATER:
-        _battleGroundIcn = ICN::CBKGWATR;
-        _borderObjectsIcn = ICN::FRNG0013;
+        skyIcn = ICN::CBKGWATR;
+        groundIcn = ICN::H1_XTL_BOAT;
         break;
     default:
         break;
@@ -1489,6 +1484,28 @@ Battle::Interface::Interface( Arena & battleArena, const int32_t tileIndex )
     // Battlefield area excludes the lower part where the status log is located.
     _mainSurface.resize( area.width, battlefieldHeight );
     _battleGround.resize( area.width, battlefieldHeight );
+    _battleGroundBase._disableTransformLayer();
+    _battleGroundBase.resize( area.width, battlefieldHeight );
+    _battleGroundBase.reset();
+
+    // The original battlefield art uses wide staggered terrain tiles and a separate horizon strip.
+    constexpr int32_t groundRows = 5;
+    constexpr int32_t groundColumns = 9;
+    for ( int32_t row = 0; row < groundRows; ++row ) {
+        for ( int32_t column = 0; column < groundColumns; ++column ) {
+            const bool staggered = ( row % 2 ) != 0;
+            uint32_t frame = 4 + ( row + column ) % 4;
+            if ( column == 0 ) {
+                frame = staggered ? 0 : 1;
+            }
+            else if ( column == groundColumns - 1 ) {
+                frame = staggered ? 3 : 2;
+            }
+            const fheroes2::Sprite & sprite = fheroes2::AGG::GetICN( groundIcn, frame );
+            fheroes2::Blit( sprite, _battleGroundBase, 78 * column + ( staggered ? 27 : -12 ) + sprite.x(), 139 + 80 * row + sprite.y() );
+        }
+    }
+    fheroes2::Blit( fheroes2::AGG::GetICN( skyIcn, 0 ), _battleGroundBase, 0, 0 );
 
     AudioManager::ResetAudio();
 }
@@ -2415,17 +2432,7 @@ void Battle::Interface::RedrawCover()
 
 void Battle::Interface::_redrawBattleGround()
 {
-    // Battlefield background image.
-    if ( _battleGroundIcn != ICN::UNKNOWN ) {
-        const fheroes2::Sprite & cbkg = fheroes2::AGG::GetICN( _battleGroundIcn, 0 );
-        fheroes2::Copy( cbkg, _battleGround );
-    }
-
-    // Objects near the left and right borders of the Battlefield.
-    if ( _borderObjectsIcn != ICN::UNKNOWN ) {
-        const fheroes2::Sprite & frng = fheroes2::AGG::GetICN( _borderObjectsIcn, 0 );
-        fheroes2::Blit( frng, _battleGround, frng.x(), frng.y() );
-    }
+    fheroes2::Copy( _battleGroundBase, _battleGround );
 
     // Big obstacles in the center of the Battlefield.
     if ( arena.GetICNCovr() != ICN::UNKNOWN ) {

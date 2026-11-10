@@ -30,6 +30,7 @@
 
 #include "agg.h"
 #include "battle_cell.h"
+#include "icn.h"
 #include "logging.h"
 #include "monster.h"
 #include "monster_info.h"
@@ -48,6 +49,55 @@ namespace
         return fheroes2::getMonsterData( monsterId ).binFileName;
     }
 
+    Bin_Info::MonsterAnimInfo getHeroes1Animation( const int monsterID )
+    {
+        using Animation = Bin_Info::MonsterAnimInfo;
+        Animation result;
+        if ( monsterID < Monster::PEASANT || monsterID > Monster::GENIE ) {
+            return result;
+        }
+
+        const std::string standingFile = ICN::getIcnFileName( fheroes2::getMonsterData( monsterID ).icnId );
+        const std::string stem = standingFile.substr( 0, standingFile.size() - 4 );
+        result.animationFrames.resize( Animation::SHOOT3_END + 1 );
+        auto & frames = result.animationFrames;
+        frames[Animation::STATIC] = { 1 };
+        frames[Animation::WINCE_UP] = { 2 };
+        frames[Animation::WINCE_END] = { 1 };
+        frames[Animation::DEATH] = { 2 };
+        frames[Animation::ATTACK1] = { 3, 4, 6 };
+        frames[Animation::ATTACK2] = { 3, 4, 7 };
+        frames[Animation::ATTACK3] = { 3, 4, 8 };
+        for ( const int index : { Animation::ATTACK1_END, Animation::ATTACK2_END, Animation::ATTACK3_END } ) {
+            frames[index] = { 4, 3, 1 };
+        }
+
+        const auto walk = AGG::getDataFromAggFile( stem + ".WLK", false );
+        const auto walkFrameCount = walk.size() >= 6 ? std::min<int>( walk[0], 6 ) : 0;
+        for ( int frame = 0; frame < walkFrameCount; ++frame ) {
+            frames[Animation::MOVE_MAIN].push_back( static_cast<int>( Bin_Info::heroes1CreatureWalkOffset ) + frame );
+        }
+        if ( frames[Animation::MOVE_MAIN].empty() ) {
+            frames[Animation::MOVE_MAIN] = frames[Animation::STATIC];
+        }
+
+        const auto shoot = AGG::getDataFromAggFile( stem + ".ATK", false );
+        if ( shoot.size() >= 6 && shoot[0] >= 5 ) {
+            const int firstShootFrame = static_cast<int>( Bin_Info::heroes1CreatureShootOffset );
+            for ( const int index : { Animation::SHOOT1, Animation::SHOOT2, Animation::SHOOT3 } ) {
+                frames[index] = { firstShootFrame + 1, firstShootFrame + 2, firstShootFrame + 3, firstShootFrame + 4 };
+                frames[index + 1] = { firstShootFrame + 2, 1 };
+            }
+        }
+
+        result.frameXOffset.resize( Animation::TEMPORARY + 1 );
+        result.frameXOffset[Animation::MOVE_MAIN].resize( frames[Animation::MOVE_MAIN].size(), 0 );
+        result.projectileOffset.resize( 3 );
+        result.shootSpeed = 450;
+        result.flightSpeed = 450;
+        return result;
+    }
+
     class MonsterAnimCache
     {
     public:
@@ -59,6 +109,9 @@ namespace
             }
 
             Bin_Info::MonsterAnimInfo info( monsterID, AGG::getDataFromAggFile( GetFilename( monsterID ), false ) );
+            if ( !info.isValid() ) {
+                info = getHeroes1Animation( monsterID );
+            }
             if ( info.isValid() ) {
                 _animMap[monsterID] = info;
                 return info;

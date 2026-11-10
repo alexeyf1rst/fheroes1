@@ -21,6 +21,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <functional>
@@ -249,6 +250,9 @@ Castle::CastleDialogReturnValue Castle::OpenDialog( const bool openConstructionW
     if ( fade && ( isDefaultScreenSize || !renderBackgroundDialog ) ) {
         fheroes2::fadeOutDisplay( dialogRoi, !isDefaultScreenSize );
     }
+
+    const fheroes2::Sprite & panel = fheroes2::AGG::GetICN( ICN::STONEBAK, 0 );
+    fheroes2::Blit( panel, 0, 0, display, dialogRoi.x, dialogRoi.y + 256, panel.width(), std::min( panel.height(), dialogRoi.height - 256 ) );
 
     AudioManager::PlayMusicAsync( MUS::FromRace( _race ), Music::PlaybackMode::RESUME_AND_PLAY_INFINITE );
 

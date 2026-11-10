@@ -6255,6 +6255,13 @@ namespace Maps
 
     MP2::MapObjectType getObjectTypeByIcn( const MP2::ObjectIcnType icnType, const uint32_t icnIndex )
     {
+        if ( icnType == MP2::OBJ_ICN_TYPE_H1_CHEST && icnIndex == 3 ) {
+            return MP2::OBJ_TREASURE_CHEST;
+        }
+        if ( icnType == MP2::OBJ_ICN_TYPE_H1_RESOURCE && icnIndex >= 61 && icnIndex <= 67 ) {
+            return MP2::OBJ_RESOURCE;
+        }
+
         const ObjectPartInfo * objectPart = getObjectPartByIcn( icnType, icnIndex );
         if ( objectPart != nullptr ) {
             return objectPart->objectType;

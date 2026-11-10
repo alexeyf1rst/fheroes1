@@ -491,12 +491,8 @@ bool Battle::Arena::DialogBattleSummary( const Result & res, const std::vector<A
 
     const bool isEvilInterface = Settings::Get().isEvilInterfaceEnabled();
 
-    const fheroes2::Sprite & originalBorderImage = fheroes2::AGG::GetICN( isEvilInterface ? ICN::WINLOSEE : ICN::WINLOSE, 0 );
-    const fheroes2::Rect animationBorderRoi{ 43, 32, 231, 133 };
-
     const fheroes2::Rect & roi( background.activeArea() );
-    const fheroes2::Rect animationRoi( roi.x + ( ( roi.width - animationBorderRoi.width ) / 2 ) + 4, roi.y + 21, animationBorderRoi.width, animationBorderRoi.height );
-    Copy( originalBorderImage, animationBorderRoi.x, animationBorderRoi.y, display, animationRoi.x - 4, animationRoi.y - 4, animationRoi.width, animationRoi.height );
+    const fheroes2::Rect animationRoi( roi.x + ( ( roi.width - 231 ) / 2 ) + 4, roi.y + 21, 231, 133 );
 
     // Setup summary texts according to results and get the corresponding animation sequence.
     std::string surrenderText;
