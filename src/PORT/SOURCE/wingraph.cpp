@@ -124,6 +124,16 @@ void SetFullScreenStatus(i32 fullScreen) {
 void KBPaintScreen(i32 left, i32 top, i32 right, i32 bottom) {
     if (gInitWin == NULL)
         return;
+    if ((gScrollX || gScrollY)
+        && left == WINGRAPH_SCROLL_MARGIN && top == WINGRAPH_SCROLL_MARGIN
+        && right == left + WINGRAPH_SCROLL_SIZE - 1
+        && bottom == top + WINGRAPH_SCROLL_SIZE - 1) {
+        ++gTtlBlts;
+        platform::UpdateDisplay(static_cast<const u8*>(gInitWin), LOGICAL_SCREEN_WIDTH,
+                                left + gScrollX, top + gScrollY, WINGRAPH_SCROLL_SIZE,
+                                WINGRAPH_SCROLL_SIZE, left, top);
+        return;
+    }
     // The original invalidated [left, right) and DDAppPaint then copied one
     // more column and row than the rectangle it was given (right++ below the
     // screen's edge, and a width of right - left + 1): the game's blits rely
@@ -134,19 +144,9 @@ void KBPaintScreen(i32 left, i32 top, i32 right, i32 bottom) {
         bottom++;
     i32 width = right - left + 1;
     i32 height = bottom - top + 1;
-    i32 sourceX = left;
-    i32 sourceY = top;
-    if (gScrollX != 0) {
-        sourceX = gScrollX + WINGRAPH_SCROLL_MARGIN;
-        width = WINGRAPH_SCROLL_SIZE;
-    }
-    if (gScrollY != 0) {
-        sourceY = gScrollY + WINGRAPH_SCROLL_MARGIN;
-        height = WINGRAPH_SCROLL_SIZE;
-    }
     gTtlBlts++;
-    platform::UpdateDisplay(static_cast<const u8*>(gInitWin), LOGICAL_SCREEN_WIDTH, sourceX,
-                            sourceY, width, height, left, top);
+    platform::UpdateDisplay(static_cast<const u8*>(gInitWin), LOGICAL_SCREEN_WIDTH, left,
+                            top, width, height, left, top);
 }
 
 // ---------------------------------------------------------------- cursors
