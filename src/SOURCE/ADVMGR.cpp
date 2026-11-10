@@ -6455,9 +6455,15 @@ bool advManager::DragMap(i16 x, i16 y) {
     constexpr int tileSize = 32;
     if (!m_mapDragging && abs(x - m_dragX) < threshold && abs(y - m_dragY) < threshold)
         return false;
-    if (!m_mapDragging)
+    if (!m_mapDragging) {
         DemobilizeCurrHero();
-    m_mapDragging = true;
+        m_dragSavedBorder = gNoBorder;
+        m_dragSavedBlit = gEnlargeScreenBlit;
+        gNoBorder = true;
+        gEnlargeScreenBlit = false;
+        CompleteDraw(false);
+        m_mapDragging = true;
+    }
     const auto nearestTile = [](int pixels) {
         return (pixels + (pixels < 0 ? -tileSize / 2 : tileSize / 2)) / tileSize;
     };
@@ -6479,14 +6485,16 @@ bool advManager::DragMap(i16 x, i16 y) {
 }
 
 void advManager::EndMapDrag() {
-    if (m_mapDragging)
+    if (m_mapDragging) {
         m_resumeEdgeScrollOnExit = MouseInScrollZone();
+        gNoBorder = m_dragSavedBorder;
+        m_scrollOffsetX = m_scrollOffsetY = 0;
+        DrawAdventureBorder();
+        UpdateScreen(false, false);
+        gEnlargeScreenBlit = m_dragSavedBlit;
+    }
     m_dragX = m_dragY = -1;
     m_mapDragging = false;
-    if (m_scrollOffsetX || m_scrollOffsetY) {
-        m_scrollOffsetX = m_scrollOffsetY = 0;
-        UpdateScreen(false, false);
-    }
 }
 
 void advManager::CheckScreenScroll(void) {

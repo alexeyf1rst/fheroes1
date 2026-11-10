@@ -348,6 +348,8 @@ public:
     void PanMap(i16 xOrigin, i16 yOrigin);
     bool m_resumeEdgeScrollOnExit = false;
     bool m_mapDragging = false;
+    b32 m_dragSavedBorder = false;
+    b32 m_dragSavedBlit = false;
     i16 m_dragX = -1;
     i16 m_dragY = -1;
     b32 MouseInScrollZone(void);
