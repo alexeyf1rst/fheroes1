@@ -6262,6 +6262,26 @@ namespace Maps
             return MP2::OBJ_RESOURCE;
         }
 
+        if ( icnType == MP2::OBJ_ICN_TYPE_H1_ARTIFACT ) {
+            return MP2::OBJ_ARTIFACT;
+        }
+
+        if ( MP2::isHoMM1Scenery( icnType ) ) {
+            const uint8_t sheet = icnType - MP2::OBJ_ICN_TYPE_H1_SCENERY_FIRST;
+            if ( ( sheet == 2 && icnIndex == 15 ) || ( sheet == 5 && icnIndex == 23 ) || ( sheet == 7 && icnIndex == 42 ) ) {
+                return MP2::OBJ_CAMPFIRE;
+            }
+            if ( sheet == 7 && icnIndex == 4 ) {
+                return MP2::OBJ_GENIE_LAMP;
+            }
+            if ( ( ( sheet == 2 || sheet == 5 ) && icnIndex == 7 ) || ( sheet == 7 && icnIndex == 6 ) ) {
+                return MP2::OBJ_STONE_LITHS;
+            }
+            if ( sheet == 0 && ( icnIndex == 49 || icnIndex == 56 || icnIndex == 63 ) ) {
+                return MP2::OBJ_WHIRLPOOL;
+            }
+        }
+
         const ObjectPartInfo * objectPart = getObjectPartByIcn( icnType, icnIndex );
         if ( objectPart != nullptr ) {
             return objectPart->objectType;

@@ -32,6 +32,7 @@
 #include "heroes.h"
 #include "maps_fileinfo.h"
 #include "monster.h"
+#include "race.h"
 #include "resource.h"
 #include "spell.h"
 #include "system.h"
@@ -42,61 +43,26 @@ namespace
 {
     const Campaign::VideoSequence emptyPlayback;
 
-    std::vector<Campaign::CampaignAwardData> getRolandCampaignAwardData( const int scenarioID )
+    constexpr std::array<PlayerColor, 4> lordColors = { PlayerColor::RED, PlayerColor::GREEN, PlayerColor::YELLOW, PlayerColor::BLUE };
+
+    struct HoMM1Chapter
     {
-        std::vector<Campaign::CampaignAwardData> obtainableAwards;
+        const char * name;
+        const char * objective;
+        fheroes2::Point target;
+    };
 
-        switch ( scenarioID ) {
-        case 2:
-            obtainableAwards.emplace_back( 0, Campaign::CampaignAwardData::TYPE_CREATURE_ALLIANCE, Monster::DWARF, gettext_noop( "Dwarven Alliance" ) );
-            break;
-        case 5:
-            obtainableAwards.emplace_back( 1, Campaign::CampaignAwardData::TYPE_HIREABLE_HERO, Heroes::ELIZA, 0, 0, gettext_noop( "Sorceress Guild" ) );
-            break;
-        case 6:
-            obtainableAwards.emplace_back( 2, Campaign::CampaignAwardData::TYPE_CARRY_OVER_FORCES, 0, 0, 9 );
-            break;
-        case 7:
-            obtainableAwards.emplace_back( 3, Campaign::CampaignAwardData::TYPE_GET_ARTIFACT, Artifact::ULTIMATE_CROWN, 1, 9 );
-            break;
-        case 8:
-            obtainableAwards.emplace_back( 4, Campaign::CampaignAwardData::TYPE_DEFEAT_ENEMY_HERO, Heroes::CORLAGON, 0, 9 );
-            break;
-        default:
-            break;
-        }
-
-        return obtainableAwards;
-    }
-
-    std::vector<Campaign::CampaignAwardData> getArchibaldCampaignAwardData( const int scenarioID )
-    {
-        std::vector<Campaign::CampaignAwardData> obtainableAwards;
-
-        switch ( scenarioID ) {
-        case 2:
-            obtainableAwards.emplace_back( 1, Campaign::CampaignAwardData::TYPE_HIREABLE_HERO, Heroes::BRAX, 0, 0, gettext_noop( "Necromancer Guild" ) );
-            break;
-        case 3:
-            obtainableAwards.emplace_back( 2, Campaign::CampaignAwardData::TYPE_CREATURE_ALLIANCE, Monster::OGRE, gettext_noop( "Ogre Alliance" ) );
-            obtainableAwards.emplace_back( 3, Campaign::CampaignAwardData::TYPE_CREATURE_CURSE, Monster::DWARF, gettext_noop( "Dwarfbane" ) );
-            break;
-        case 6:
-            obtainableAwards.emplace_back( 4, Campaign::CampaignAwardData::TYPE_CREATURE_ALLIANCE, Monster::GREEN_DRAGON, gettext_noop( "Dragon Alliance" ) );
-            break;
-        case 8:
-            obtainableAwards.emplace_back( 5, Campaign::CampaignAwardData::TYPE_GET_ARTIFACT, Artifact::ULTIMATE_CROWN );
-            break;
-        case 9:
-            obtainableAwards.emplace_back( 6, Campaign::CampaignAwardData::TYPE_CARRY_OVER_FORCES, 0 );
-            break;
-        default:
-            break;
-        }
-
-        return obtainableAwards;
-    }
-
+    constexpr std::array<HoMM1Chapter, 9> chapters = { {
+        { gettext_noop( "Gateway" ), gettext_noop( "Capture the town of Gateway in the center of the island before another lord takes it." ), { 36, 35 } },
+        { gettext_noop( "The Archipelago" ), gettext_noop( "Sail between the islands and defeat the three rival lords." ), {} },
+        { gettext_noop( "The Wounded Land" ), gettext_noop( "Visit the obelisks to piece together the puzzle and dig up the Eye of Goros before your rivals." ), {} },
+        { gettext_noop( "Free-for-All" ), gettext_noop( "Defeat all rival lords to claim the central continent." ), {} },
+        { gettext_noop( "Castle Ironfist" ), gettext_noop( "Cross the Floodwater River and take Lord Ironfist's castle in the northwest." ), { 13, 10 } },
+        { gettext_noop( "Castle Slayer" ), gettext_noop( "Cross the desert and take Lord Slayer's castle northeast of the mountain pass." ), { 62, 20 } },
+        { gettext_noop( "Castle Lamanda" ), gettext_noop( "Find the teleport gate and a sea route to the forest, then take Queen Lamanda's castle in the northwest." ), { 8, 8 } },
+        { gettext_noop( "Castle Alamar" ), gettext_noop( "Find your way through the Minotaur Maze and take Lord Alamar's castle in the southeast." ), { 66, 69 } },
+        { gettext_noop( "King-of-the-Hill" ), gettext_noop( "Defeat the guardians of the Dragon Citadel on the central island before the other lords." ), { 41, 37 } }
+    } };
 
     // HoMM1: each campaign plays 8 of the 9 CMP maps, each skipping a different one.
     // Ironfist: 1 2 3 4 6 7 8 9  (skips CAMP5)
@@ -106,11 +72,6 @@ namespace
     Campaign::CampaignData buildHoMM1Campaign( const int campaignID, const std::array<int, 8> & mapNumbers )
     {
         constexpr int scenarioCount = 8;
-        const std::array<std::string, scenarioCount> scenarioName
-            = { gettext_noop( "Campaign Scenario 1" ), gettext_noop( "Campaign Scenario 2" ), gettext_noop( "Campaign Scenario 3" ),
-                gettext_noop( "Campaign Scenario 4" ), gettext_noop( "Campaign Scenario 5" ), gettext_noop( "Campaign Scenario 6" ),
-                gettext_noop( "Campaign Scenario 7" ), gettext_noop( "Campaign Scenario 8" ) };
-
         std::vector<Campaign::ScenarioData> scenarioDatas;
         scenarioDatas.reserve( scenarioCount );
         for ( int i = 0; i < scenarioCount; ++i ) {
@@ -118,9 +79,12 @@ namespace
             if ( i + 1 < scenarioCount ) {
                 nextScenarios.emplace_back( campaignID, i + 1 );
             }
-            const std::string mapFile = "CAMP" + std::to_string( mapNumbers[i] ) + ".CMP";
-            scenarioDatas.emplace_back( Campaign::ScenarioInfoId{ campaignID, i }, std::move( nextScenarios ), mapFile, scenarioName[i], "",
-                                        emptyPlayback, emptyPlayback );
+            const int number = mapNumbers[i];
+            const HoMM1Chapter & chapter = chapters[number - 1];
+            const std::string mapFile = "CAMP" + std::to_string( number ) + ".CMP";
+            const auto victory = number == 9 ? Campaign::ScenarioVictoryCondition::CAPTURE_DRAGON_CITY : Campaign::ScenarioVictoryCondition::STANDARD;
+            scenarioDatas.emplace_back( Campaign::ScenarioInfoId{ campaignID, i }, std::move( nextScenarios ), mapFile, chapter.name, chapter.objective,
+                                        emptyPlayback, emptyPlayback, victory );
         }
 
         Campaign::CampaignData campaignData;
@@ -264,107 +228,39 @@ namespace Campaign
 
     void CampaignData::updateScenarioGameplayConditions( const Campaign::ScenarioInfoId & scenarioInfoId, Maps::FileInfo & mapInfo )
     {
-        bool allAIPlayersInAlliance = false;
-
-        switch ( scenarioInfoId.campaignId ) {
-        case IRONFIST_CAMPAIGN:
-        case SLAYER_CAMPAIGN:
-        case LAMANDA_CAMPAIGN:
-        case ALAMAR_CAMPAIGN: {
-            // Set per-CAMP victory conditions. Parse the CAMP number from the map filename.
-            const std::string baseName = StringLower( System::GetFileName( mapInfo.filename ) );
-            int campNum = 0;
-            // Expected basename format: "campN.cmp" (N = 1-9)
-            if ( baseName.size() == 9 && baseName.substr( 0, 4 ) == "camp" && baseName.substr( 5 ) == ".cmp" ) {
-                const char c = baseName[4];
-                if ( c >= '1' && c <= '9' ) {
-                    campNum = c - '0';
-                }
-            }
-            switch ( campNum ) {
-            case 1:
-                // CAMP1: Capture the Central Town at (41, 43)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
-                mapInfo.victoryConditionParams[0]  = 41;
-                mapInfo.victoryConditionParams[1]  = 43;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            case 3:
-                // CAMP3: Find the Eye of Goros — ultimate artifact (params[0] = 0 means ultimate)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_OBTAIN_ARTIFACT;
-                mapInfo.victoryConditionParams[0]  = 0;
-                mapInfo.victoryConditionParams[1]  = 0;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            case 5:
-                // CAMP5: Capture Castle Ironfist at (39, 35)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
-                mapInfo.victoryConditionParams[0]  = 39;
-                mapInfo.victoryConditionParams[1]  = 35;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            case 6:
-                // CAMP6: Capture Castle Slayer at (66, 51)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
-                mapInfo.victoryConditionParams[0]  = 66;
-                mapInfo.victoryConditionParams[1]  = 51;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            case 7:
-                // CAMP7: Capture Castle Lamanda at (61, 70)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
-                mapInfo.victoryConditionParams[0]  = 61;
-                mapInfo.victoryConditionParams[1]  = 70;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            case 8:
-                // CAMP8: Capture Castle Alamar at (14, 38)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
-                mapInfo.victoryConditionParams[0]  = 14;
-                mapInfo.victoryConditionParams[1]  = 38;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            case 9:
-                // CAMP9: Capture the Dragon Citadel at (61, 38)
-                mapInfo.victoryConditionType       = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
-                mapInfo.victoryConditionParams[0]  = 61;
-                mapInfo.victoryConditionParams[1]  = 38;
-                mapInfo.allowNormalVictory         = true;
-                break;
-            default:
-                // CAMP2, CAMP4: Conquer the Map — keep the default VICTORY_DEFEAT_EVERYONE.
-                break;
-            }
-            break;
-        }
-        default:
-            assert( 0 );
+        const std::string fileName = StringLower( System::GetFileName( mapInfo.filename ) );
+        if ( fileName.size() != 9 || fileName.compare( 0, 4, "camp" ) != 0 || fileName.compare( 5, 4, ".cmp" ) != 0 || fileName[4] < '1'
+             || fileName[4] > '9' ) {
             return;
         }
 
-        if ( allAIPlayersInAlliance ) {
-            const PlayerColorsVector humanColors( mapInfo.colorsAvailableForHumans );
-            // Make sure that this is only one human player on the map.
-            if ( humanColors.size() != 1 ) {
-                // Looks like somebody is modifying the original map.
-                assert( 0 );
-                return;
-            }
+        const int number = fileName[4] - '0';
+        const HoMM1Chapter & chapter = chapters[number - 1];
+        mapInfo.name = _( chapter.name );
+        mapInfo.description = _( chapter.objective );
 
-            const PlayerColorsSet aiColors = ( mapInfo.kingdomColors & ( ~mapInfo.colorsAvailableForHumans ) );
-            if ( aiColors == 0 ) {
-                // This is definitely not the map to modify.
-                assert( 0 );
-                return;
+        const PlayerColor human = lordColors[scenarioInfoId.campaignId];
+        mapInfo.races = { Race::WRLK, Race::BARB, Race::KNGT, Race::SORC };
+        mapInfo.colorsAvailableForHumans = static_cast<PlayerColorsSet>( human );
+        if ( number >= 5 && number <= 8 ) {
+            mapInfo.kingdomColors = human | lordColors[number - 5];
+        }
+        mapInfo.colorsAvailableForComp = mapInfo.kingdomColors & ~mapInfo.colorsAvailableForHumans;
+        if ( number == 9 ) {
+            for ( const PlayerColor color : PlayerColorsVector( mapInfo.colorsAvailableForComp ) ) {
+                mapInfo.unions[Color::GetIndex( color )] = mapInfo.colorsAvailableForComp;
             }
+        }
 
-            const PlayerColor humanColor = humanColors.front();
-
-            for ( PlayerColorsSet & allianceColor : mapInfo.unions ) {
-                if ( allianceColor != static_cast<PlayerColorsSet>( humanColor ) && ( allianceColor & aiColors ) ) {
-                    allianceColor = aiColors;
-                }
-            }
+        mapInfo.victoryConditionParams = { static_cast<uint16_t>( chapter.target.x ), static_cast<uint16_t>( chapter.target.y ) };
+        if ( number == 1 || ( number >= 5 && number <= 8 ) ) {
+            mapInfo.victoryConditionType = Maps::FileInfo::VICTORY_CAPTURE_TOWN;
+            mapInfo.allowNormalVictory = false;
+            mapInfo.compAlsoWins = number == 1;
+        }
+        else if ( number == 3 ) {
+            mapInfo.victoryConditionType = Maps::FileInfo::VICTORY_OBTAIN_ARTIFACT;
+            mapInfo.allowNormalVictory = false;
         }
     }
 
@@ -499,21 +395,8 @@ namespace Campaign
         return {};
     }
 
-    std::vector<Campaign::CampaignAwardData> CampaignAwardData::getCampaignAwardData( const ScenarioInfoId & scenarioInfo )
+    std::vector<Campaign::CampaignAwardData> CampaignAwardData::getCampaignAwardData( const ScenarioInfoId & )
     {
-        assert( scenarioInfo.campaignId >= 0 && scenarioInfo.scenarioId >= 0 );
-
-        switch ( scenarioInfo.campaignId ) {
-        case IRONFIST_CAMPAIGN:
-            return getRolandCampaignAwardData( scenarioInfo.scenarioId );
-        case SLAYER_CAMPAIGN:
-            return getArchibaldCampaignAwardData( scenarioInfo.scenarioId );
-        default:
-            // Did you add a new campaign? Add the corresponding case above.
-            assert( 0 );
-            break;
-        }
-
         return {};
     }
 

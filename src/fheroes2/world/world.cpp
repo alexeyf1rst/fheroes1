@@ -1080,7 +1080,8 @@ uint32_t World::CheckKingdomWins( const Kingdom & kingdom ) const
     const Settings & conf = Settings::Get();
 
     if ( conf.isCampaignGameType() && Campaign::getCurrentScenarioVictoryCondition() == Campaign::ScenarioVictoryCondition::CAPTURE_DRAGON_CITY ) {
-        if ( kingdom.isVisited( MP2::OBJ_DRAGON_CITY ) ) {
+        const int32_t citadel = Maps::GetIndexFromAbsPoint( conf.getCurrentMapInfo().WinsMapsPositionObject() );
+        if ( kingdom.isVisited( citadel, MP2::OBJ_DRAGON_CITY ) ) {
             return GameOver::WINS_SIDE;
         }
 
@@ -1110,6 +1111,15 @@ uint32_t World::CheckKingdomLoss( const Kingdom & kingdom ) const
     assert( kingdom.isControlHuman() || isKingdomInAIAutoControlMode );
 
     const Settings & conf = Settings::Get();
+
+    if ( conf.isCampaignGameType() && Campaign::getCurrentScenarioVictoryCondition() == Campaign::ScenarioVictoryCondition::CAPTURE_DRAGON_CITY ) {
+        const int32_t citadel = Maps::GetIndexFromAbsPoint( conf.getCurrentMapInfo().WinsMapsPositionObject() );
+        for ( const PlayerColor color : PlayerColorsVector( conf.getCurrentMapInfo().kingdomColors ) ) {
+            if ( color != kingdom.GetColor() && GetKingdom( color ).isVisited( citadel, MP2::OBJ_DRAGON_CITY ) ) {
+                return GameOver::LOSS_ENEMY_WINS_DRAGON_CITY;
+            }
+        }
+    }
 
     // First of all, check if the other players have fulfilled certain victory conditions yet
     const std::array<std::pair<uint32_t, uint32_t>, 3> enemyVictoryConditions

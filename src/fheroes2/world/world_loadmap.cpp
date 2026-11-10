@@ -26,6 +26,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <list>
 #include <map>
@@ -70,6 +71,7 @@
 #include "settings.h"
 #include "skill.h"
 #include "spell.h"
+#include "translations.h"
 #include "ui_language.h"
 #include "world.h" // IWYU pragma: associated
 #include "world_object_uid.h"
@@ -1788,9 +1790,6 @@ bool World::setHeroIdsForMapConditions()
 
 bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
 {
-    Reset();
-    Defaults();
-
     if ( data.size() < 6 ) {
         return false;
     }
@@ -1822,10 +1821,7 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         return false;
     }
 
-    width  = static_cast<int32_t>( mapWidth );
-    height = static_cast<int32_t>( mapHeight );
-
-    const int32_t worldSize = width * height;
+    const int32_t worldSize = mapWidth * mapHeight;
 
     // Tile data starts immediately after the secondary header (disk) or after the 6-byte header (AGG).
     const size_t tileDataOffset = isDiskFormat ? ( kDiskSecondaryHdr + 6 ) : 6;
@@ -1852,13 +1848,109 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
     constexpr std::array<int, 7> resources{ Resource::WOOD, Resource::MERCURY, Resource::ORE, Resource::SULFUR, Resource::CRYSTAL, Resource::GEMS,
                                             Resource::GOLD };
 
+    const auto readLE16 = []( const uint8_t * bytes ) -> uint16_t { return bytes[0] | ( static_cast<uint16_t>( bytes[1] ) << 8 ); };
+    const auto readLE32 = [&readLE16]( const uint8_t * bytes ) -> uint32_t {
+        return readLE16( bytes ) | ( static_cast<uint32_t>( readLE16( bytes + 2 ) ) << 16 );
+    };
+
+    // The original map reserves 37 artifact-holder bytes, one obelisk count byte and a 72x72 sound grid after the locations.
+    const size_t extraTable = mineTable + maxMineRecords * locationRecordSize + 37 + 1 + 72 * 72;
+    std::array<std::pair<const uint8_t *, size_t>, 256> extras{};
+    const uint16_t version = readLE16( data.data() + ( isDiskFormat ? kDiskSecondaryHdr : 0 ) );
+    if ( version >= 1112 && data.size() >= extraTable + 4 ) {
+        const size_t count = readLE32( data.data() + extraTable );
+        size_t offset = extraTable + 4;
+        if ( count > extras.size() ) {
+            return false;
+        }
+        for ( size_t i = 1; i < count; ++i ) {
+            if ( data.size() - offset < 4 ) {
+                return false;
+            }
+            const size_t length = readLE32( data.data() + offset );
+            offset += 4;
+            if ( length > data.size() - offset ) {
+                return false;
+            }
+            extras[i] = { data.data() + offset, length };
+            offset += length;
+        }
+    }
+
+    Reset();
+    Defaults();
+    width = mapWidth;
+    height = mapHeight;
+
+    const Settings & conf = Settings::Get();
+    const Maps::FileInfo & mapInfo = conf.getCurrentMapInfo();
+    const bool isCampaign = conf.isCampaignGameType();
+    std::vector<PlayerColor> ownerColors;
+    if ( isCampaign ) {
+        ownerColors.emplace_back( static_cast<PlayerColor>( mapInfo.colorsAvailableForHumans ) );
+    }
+    for ( const PlayerColor color : PlayerColorsVector( mapInfo.kingdomColors ) ) {
+        if ( ownerColors.empty() || color != ownerColors.front() ) {
+            ownerColors.emplace_back( color );
+        }
+    }
+    const auto getOwnerColor = [&ownerColors]( const uint8_t owner ) {
+        return owner >= 128 || ownerColors.empty() ? PlayerColor::NONE : ownerColors[std::min( static_cast<size_t>( owner ), ownerColors.size() - 1 )];
+    };
+    const auto getCell = [&]( const int32_t x, const int32_t y ) { return data.data() + tileDataOffset + static_cast<size_t>( x * height + y ) * kTileBytes; };
+
+    constexpr std::array<MP2::MapObjectType, 48> eventObjects = {
+        MP2::OBJ_NONE, MP2::OBJ_SIGN, MP2::OBJ_BUOY, MP2::OBJ_SKELETON, MP2::OBJ_DAEMON_CAVE, MP2::OBJ_NONE, MP2::OBJ_FAERIE_RING, MP2::OBJ_CAMPFIRE,
+        MP2::OBJ_FOUNTAIN, MP2::OBJ_GAZEBO, MP2::OBJ_GENIE_LAMP, MP2::OBJ_GRAVEYARD, MP2::OBJ_ARCHER_HOUSE, MP2::OBJ_PEASANT_HUT, MP2::OBJ_CAVE,
+        MP2::OBJ_DWARF_COTTAGE, MP2::OBJ_PEASANT_HUT, MP2::OBJ_SIGN, MP2::OBJ_SIGN, MP2::OBJ_SIGN, MP2::OBJ_SIGN, MP2::OBJ_DRAGON_CITY, MP2::OBJ_LIGHTHOUSE,
+        MP2::OBJ_WATER_WHEEL, MP2::OBJ_NONE, MP2::OBJ_NONE, MP2::OBJ_OBELISK, MP2::OBJ_OASIS, MP2::OBJ_NONE, MP2::OBJ_NONE, MP2::OBJ_COAST, MP2::OBJ_NONE,
+        MP2::OBJ_XANADU, MP2::OBJ_SHRINE_FIRST_CIRCLE, MP2::OBJ_SHIPWRECK, MP2::OBJ_IDOL, MP2::OBJ_NONE, MP2::OBJ_WATERING_HOLE, MP2::OBJ_DESERT_TENT,
+        MP2::OBJ_NONE, MP2::OBJ_STONE_LITHS, MP2::OBJ_WAGON_CAMP, MP2::OBJ_MAGIC_WELL, MP2::OBJ_WHIRLPOOL, MP2::OBJ_WINDMILL, MP2::OBJ_NONE,
+        MP2::OBJ_STANDING_STONES, MP2::OBJ_NONE
+    };
+    const auto getArtifact = []( const uint8_t originalId ) {
+        if ( originalId < 4 ) {
+            return Artifact::ULTIMATE_BOOK + originalId;
+        }
+        if ( originalId < 37 ) {
+            return Artifact::ARCANE_NECKLACE + originalId - 4;
+        }
+        return originalId == 37 ? static_cast<int>( Artifact::MAGIC_BOOK ) : static_cast<int>( Artifact::UNKNOWN );
+    };
+
+    std::array<bool, 37> usedArtifacts{};
+    for ( int32_t i = 0; i < worldSize; ++i ) {
+        const uint8_t * cell = getCell( i % width, i / width );
+        if ( cell[8] == 0xb0 && cell[2] < usedArtifacts.size() ) {
+            usedArtifacts[cell[2]] = true;
+        }
+    }
+    std::vector<uint8_t> availableArtifacts;
+    for ( uint8_t id = 4; id < usedArtifacts.size(); ++id ) {
+        if ( !usedArtifacts[id] ) {
+            availableArtifacts.push_back( id );
+        }
+    }
+    Rand::Shuffle( availableArtifacts );
+
+    constexpr std::array<Monster::LevelType, 4> monsterLevels = {
+        Monster::LevelType::LEVEL_1, Monster::LevelType::LEVEL_2, Monster::LevelType::LEVEL_3, Monster::LevelType::LEVEL_4
+    };
+    std::array<std::vector<Monster>, monsterLevels.size()> monsterPools;
+    for ( int id = Monster::PEASANT; id <= Monster::GENIE; ++id ) {
+        const Monster monster( id );
+        const auto level = std::find( monsterLevels.begin(), monsterLevels.end(), monster.GetRandomUnitLevel() );
+        if ( level != monsterLevels.end() ) {
+            monsterPools[static_cast<size_t>( level - monsterLevels.begin() )].push_back( monster );
+        }
+    }
+
     vec_tiles.resize( worldSize );
     for ( int32_t i = 0; i < worldSize; ++i ) {
         const int32_t x = i % width;
         const int32_t y = i / width;
         // Heroes I stores the whole column before the next one.
-        const size_t tileOff = tileDataOffset + static_cast<size_t>( x * height + y ) * kTileBytes;
-        const uint8_t * cell = data.data() + tileOff;
+        const uint8_t * cell = getCell( x, y );
         const uint8_t terrain = cell[0];
         const uint8_t flags = cell[6];
         if ( terrain >= Maps::Ground::homm1TilesPerTerrain * Maps::Ground::homm1TerrainCount ) {
@@ -1888,7 +1980,13 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
             }
         };
 
-        addSceneryPart( cell[1] & tilesetMask, cell[2], ( flags & groundShadow ) != 0 ? Maps::SHADOW_LAYER : Maps::OBJECT_LAYER, false );
+        const uint8_t trigger = cell[8];
+        constexpr uint8_t randomArtifact = 0xbd;
+        constexpr uint8_t randomResource = 0xbe;
+        const bool randomPickup = trigger == randomArtifact || trigger == randomResource;
+        if ( !randomPickup ) {
+            addSceneryPart( cell[1] & tilesetMask, cell[2], ( flags & groundShadow ) != 0 ? Maps::SHADOW_LAYER : Maps::OBJECT_LAYER, false );
+        }
         if ( ( flags & extraGroundPart ) != 0 ) {
             addSceneryPart( cell[1] >> 4, cell[5], Maps::OBJECT_LAYER, false );
         }
@@ -1905,7 +2003,6 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         constexpr uint8_t lastResourceFrame = 67;
         const uint8_t tileset = cell[1] & tilesetMask;
         const uint8_t frame = cell[2];
-        const uint8_t trigger = cell[8];
         const uint8_t quantity = cell[9];
         if ( trigger == monsterTrigger && tileset == monsterTileset && frame < Monster::GENIE ) {
             // Original map sprites are zero-based; Monster::UNKNOWN occupies the first engine ID.
@@ -1920,10 +2017,61 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
                 Maps::updateObjectInfoTile( tile, true );
             }
         }
-        else if ( trigger == resourceTrigger && tileset == lastSceneryTileset && frame >= firstResourceFrame && frame <= lastResourceFrame ) {
+        else if ( trigger == randomResource || ( trigger == resourceTrigger && tileset == lastSceneryTileset && frame >= firstResourceFrame && frame <= lastResourceFrame ) ) {
+            const uint8_t resourceFrame = trigger == randomResource ? Rand::Get( firstResourceFrame, lastResourceFrame ) : frame;
+            if ( trigger == randomResource ) {
+                tile.getMainObjectPart() = { Maps::OBJECT_LAYER, Maps::getNewObjectUID(), MP2::OBJ_ICN_TYPE_H1_RESOURCE, resourceFrame };
+            }
             tile.setMainObjectType( MP2::OBJ_RESOURCE );
-            tile.metadata()[0] = resources[frame - firstResourceFrame];
-            tile.metadata()[1] = frame == lastResourceFrame ? quantity * 100 : quantity;
+            const int resource = resources[resourceFrame - firstResourceFrame];
+            uint32_t amount = trigger == randomResource ? 0 : quantity;
+            if ( amount == 0 ) {
+                amount = resource == Resource::GOLD ? Rand::Get( 5, 10 )
+                                                    : ( resource == Resource::WOOD || resource == Resource::ORE ? Rand::Get( 8, 16 ) : Rand::Get( 3, 7 ) );
+            }
+            Maps::setResourceOnTile( tile, resource, resource == Resource::GOLD ? amount * 100 : amount );
+        }
+        else if ( trigger == randomArtifact || ( trigger == 0xb0 && tileset == 13 ) ) {
+            uint8_t artifactFrame = frame;
+            if ( trigger == randomArtifact ) {
+                if ( availableArtifacts.empty() ) {
+                    continue;
+                }
+                artifactFrame = availableArtifacts.back();
+                availableArtifacts.pop_back();
+            }
+            const int artifact = getArtifact( artifactFrame );
+            if ( artifact != Artifact::UNKNOWN ) {
+                tile.getMainObjectPart() = { Maps::OBJECT_LAYER, Maps::getNewObjectUID(), MP2::OBJ_ICN_TYPE_H1_ARTIFACT, artifactFrame };
+                tile.setMainObjectType( MP2::OBJ_ARTIFACT );
+                tile.metadata()[0] = artifact;
+            }
+        }
+        else if ( trigger == 0xbf || ( trigger >= 0xc3 && trigger <= 0xc6 ) ) {
+            const size_t level = trigger == 0xbf ? Rand::Get( 0, 3 ) : trigger - 0xc3;
+            Maps::setMonsterOnTile( tile, Rand::Get( monsterPools[level] ), quantity & 0x7f );
+        }
+        else if ( trigger >= 0x81 && trigger <= 0xb0 ) {
+            const MP2::MapObjectType object = eventObjects[trigger - 0x81];
+            if ( object != MP2::OBJ_NONE ) {
+                tile.sortObjectParts();
+                tile.setMainObjectType( object );
+                Maps::updateObjectInfoTile( tile, true );
+                if ( object == MP2::OBJ_LIGHTHOUSE || object == MP2::OBJ_DRAGON_CITY ) {
+                    map_captureobj.Set( i, object, PlayerColor::NONE );
+                }
+            }
+        }
+    }
+
+    for ( Maps::Tile & tile : vec_tiles ) {
+        if ( !tile.isWater() && tile.getMainObjectType() == MP2::OBJ_NONE && tile.GetPassable() != 0 ) {
+            for ( const int32_t adjacent : Maps::getAroundIndexes( tile.GetIndex(), 1 ) ) {
+                if ( vec_tiles[adjacent].isWater() ) {
+                    tile.setMainObjectType( MP2::OBJ_COAST );
+                    break;
+                }
+            }
         }
     }
 
@@ -1934,23 +2082,24 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         const uint8_t * record = data.data() + mineTable + i * locationRecordSize;
         const int32_t x = record[0];
         const int32_t y = record[1];
-        if ( x >= width || y >= height || record[2] >= resources.size() ) {
+        if ( x >= width || y >= height ) {
             continue;
         }
 
         const size_t tileOff = tileDataOffset + static_cast<size_t>( x * height + y ) * kTileBytes;
         const uint8_t trigger = data[tileOff + 8];
-        if ( trigger != 0x81 && trigger != 0x99 && trigger != 0xa0 ) {
+        if ( trigger != 0xc2 && ( record[2] >= resources.size() || ( trigger != 0x81 && trigger != 0x99 && trigger != 0xa0 ) ) ) {
             continue;
         }
 
-        const int resource = resources[record[2]];
+        const int resource = trigger == 0xc2 ? resources[Rand::Get( 0, static_cast<uint32_t>( resources.size() - 1 ) )] : resources[record[2]];
         const int32_t production = ProfitConditions::FromMine( resource ).getFirstValidResource().second;
         if ( production <= 0 ) {
             continue;
         }
 
-        const MP2::MapObjectType type = trigger == 0x81 ? MP2::OBJ_ALCHEMIST_LAB : trigger == 0xa0 ? MP2::OBJ_SAWMILL : MP2::OBJ_MINE;
+        const MP2::MapObjectType type
+            = resource == Resource::MERCURY ? MP2::OBJ_ALCHEMIST_LAB : resource == Resource::WOOD ? MP2::OBJ_SAWMILL : MP2::OBJ_MINE;
         const int32_t tileIndex = y * width + x;
         Maps::Tile & tile = vec_tiles[tileIndex];
         tile.sortObjectParts();
@@ -1959,12 +2108,27 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
         map_captureobj.Set( tileIndex, type, PlayerColor::NONE );
     }
 
-    // Each town record stores the coordinates, faction and a high bit for fortification.
-    // For this preview the first four records supply the starting towns. Custom ownership lives in the map's extra records.
+    // Town metadata contains ownership, starting buildings and the garrison.
     constexpr uint8_t fortifiedFlag = 0x80;
     constexpr std::array<int, 4> races = { Race::KNGT, Race::SORC, Race::BARB, Race::WRLK };
-    constexpr std::array<PlayerColor, 4> startingColors = { PlayerColor::BLUE, PlayerColor::GREEN, PlayerColor::RED, PlayerColor::YELLOW };
+    constexpr std::array<PlayerColor, 4> raceColors = { PlayerColor::RED, PlayerColor::YELLOW, PlayerColor::GREEN, PlayerColor::BLUE };
+    constexpr std::array<uint32_t, 13> buildings = { 0, BUILD_THIEVESGUILD, BUILD_TAVERN, BUILD_SHIPYARD, BUILD_WELL, 0, 0, DWELLING_MONSTER1,
+                                                     DWELLING_MONSTER2, DWELLING_MONSTER3, DWELLING_MONSTER4, DWELLING_MONSTER5, DWELLING_MONSTER6 };
+    constexpr std::array<uint32_t, 5> mageGuilds = { BUILD_MAGEGUILD1, BUILD_MAGEGUILD2, BUILD_MAGEGUILD3, BUILD_MAGEGUILD4, BUILD_MAGEGUILD5 };
     const size_t townCount = std::min( maxTownRecords, ( data.size() - townTable ) / locationRecordSize );
+    const auto getTownExtra = [&]( const uint8_t * record ) -> const uint8_t * {
+        if ( record[0] >= width || record[1] >= height ) {
+            return nullptr;
+        }
+        const auto [bytes, size] = extras[getCell( record[0], record[1] )[9]];
+        return size >= 20 && bytes[0] == 1 ? bytes : nullptr;
+    };
+    bool hasTownOwners = false;
+    for ( size_t i = 0; i < townCount; ++i ) {
+        const uint8_t * extra = getTownExtra( data.data() + townTable + i * locationRecordSize );
+        hasTownOwners |= extra != nullptr && extra[1] != 0xfe;
+    }
+
     for ( size_t i = 0; i < townCount; ++i ) {
         const uint8_t * record = data.data() + townTable + i * locationRecordSize;
         const int32_t x = record[0];
@@ -1974,18 +2138,53 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
             continue;
         }
 
-        const size_t tileOff = tileDataOffset + static_cast<size_t>( x * height + y ) * kTileBytes;
-        const uint8_t trigger = data[tileOff + 8];
+        const uint8_t trigger = getCell( x, y )[8];
         if ( trigger != 0xa8 && trigger != 0xc0 && trigger != 0xc1 ) {
             continue;
         }
 
-        const auto color = i < startingColors.size() ? startingColors[i] : PlayerColor::NONE;
-        auto castle = std::make_unique<Castle>( x, y, faction < races.size() ? races[faction] : Race::KNGT );
+        const uint8_t * extra = getTownExtra( record );
+        PlayerColor color = PlayerColor::NONE;
+        if ( hasTownOwners ) {
+            color = extra == nullptr ? PlayerColor::NONE : getOwnerColor( extra[1] );
+        }
+        else if ( i < ownerColors.size() ) {
+            color = isCampaign && faction < races.size() ? raceColors[faction] : ownerColors[i];
+        }
+
+        const int race = faction < races.size() ? races[faction]
+                                              : ( color == PlayerColor::NONE ? races[Rand::Get( 0, static_cast<int>( races.size() ) - 1 )] : mapInfo.KingdomRace( color ) );
+        auto castle = std::make_unique<Castle>( x, y, race );
         Maps::Map_Format::CastleMetadata metadata;
         if ( ( record[2] & fortifiedFlag ) != 0 ) {
             metadata.builtBuildings.push_back( BUILD_CASTLE );
         }
+        metadata.defenderMonsterType.fill( -1 );
+        if ( extra != nullptr ) {
+            metadata.customBuildings = true;
+            const uint16_t built = readLE16( extra + 2 );
+            for ( size_t bit = 1; bit < buildings.size(); ++bit ) {
+                if ( buildings[bit] != 0 && ( built & ( 1u << bit ) ) != 0 ) {
+                    metadata.builtBuildings.push_back( buildings[bit] );
+                }
+            }
+            for ( size_t bit = 0; bit < mageGuilds.size(); ++bit ) {
+                if ( ( extra[4] & ( 1u << bit ) ) != 0 ) {
+                    metadata.builtBuildings.push_back( mageGuilds[bit] );
+                }
+            }
+            for ( size_t slot = 0; slot < metadata.defenderMonsterType.size(); ++slot ) {
+                const uint16_t count = readLE16( extra + 10 + slot * 2 );
+                const uint8_t type = extra[5 + slot];
+                const bool isValid = type < Monster::GENIE && count > 0 && count <= INT16_MAX;
+                metadata.defenderMonsterType[slot] = isValid ? type + 1 : Monster::UNKNOWN;
+                metadata.defenderMonsterCount[slot] = isValid ? count : 0;
+            }
+        }
+        if ( isCampaign && mapInfo.victoryConditionType == Maps::FileInfo::VICTORY_CAPTURE_TOWN && mapInfo.WinsMapsPositionObject() == fheroes2::Point( x, y ) ) {
+            metadata.customName = mapInfo.name;
+        }
+
         castle->SetColor( color );
         castle->loadFromResurrectionMap( metadata );
         vec_castles.AddCastle( std::move( castle ) );
@@ -1995,13 +2194,98 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
     }
 
     updateCastleNames( vec_castles );
-
-    // Add castles and heroes to kingdoms, then give each player a starting hero.
-    vec_kingdoms.AddHeroes( vec_heroes );
     vec_kingdoms.AddCastles( vec_castles );
 
-    PostLoad( false, false );
+    for ( Maps::Tile & tile : vec_tiles ) {
+        const fheroes2::Point point = tile.GetCenter();
+        const uint8_t * cell = getCell( point.x, point.y );
+        if ( cell[8] == 0xc7 ) {
+            // The original roster and the fheroes2 roster have different orders within each faction.
+            constexpr std::array<int, 36> heroIds = {
+                Heroes::LORDKILBURN, Heroes::RUBY, Heroes::SIRGALLANTH, Heroes::GVENNETH, Heroes::TYRO, Heroes::MAXIMUS, Heroes::ECTOR, Heroes::DIMITRY,
+                Heroes::AMBROSE, Heroes::THUNDAX, Heroes::ERGON, Heroes::FINEOUS, Heroes::TSABU, Heroes::CRAGHACK, Heroes::JOJOSH, Heroes::ATLAS,
+                Heroes::JEZEBEL, Heroes::JACLYN, Heroes::ARIEL, Heroes::VATAWNA, Heroes::CARLAWN, Heroes::REBECCA, Heroes::LUNA, Heroes::ASTRA,
+                Heroes::NATASHA, Heroes::GEM, Heroes::TROYAN, Heroes::AGAR, Heroes::CRODO, Heroes::FALAGAR, Heroes::BAROK, Heroes::ARIE, Heroes::KASTORE,
+                Heroes::ALAMAR, Heroes::WRATHMONT, Heroes::VESPER
+            };
+            const auto [bytes, size] = extras[cell[9]];
+            if ( size < 25 || bytes[16] >= heroIds.size() || bytes[0] >= 128 ) {
+                continue;
+            }
 
+            Heroes * hero = vec_heroes.Get( heroIds[bytes[16]] );
+            if ( hero == nullptr || !hero->isAvailableForHire() ) {
+                continue;
+            }
+
+            Maps::Map_Format::HeroMetadata metadata;
+            switch ( bytes[16] ) {
+            case 1:
+                metadata.customName = _( "Lord Haart" );
+                break;
+            case 3:
+                metadata.customName = _( "Arturius" );
+                break;
+            case 11:
+                metadata.customName = _( "Kelzen" );
+                break;
+            case 16:
+                metadata.customName = _( "Yog" );
+                break;
+            case 17:
+                metadata.customName = _( "Antoine" );
+                break;
+            case 33:
+                metadata.customName = _( "Sandro" );
+                break;
+            default:
+                break;
+            }
+            metadata.race = static_cast<uint8_t>( hero->GetRace() );
+            const uint32_t experience = readLE32( bytes + 21 );
+            if ( experience <= INT32_MAX ) {
+                metadata.customExperience = static_cast<int32_t>( experience );
+            }
+            for ( size_t slot = 0; slot < metadata.armyMonsterType.size(); ++slot ) {
+                const uint16_t count = readLE16( bytes + 6 + slot * 2 );
+                if ( bytes[1 + slot] < Monster::GENIE && count > 0 && count <= INT16_MAX ) {
+                    metadata.armyMonsterType[slot] = bytes[1 + slot] + 1;
+                    metadata.armyMonsterCount[slot] = count;
+                }
+            }
+            for ( size_t slot = 0; slot < 4; ++slot ) {
+                metadata.artifact[slot] = getArtifact( bytes[17 + slot] );
+            }
+            hero->applyHeroMetadata( metadata, false, false );
+            hero->Recruit( getOwnerColor( bytes[0] ), point );
+        }
+        else if ( tile.getMainObjectType() == MP2::OBJ_SIGN ) {
+            auto sign = std::make_unique<MapSign>();
+            sign->setUIDAndIndex( tile.GetIndex() );
+            if ( cell[8] == 0x82 && vec_castles.Size() != 0 ) {
+                const auto closest = std::min_element( vec_castles.begin(), vec_castles.end(), [&point]( const Castle * lhs, const Castle * rhs ) {
+                    return ( std::abs( point.x - lhs->GetCenter().x ) + std::abs( point.y - lhs->GetCenter().y ) )
+                           < ( std::abs( point.x - rhs->GetCenter().x ) + std::abs( point.y - rhs->GetCenter().y ) );
+                } );
+                sign->message.text = ( *closest )->GetName();
+            }
+            else {
+                sign->setDefaultMessage();
+            }
+            map_objects.add( std::move( sign ) );
+        }
+    }
+
+    if ( isCampaign ) {
+        const Funds startingResources( 30, 30, 10, 10, 10, 10, 10000 );
+        for ( const PlayerColor color : ownerColors ) {
+            Kingdom & kingdom = GetKingdom( color );
+            kingdom.AddFundsResource( startingResources - kingdom.GetFunds() );
+        }
+    }
+
+    setUltimateArtifact();
+    PostLoad( false, false );
     vec_kingdoms.ApplyPlayWithStartingHero();
 
     return true;

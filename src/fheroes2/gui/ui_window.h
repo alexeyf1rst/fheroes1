@@ -101,6 +101,8 @@ namespace fheroes2
         // Apply corners with gems.
         void applyGemDecoratedCorners();
 
+        static bool renderHoMM1Frame( Image & output, const Rect & roi, const bool renderBackground );
+
         static void renderBackgroundImage( fheroes2::Image & output, const Rect & roi, const int32_t borderOffset, const bool isEvilInterface );
 
         void hideWindow()

@@ -295,43 +295,11 @@ fheroes2::GameMode Game::NewHoMM1Campaign()
         buttonAlamar.drawOnState( le.isMouseLeftButtonPressedInArea( buttonAlamar.area() ) );
         buttonCancel.drawOnState( le.isMouseLeftButtonPressedInArea( buttonCancel.area() ) );
 
-        const auto startHoMM1Campaign = [&]( int campaignId ) -> fheroes2::GameMode {
-            Campaign::CampaignSaveData::Get().reset();
-            Campaign::CampaignSaveData::Get().setCurrentScenarioInfo( { campaignId, 0 } );
-
-            // Load CAMP1.CMP from the MAPS/ directory.
-            std::string campFilePath;
-            if ( !Maps::tryGetMatchingFile( "camp1.cmp", campFilePath ) ) {
-                fheroes2::showStandardTextMessage( _( "Error" ), _( "Campaign map CAMP1.CMP not found in MAPS/." ), Dialog::OK );
-                return fheroes2::GameMode::NEW_GAME;
-            }
-
-            StreamFile fs;
-            if ( !fs.open( campFilePath, "rb" ) ) {
-                fheroes2::showStandardTextMessage( _( "Error" ), _( "Could not open CAMP1.CMP." ), Dialog::OK );
-                return fheroes2::GameMode::NEW_GAME;
-            }
-            std::vector<uint8_t> mapData = fs.getRaw( fs.size() );
-
-            Maps::FileInfo mapInfo;
-            if ( !mapInfo.readHoMM1MapFromBytes( mapData, campFilePath ) ) {
-                fheroes2::showStandardTextMessage( _( "Error" ), _( "Campaign map not found." ), Dialog::OK );
-                return fheroes2::GameMode::NEW_GAME;
-            }
-
-            Settings & conf = Settings::Get();
-            conf.setCurrentMapInfo( mapInfo );
-            conf.SetGameType( Game::TYPE_CAMPAIGN );
-            conf.GetPlayers().SetStartGame();
-
-            if ( world.loadHoMM1Map( mapData ) ) {
-                fheroes2::fadeOutDisplay();
-                Game::setDisplayFadeIn();
-                return fheroes2::GameMode::START_GAME;
-            }
-
-            fheroes2::showStandardTextMessage( _( "Error" ), _( "Could not load campaign map." ), Dialog::OK );
-            return fheroes2::GameMode::NEW_GAME;
+        const auto startHoMM1Campaign = []( const int campaignId ) {
+            Campaign::CampaignSaveData & save = Campaign::CampaignSaveData::Get();
+            save.reset();
+            save.setCurrentScenarioInfo( { campaignId, 0 } );
+            return Game::SelectCampaignScenario( fheroes2::GameMode::NEW_HOMM1_CAMPAIGN, false );
         };
 
         if ( le.MouseClickLeft( buttonIronfist.area() ) ) {

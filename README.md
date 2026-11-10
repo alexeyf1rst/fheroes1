@@ -14,7 +14,7 @@ cmake --install build --config Release --prefix stage
 
 Place the runtime SDL2 and SDL2_mixer DLLs alongside `stage/bin/fheroes1.exe` if you linked the shared libraries. Copy `DATA/HEROES.AGG` and `MAPS` from your original Heroes I install alongside the executable, keeping the directory structure.
 
-This preview reads the original archive and imports terrain, scenery, towns, treasure chests, resource piles, wandering armies and resource-producing mines. Other interactive map objects, custom town ownership, events, starting armies and campaign compatibility are incomplete. It uses its own Windows profile directory `%APPDATA%/fheroes1`.
+The engine reads the original campaign and scenario maps. The four campaigns use the original chapter order, faction ownership and objectives. It imports custom starting armies and buildings, map resources, mines, recruitable dwellings, obelisks, teleports and whirlpools. Ships can be purchased at coastal shipyards. The engine uses its own Windows profile directory `%APPDATA%/fheroes1`.
 
 To import music from an extracted Heroes I `SOUND` directory, run the importer in PowerShell and select **External** music in the game:
 

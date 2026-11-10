@@ -142,8 +142,42 @@ namespace fheroes2
         render();
     }
 
+    bool StandardWindow::renderHoMM1Frame( Image & output, const Rect & roi, const bool renderBackground )
+    {
+        const Sprite & panel = AGG::GetICN( ICN::H1PANEL, 0 );
+        constexpr int32_t edge = 18;
+        if ( panel.width() <= 2 * edge || panel.height() <= 2 * edge || roi.width <= 2 * edge || roi.height <= 2 * edge ) {
+            return false;
+        }
+
+        if ( renderBackground ) {
+            Fill( output, roi.x, roi.y, roi.width, roi.height, GetColorId( 41, 21, 28 ) );
+        }
+
+        const int32_t innerWidth = roi.width - 2 * edge;
+        const int32_t innerHeight = roi.height - 2 * edge;
+        const int32_t srcRight = panel.width() - edge;
+        const int32_t srcBottom = panel.height() - edge;
+        const int32_t dstRight = roi.x + roi.width - edge;
+        const int32_t dstBottom = roi.y + roi.height - edge;
+        Resize( panel, edge, 0, srcRight - edge, edge, output, roi.x + edge, roi.y, innerWidth, edge );
+        Resize( panel, edge, srcBottom, srcRight - edge, edge, output, roi.x + edge, dstBottom, innerWidth, edge );
+        Resize( panel, 0, edge, edge, srcBottom - edge, output, roi.x, roi.y + edge, edge, innerHeight );
+        Resize( panel, srcRight, edge, edge, srcBottom - edge, output, dstRight, roi.y + edge, edge, innerHeight );
+        Blit( panel, 0, 0, output, roi.x, roi.y, edge, edge );
+        Blit( panel, srcRight, 0, output, dstRight, roi.y, edge, edge );
+        Blit( panel, 0, srcBottom, output, roi.x, dstBottom, edge, edge );
+        Blit( panel, srcRight, srcBottom, output, dstRight, dstBottom, edge, edge );
+        return true;
+    }
+
     void StandardWindow::render()
     {
+        if ( renderHoMM1Frame( _output, _windowArea, _hasBackground ) ) {
+            addGradientShadowForArea( _output, { _windowArea.x, _windowArea.y }, _windowArea.width, _windowArea.height, borderSize );
+            return;
+        }
+
         const bool isEvilInterface = Settings::Get().isEvilInterfaceEnabled();
 
         // Notice: ICN::SURDRBKE and ICN::SURDRBKG has 16 (equals to borderWidthPx) pixels shadow from the left and the bottom sides.

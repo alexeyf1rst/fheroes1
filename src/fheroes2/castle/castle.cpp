@@ -1485,7 +1485,42 @@ Heroes * Castle::GetHero() const
 
 bool Castle::HasSeaAccess() const
 {
-    // HoMM1 has no naval mechanics - no castle has sea access.
+    const fheroes2::Point possibleSeaTile{ center.x, center.y + 2 };
+    if ( !Maps::isValidAbsPoint( possibleSeaTile.x, possibleSeaTile.y ) ) {
+        // If a tile below doesn't exist then no reason to check other tiles.
+        return false;
+    }
+
+    auto doesTileAllowsToPutBoat = []( const Maps::Tile & tile ) {
+        if ( !tile.isWater() ) {
+            // No water, no boat.
+            return false;
+        }
+
+        if ( tile.getMainObjectPart().icnType == MP2::OBJ_ICN_TYPE_UNKNOWN ) {
+            // The main addon does not exist on this tile.
+            // This means that all objects on this tile are not primary objects (like shadows or some parts of objects).
+            return true;
+        }
+
+        // If this is an object's shadow or this is an action object that can be removed then it is possible to put a boat here.
+        const MP2::MapObjectType objectType = tile.getMainObjectType();
+        return MP2::isPickupObject( objectType ) || objectType == MP2::OBJ_BOAT || tile.isPassabilityTransparent();
+    };
+
+    const int32_t index = Maps::GetIndexFromAbsPoint( possibleSeaTile.x, possibleSeaTile.y );
+    if ( doesTileAllowsToPutBoat( world.getTile( index ) ) ) {
+        return true;
+    }
+
+    if ( Maps::isValidAbsPoint( possibleSeaTile.x - 1, possibleSeaTile.y ) && doesTileAllowsToPutBoat( world.getTile( index - 1 ) ) ) {
+        return true;
+    }
+
+    if ( Maps::isValidAbsPoint( possibleSeaTile.x + 1, possibleSeaTile.y ) && doesTileAllowsToPutBoat( world.getTile( index + 1 ) ) ) {
+        return true;
+    }
+
     return false;
 }
 
@@ -1721,16 +1756,46 @@ double Castle::GetGarrisonStrength( const Heroes * attackingHero ) const
     return totalStrength;
 }
 
-bool Castle::AllowBuyBoat( const bool /*checkPayment*/ ) const
+bool Castle::AllowBuyBoat( const bool checkPayment ) const
 {
-    // HoMM1 has no naval mechanics - buying boats is not allowed.
-    return false;
+    if ( !isBuild( BUILD_SHIPYARD ) ) {
+        return false;
+    }
+
+    if ( checkPayment && !GetKingdom().AllowPayment( PaymentConditions::BuyBoat() ) ) {
+        return false;
+    }
+
+    if ( HasBoatNearby() ) {
+        return false;
+    }
+
+    return getTileIndexToPlaceBoat() >= 0;
 }
 
 bool Castle::BuyBoat() const
 {
-    // HoMM1 has no naval mechanics - buying boats is not allowed.
-    return false;
+    if ( !AllowBuyBoat( true ) ) {
+        return false;
+    }
+
+    // If this assertion blows up then you didn't even check conditions to build a shipyard!
+    assert( HasSeaAccess() );
+
+    const int32_t index = getTileIndexToPlaceBoat();
+    if ( index < 0 ) {
+        return false;
+    }
+
+    if ( isControlHuman() ) {
+        AudioManager::PlaySound( M82::BUILDTWN );
+    }
+
+    Kingdom & kingdom = GetKingdom();
+    kingdom.OddFundsResource( PaymentConditions::BuyBoat() );
+    world.getTile( index ).setBoat( Direction::RIGHT, kingdom.GetColor() );
+
+    return true;
 }
 
 void Castle::setName( const std::set<std::string, std::less<>> & usedNames )

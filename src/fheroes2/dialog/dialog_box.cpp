@@ -31,12 +31,14 @@
 #include "image.h"
 #include "screen.h"
 #include "settings.h"
+#include "ui_window.h"
 
 namespace
 {
     const int32_t windowWidth = 288; // this is measured value
     const int32_t buttonHeight = 40;
     const int32_t activeAreaHeight = 35;
+    const int32_t homm1Border = 20;
 
     int32_t topHeight( const bool isEvilInterface )
     {
@@ -98,6 +100,18 @@ Dialog::NonFixedFrameBox::NonFixedFrameBox( int height, int startYPos, bool show
     if ( showButtons )
         height += buttonHeight;
 
+    fheroes2::Display & display = fheroes2::Display::instance();
+    if ( !fheroes2::AGG::GetICN( ICN::H1PANEL, 0 ).empty() ) {
+        area.width = fheroes2::boxAreaWidthPx;
+        area.height = std::max( height, 2 * activeAreaHeight );
+        area.x = ( display.width() - area.width ) / 2;
+        area.y = startYPos < 0 ? ( display.height() - area.height ) / 2 : startYPos + homm1Border;
+        _restorer = std::make_unique<fheroes2::ImageRestorer>( display, area.x - homm1Border, area.y - homm1Border, area.width + 2 * homm1Border,
+                                                              area.height + 2 * homm1Border );
+        redraw();
+        return;
+    }
+
     const bool evil = Settings::Get().isEvilInterfaceEnabled();
     _middleFragmentCount = ( height <= 2 * activeAreaHeight ? 0 : 1 + ( height - 2 * activeAreaHeight ) / activeAreaHeight );
     _middleFragmentHeight = height <= 2 * activeAreaHeight ? 0 : height - 2 * activeAreaHeight;
@@ -106,7 +120,6 @@ Dialog::NonFixedFrameBox::NonFixedFrameBox( int height, int startYPos, bool show
     area.width = fheroes2::boxAreaWidthPx;
     area.height = activeAreaHeight + activeAreaHeight + _middleFragmentHeight;
 
-    fheroes2::Display & display = fheroes2::Display::instance();
     const int32_t leftSideOffset = leftOffset( evil );
 
     _position.x = ( display.width() - windowWidth ) / 2 - leftSideOffset;
@@ -126,6 +139,11 @@ Dialog::NonFixedFrameBox::NonFixedFrameBox( int height, int startYPos, bool show
 
 void Dialog::NonFixedFrameBox::redraw()
 {
+    fheroes2::Display & display = fheroes2::Display::instance();
+    if ( fheroes2::StandardWindow::renderHoMM1Frame( display, _restorer->rect(), true ) ) {
+        return;
+    }
+
     const bool isEvilInterface = Settings::Get().isEvilInterfaceEnabled();
     const int buybuild = isEvilInterface ? ICN::BUYBUILE : ICN::BUYBUILD;
 
@@ -135,8 +153,6 @@ void Dialog::NonFixedFrameBox::redraw()
     const fheroes2::Sprite & part0 = fheroes2::AGG::GetICN( buybuild, 0 );
     // left-top
     const fheroes2::Sprite & part4 = fheroes2::AGG::GetICN( buybuild, 4 );
-
-    fheroes2::Display & display = fheroes2::Display::instance();
 
     fheroes2::Blit( part4, display, _position.x + overallLeftWidth - part4.width(), _position.y );
     fheroes2::Blit( part0, display, _position.x + overallLeftWidth, _position.y );

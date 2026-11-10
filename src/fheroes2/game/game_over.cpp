@@ -192,6 +192,10 @@ namespace
             break;
         }
 
+        case GameOver::LOSS_ENEMY_WINS_DRAGON_CITY:
+            strings.emplace_back( _( "A rival lord has captured the Dragon Citadel." ), gameLanguage );
+            break;
+
         case GameOver::LOSS_ENEMY_WINS_GOLD: {
             std::string tempText = _( "The enemy has built up over %{count} gold in his treasury.\nYou must bow done in defeat before his wealth and power." );
             StringReplace( tempText, "%{count}", mapInfo.getWinningGoldAccumulationValue() );

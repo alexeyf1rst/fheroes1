@@ -366,29 +366,11 @@ void Interface::AdventureMap::EventPuzzleMaps() const
 fheroes2::GameMode Interface::AdventureMap::EventScenarioInformation()
 {
     if ( Settings::Get().isCampaignGameType() ) {
-        fheroes2::Display & display = fheroes2::Display::instance();
-        fheroes2::ImageRestorer saver( display, 0, 0, display.width(), display.height() );
-
-        // We are opening campaign scenario info. It is a full screen image change. So do fade-out and set the fade-in.
-        fheroes2::fadeOutDisplay();
-        Game::setDisplayFadeIn();
-
-        AudioManager::ResetAudio();
-
-        const fheroes2::GameMode returnMode = Game::SelectCampaignScenario( fheroes2::GameMode::CANCEL, true );
-        if ( returnMode == fheroes2::GameMode::CANCEL ) {
-            // We are going back to the Adventure map with fade-in.
-            Game::setDisplayFadeIn();
-
-            saver.restore();
-
+        const fheroes2::GameMode mode = Game::SelectCampaignScenario( fheroes2::GameMode::CANCEL, true );
+        if ( mode == fheroes2::GameMode::CANCEL ) {
             Game::restoreSoundsForCurrentFocus();
         }
-        else {
-            saver.reset();
-        }
-
-        return returnMode;
+        return mode;
     }
 
     Dialog::GameInfo();

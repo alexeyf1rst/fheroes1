@@ -82,6 +82,8 @@ int MP2::getIcnIdFromObjectIcnType( const ObjectIcnType objectIcnType )
         return ICN::UNKNOWN;
     case OBJ_ICN_TYPE_BOAT32:
         return ICN::BOAT32;
+    case OBJ_ICN_TYPE_H1_ARTIFACT:
+        return ICN::ART32;
     case OBJ_ICN_TYPE_OBJNARTI:
         return ICN::OBJNARTI;
     case OBJ_ICN_TYPE_MONS32:
