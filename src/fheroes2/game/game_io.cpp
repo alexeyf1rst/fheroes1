@@ -82,7 +82,7 @@ namespace
             info.worldWeek = worldWeek;
             info.worldMonth = worldMonth;
 
-            if ( fi.version != GameVersion::SUCCESSION_WARS ) {
+            if ( fi.version != GameVersion::SUCCESSION_WARS && fi.version != GameVersion::HOMM1 ) {
                 requirements |= REQUIRES_POL_RESOURCES;
             }
         }
@@ -238,7 +238,8 @@ fheroes2::GameMode Game::Load( const std::string & filePath )
         return fheroes2::GameMode::CANCEL;
     }
 
-    if ( ( header.requirements & HeaderSAV::REQUIRES_POL_RESOURCES ) && !conf.isPriceOfLoyaltySupported() ) {
+    // Earlier fheroes1 builds incorrectly set the expansion flag on Heroes I saves.
+    if ( header.info.version != GameVersion::HOMM1 && ( header.requirements & HeaderSAV::REQUIRES_POL_RESOURCES ) && !conf.isPriceOfLoyaltySupported() ) {
         fheroes2::showStandardTextMessage( _( "Error" ),
                                            _( "This save file requires \"The Price of Loyalty\" game assets, but they have not been provided to the engine." ),
                                            Dialog::OK );
