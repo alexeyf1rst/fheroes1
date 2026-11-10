@@ -180,6 +180,10 @@ msgstr ""
 msgid "campaign.victory"
 msgstr ""
 
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.animation_speed"
+msgstr ""
+
 #: src/SOURCE/SPELLS.cpp
 #, c-format
 msgid "combat.armageddon.damage"
@@ -266,6 +270,15 @@ msgstr ""
 msgid "combat.genie.half_army.buka"
 msgstr ""
 
+#: src/SOURCE/CMBTMGR.cpp
+msgid "combat.history.button"
+msgstr ""
+
+#: src/SOURCE/CMBTMGR.cpp src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.history.round"
+msgstr ""
+
 #: src/SOURCE/ARMY.cpp
 #, c-format
 msgid "combat.luck.bad.buka"
@@ -325,6 +338,46 @@ msgstr ""
 
 #: src/SOURCE/EVENTS.cpp
 msgid "combat.network.town"
+msgstr ""
+
+#: src/SOURCE/CMBTMGR.cpp
+msgid "combat.options.button"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.damage"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.grid"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.off"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.okay"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.on"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.order"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.speed"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.spells"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.title"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
@@ -1176,6 +1229,14 @@ msgid "hero.title"
 msgstr ""
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution.desktop"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.map_packs"
 msgstr ""
 
@@ -1188,6 +1249,10 @@ msgid "menu.scaling"
 msgstr ""
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fill"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.fit"
 msgstr ""
 
@@ -1197,18 +1262,6 @@ msgstr ""
 
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.smooth"
-msgstr ""
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.scaling.fill"
-msgstr ""
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.fullscreen_resolution"
-msgstr ""
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.fullscreen_resolution.desktop"
 msgstr ""
 
 #: src/SOURCE/REMOTE.cpp
@@ -6520,6 +6573,10 @@ msgid "town.build.requires"
 msgstr ""
 
 #: src/SOURCE/TOWNMGR.cpp
+msgid "town.construction.done_suffix"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
 msgid "town.mage.spells"
 msgstr ""
 
@@ -6568,57 +6625,4 @@ msgstr ""
 
 #: src/PORT/SOURCE/kbwin.cpp src/SOURCE/kbwin.cpp
 msgid "window.gTitle"
-msgstr ""
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "combat.animation_speed"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.button"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.title"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.speed"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.order"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.grid"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.damage"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.spells"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.on"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.off"
-msgstr ""
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.okay"
-msgstr ""
-
-msgid "town.construction.done_suffix"
-msgstr ""
-
-msgid "combat.history.button"
-msgstr ""
-
-msgid "combat.history.round"
 msgstr ""

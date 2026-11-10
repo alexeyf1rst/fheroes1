@@ -179,6 +179,10 @@ msgstr " Замок Аламара  "
 msgid "campaign.victory"
 msgstr "Мои герои! Наши враги были разбиты, а их замки преданы разорению. Великий поход окончен, и я предстаю перед вами как всеми признанный Великий Король!\n\nМы достигли  победы за %d дней!"
 
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.animation_speed"
+msgstr "Скорость анимации"
+
 #: src/SOURCE/SPELLS.cpp
 #, c-format
 msgid "combat.armageddon.damage"
@@ -265,6 +269,15 @@ msgstr "воинов"
 msgid "combat.genie.half_army.buka"
 msgstr "%s %s уничтожил вражеских воинов!"
 
+#: src/SOURCE/CMBTMGR.cpp
+msgid "combat.history.button"
+msgstr "Журнал"
+
+#: src/SOURCE/CMBTMGR.cpp src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.history.round"
+msgstr "Раунд %d"
+
 #: src/SOURCE/ARMY.cpp
 #, c-format
 msgid "combat.luck.bad.buka"
@@ -325,6 +338,46 @@ msgstr "Ошибка получения информации. Продолжат
 #: src/SOURCE/EVENTS.cpp
 msgid "combat.network.town"
 msgstr "Город"
+
+#: src/SOURCE/CMBTMGR.cpp
+msgid "combat.options.button"
+msgstr "Опции"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.damage"
+msgstr "Урон"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.grid"
+msgstr "Сетка"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.off"
+msgstr "Выкл"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.okay"
+msgstr "ОК"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.on"
+msgstr "Вкл"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.order"
+msgstr "Очередь"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.speed"
+msgstr "Темп"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.spells"
+msgstr "Автомагия"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.title"
+msgstr "Настройки боя"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.quick.confirm"
@@ -1175,6 +1228,14 @@ msgid "hero.title"
 msgstr "%s %s"
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution"
+msgstr "Разрешение полного экрана"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution.desktop"
+msgstr "Как у рабочего стола"
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.map_packs"
 msgstr "Наборы карт"
 
@@ -1187,6 +1248,10 @@ msgid "menu.scaling"
 msgstr "Масштаб"
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fill"
+msgstr "На весь экран (пиксели)"
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.fit"
 msgstr "По окну, чётко"
 
@@ -1197,18 +1262,6 @@ msgstr "Целые пиксели"
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.smooth"
 msgstr "По окну, сглаженно"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.scaling.fill"
-msgstr "На весь экран (пиксели)"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.fullscreen_resolution"
-msgstr "Разрешение полного экрана"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.fullscreen_resolution.desktop"
-msgstr "Как у рабочего стола"
 
 #: src/SOURCE/REMOTE.cpp
 msgid "modem.connecting"
@@ -6519,6 +6572,10 @@ msgid "town.build.requires"
 msgstr "\nНужно:"
 
 #: src/SOURCE/TOWNMGR.cpp
+msgid "town.construction.done_suffix"
+msgstr " - Уже строили"
+
+#: src/SOURCE/TOWNMGR.cpp
 msgid "town.mage.spells"
 msgstr "Указанные заклинания доступны здесь."
 
@@ -6568,56 +6625,3 @@ msgstr "Герои"
 #: src/PORT/SOURCE/kbwin.cpp src/SOURCE/kbwin.cpp
 msgid "window.gTitle"
 msgstr "Герои Меча и Магии"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "combat.animation_speed"
-msgstr "Скорость анимации"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.button"
-msgstr "Опции"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.title"
-msgstr "Настройки боя"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.speed"
-msgstr "Темп"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.order"
-msgstr "Очередь"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.grid"
-msgstr "Сетка"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.damage"
-msgstr "Урон"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.spells"
-msgstr "Автомагия"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.on"
-msgstr "Вкл"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.off"
-msgstr "Выкл"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.okay"
-msgstr "ОК"
-
-msgid "town.construction.done_suffix"
-msgstr " - Уже строили"
-
-msgid "combat.history.button"
-msgstr "Журнал"
-
-msgid "combat.history.round"
-msgstr "Раунд %d"

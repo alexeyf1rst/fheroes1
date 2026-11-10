@@ -179,6 +179,10 @@ msgstr " Castle Alamar  "
 msgid "campaign.victory"
 msgstr "My heroes, our foes have been scattered, their castles broken and laid bare.  The great campaign is now complete, and I stand before you as the undisputed High King!\n\nOur victory was achieved in %d days!"
 
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.animation_speed"
+msgstr "Animation speed"
+
 #: src/SOURCE/SPELLS.cpp
 #, c-format
 msgid "combat.armageddon.damage"
@@ -265,6 +269,15 @@ msgstr "creatures"
 msgid "combat.genie.half_army.buka"
 msgstr "%s %s half the enemy troops!"
 
+#: src/SOURCE/CMBTMGR.cpp
+msgid "combat.history.button"
+msgstr "Log"
+
+#: src/SOURCE/CMBTMGR.cpp src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.history.round"
+msgstr "Round %d"
+
 #: src/SOURCE/ARMY.cpp
 #, c-format
 msgid "combat.luck.bad.buka"
@@ -325,6 +338,46 @@ msgstr "Error receiving data.  Keep trying??"
 #: src/SOURCE/EVENTS.cpp
 msgid "combat.network.town"
 msgstr "Town"
+
+#: src/SOURCE/CMBTMGR.cpp
+msgid "combat.options.button"
+msgstr "Options"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.damage"
+msgstr "Damage info"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.grid"
+msgstr "Grid"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.off"
+msgstr "Off"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.okay"
+msgstr "Okay"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.on"
+msgstr "On"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.order"
+msgstr "Turn order"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.speed"
+msgstr "Speed"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.spells"
+msgstr "Auto spells"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.title"
+msgstr "Battle Options"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.quick.confirm"
@@ -1175,6 +1228,14 @@ msgid "hero.title"
 msgstr "%s the %s"
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution"
+msgstr "Fullscreen resolution"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution.desktop"
+msgstr "Desktop (automatic)"
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.map_packs"
 msgstr "Map packs"
 
@@ -1187,6 +1248,10 @@ msgid "menu.scaling"
 msgstr "Scaling"
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fill"
+msgstr "Fill screen (pixel art)"
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.fit"
 msgstr "Fit (sharp)"
 
@@ -1197,18 +1262,6 @@ msgstr "Integer pixels"
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.smooth"
 msgstr "Fit (smooth)"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.scaling.fill"
-msgstr "Fill screen (pixel art)"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.fullscreen_resolution"
-msgstr "Fullscreen resolution"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "menu.fullscreen_resolution.desktop"
-msgstr "Desktop (automatic)"
 
 #: src/SOURCE/REMOTE.cpp
 msgid "modem.connecting"
@@ -6519,6 +6572,10 @@ msgid "town.build.requires"
 msgstr "\n\nRequires:"
 
 #: src/SOURCE/TOWNMGR.cpp
+msgid "town.construction.done_suffix"
+msgstr " - Built today"
+
+#: src/SOURCE/TOWNMGR.cpp
 msgid "town.mage.spells"
 msgstr "The above spells are available here."
 
@@ -6568,56 +6625,3 @@ msgstr "Heroes"
 #: src/PORT/SOURCE/kbwin.cpp src/SOURCE/kbwin.cpp
 msgid "window.gTitle"
 msgstr "Heroes of Might and Magic"
-
-#: src/PORT/SOURCE/Menu.cpp
-msgid "combat.animation_speed"
-msgstr "Animation speed"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.button"
-msgstr "Options"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.title"
-msgstr "Battle Options"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.speed"
-msgstr "Speed"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.order"
-msgstr "Turn order"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.grid"
-msgstr "Grid"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.damage"
-msgstr "Damage info"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.spells"
-msgstr "Auto spells"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.on"
-msgstr "On"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.off"
-msgstr "Off"
-
-#: src/SOURCE/COMMAND.cpp
-msgid "combat.options.okay"
-msgstr "Okay"
-
-msgid "town.construction.done_suffix"
-msgstr " - Built today"
-
-msgid "combat.history.button"
-msgstr "Log"
-
-msgid "combat.history.round"
-msgstr "Round %d"
