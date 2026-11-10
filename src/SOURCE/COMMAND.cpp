@@ -519,6 +519,10 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                                     StartQuickCombat();
                             }
                             break;
+                        case COMBAT_CONTROL_HISTORY:
+                            if (!(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
+                                ShowCombatHistory();
+                            break;
                         case COMBAT_CONTROL_SKIP_TURN:
                             if (!(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
                                 gNextAction = ACTION_SKIP_TURN;
@@ -672,6 +676,7 @@ void combatManager::StopQuickCombat() {
 }
 
 void combatManager::ResetRound(void) {
+    ++m_combatRound;
     i32 unusedRoundWord;
     i32 armyIndex;
     i32 side;

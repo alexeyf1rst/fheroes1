@@ -151,12 +151,9 @@ i16 townManager::Open(i16 priority) {
     m_townWindow = new heroWindow(0, 0, "townwind.bin");
     if (m_townWindow == NULL)
         MemError();
-    sprintf(gText, GetTownName(m_town->m_id));
-    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, TOWN_NAME_TEXT_CONTROL);
-    message.text = gText;
-    m_townWindow->BroadcastMessage(message);
+    UpdateConstructionTitle();
+    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, TOWN_STATUS_TEXT_CONTROL);
     strcpy(gText, localization::Tr("town.screen.title"));
-    message.id = TOWN_STATUS_TEXT_CONTROL;
     message.text = gText;
     m_townWindow->BroadcastMessage(message);
     sprintf(gText, "townbkg%d.bmp", m_town->m_type);
@@ -537,6 +534,16 @@ void townManager::SetCommandAndText(struct tag_message& message) {
             break;
     }
     ShowText(m_statusText);
+}
+
+void townManager::UpdateConstructionTitle() {
+    const char* name = GetTownName(m_town->m_id);
+    snprintf(gText, 412, "%s%s", name, BitTest(gGame->m_townBuiltToday, m_town->m_id)
+                ? localization::Tr("town.construction.done_suffix") : "");
+    tag_message message{};
+    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, TOWN_NAME_TEXT_CONTROL);
+    message.text = gText;
+    m_townWindow->BroadcastMessage(message);
 }
 
 void townManager::ShowText(char* text) {
@@ -1701,6 +1708,8 @@ void townManager::BuildObj(i16 building) {
         gTownBuildingExtents[m_town->m_type][building].height,
         kTownBuildFadeStepMs
     );
+    BitSet(gGame->m_townBuiltToday, m_town->m_id);
+    UpdateConstructionTitle();
     m_purchasedBuilding = BUILDING_SLOT_NONE;
     m_bankBox->Update();
     m_townWindow->DrawWindow();
@@ -1711,7 +1720,6 @@ void townManager::BuildObj(i16 building) {
         DIALOG_BUTTON_0,
         WIDGET_FLAG_UPDATE | WIDGET_FLAG_DIMMED
     );
-    BitSet(gGame->m_townBuiltToday, m_town->m_id);
     m_town->GiveSpells();
 }
 

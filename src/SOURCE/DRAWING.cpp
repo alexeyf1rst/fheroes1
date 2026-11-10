@@ -76,7 +76,8 @@ void combatManager::UpdateTurnOrderHover() {
     }
     if (hover != m_turnOrderHover) {
         m_turnOrderHover = hover;
-        DrawFrame(true);
+        DrawFrame(false);
+        UpdateCombatArea();
     }
 }
 
@@ -128,6 +129,34 @@ void combatManager::UpdateGridForMove(
         UpdateGrid(hex - COMBAT_GRID_COLUMNS, attributes);
     else
         UpdateGrid(hex, attributes);
+}
+
+void combatManager::CombatEvent(char* text) {
+    if (!m_quickCombat && text[0]) {
+        if (m_combatHistoryCount == kCombatHistoryLength) {
+            memmove(m_combatHistory, m_combatHistory + 1,
+                    sizeof(m_combatHistory) - sizeof(m_combatHistory[0]));
+            --m_combatHistoryCount;
+        }
+        auto& entry = m_combatHistory[m_combatHistoryCount++];
+        snprintf(entry, sizeof(entry), "%s", text);
+    }
+    CombatMessage(text, true);
+}
+
+void combatManager::ShowCombatHistory() {
+    char log[sizeof(m_combatHistory) + 100];
+    snprintf(log, sizeof(log), localization::Tr("combat.history.round"), m_combatRound);
+    for (int index = 0; index < m_combatHistoryCount; ++index) {
+        strcat(log, "\n");
+        strcat(log, m_combatHistory[index]);
+    }
+    NormalDialog(log, NORMAL_DIALOG_TYPE_OK);
+    DrawFrame(false);
+    UpdateCombatArea();
+    gWindowManager->UpdateScreenRegion(0, COMBAT_PANEL_TOP, LOGICAL_SCREEN_WIDTH,
+                                      LOGICAL_SCREEN_HEIGHT - COMBAT_PANEL_TOP);
+    ResetMouse();
 }
 
 void combatManager::CombatMessage(char* text, b32 updateScreen) {

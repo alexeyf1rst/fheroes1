@@ -6612,3 +6612,12 @@ msgstr "Выкл"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.okay"
 msgstr "ОК"
+
+msgid "town.construction.done_suffix"
+msgstr " - Уже строили"
+
+msgid "combat.history.button"
+msgstr "Журнал"
+
+msgid "combat.history.round"
+msgstr "Раунд %d"

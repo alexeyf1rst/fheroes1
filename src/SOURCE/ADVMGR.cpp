@@ -6431,12 +6431,14 @@ void advManager::PanMap(i16 xOrigin, i16 yOrigin) {
         yOrigin = SCROLL_MAX_ORIGIN;
 
     if (xOrigin != m_mapOriginX || yOrigin != m_mapOriginY) {
+        platform::BeginDisplayUpdate();
         DemobilizeCurrHero();
         m_mapOriginX = xOrigin;
         m_mapOriginY = yOrigin;
         UpdateRadar(true, false);
         CompleteDraw(false);
         UpdateScreen(false, false);
+        platform::EndDisplayUpdate();
     }
 }
 

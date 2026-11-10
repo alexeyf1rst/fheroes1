@@ -1,7 +1,9 @@
 #include <H1/Ints.h>
+#include <algorithm>
 
 #include <BASE/audio.h>
 #include <BASE/bitmap.h>
+#include <BASE/bmap2.h>
 #include <BASE/font.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -297,6 +299,14 @@ void army::DrawToBuffer(i16 x, i16 y) {
                 sprintf(countText, "%d", m_quantity);
                 gCombatManager->m_smallFont
                     ->DrawBoundedString(countText, countX, y - 12, 20, 12, 1, FONT_ALIGN_CENTER);
+                if (m_hitPointsLost > 0 && m_stats.hitPoints > 0
+                    && countX >= 0 && countX + 20 <= LOGICAL_SCREEN_WIDTH && y >= 3 && y <= COMBAT_PANEL_TOP) {
+                    const int remaining = std::max(1, m_stats.hitPoints - m_hitPointsLost);
+                    const int length = std::max(1, 20 * remaining / m_stats.hitPoints);
+                    auto* screen = gWindowManager->m_screen;
+                    FillBitmapArea(screen, countX, y - 3, 20, 2, ARMY_BAD_SPELL_OUTLINE_COLOR);
+                    FillBitmapArea(screen, countX, y - 3, length, 2, ARMY_GOOD_SPELL_OUTLINE_COLOR);
+                }
             }
             break;
         case ARMY_ANIMATION_WALK:
@@ -821,7 +831,7 @@ void army::SpecialAttack(void) {
             localization::Tr("combat.fragment.damage_points")
         );
     gText[0] = CyrillicToUpper(gText[0]);
-    gCombatManager->CombatMessage(gText, true);
+    gCombatManager->CombatEvent(gText);
     PowEffect(m_stats.powEffect);
     if (!(enemyStack->m_stats.attributes & MONSTER_FLAGS_DEAD))
         enemyStack->Stand(false);
@@ -928,7 +938,7 @@ void army::DoHydraAttack(void) {
             localization::Tr("combat.fragment.damage_points")
         );
     gText[0] = CyrillicToUpper(gText[0]);
-    gCombatManager->CombatMessage(gText, true);
+    gCombatManager->CombatEvent(gText);
     PowEffect(m_stats.powEffect);
     if (CombatAnimationDelay(4) == 4)
         WaitSample(m_samples[ARMY_SAMPLE_ATTACK]);
@@ -1171,7 +1181,7 @@ void army::DoAttack(b32 retaliation) {
             localization::Tr("combat.fragment.damage_points")
         );
     gText[0] = CyrillicToUpper(gText[0]);
-    gCombatManager->CombatMessage(gText, true);
+    gCombatManager->CombatEvent(gText);
     PowEffect(m_stats.powEffect);
     gCombatManager->m_extendLimitDown = prevExtendDown;
     switch (m_creatureType) {
@@ -1415,7 +1425,7 @@ void army::CheckLuck(void) {
                 localization::Tr("combat.luck.bad.buka"),
                 gArmyNamesPlural[m_creatureType]
             );
-            gCombatManager->CombatMessage(gText, true);
+            gCombatManager->CombatEvent(gText);
             Wince();
             SpellEffect(COMBAT_EFFECT_BAD_LUCK, 180);
         } else {
@@ -1424,7 +1434,7 @@ void army::CheckLuck(void) {
                 localization::Tr("combat.luck.good.buka"),
                 gArmyNamesPlural[m_creatureType]
             );
-            gCombatManager->CombatMessage(gText, true);
+            gCombatManager->CombatEvent(gText);
             Stand(true);
             SpellEffect(COMBAT_EFFECT_GOOD_LUCK, 180);
         }

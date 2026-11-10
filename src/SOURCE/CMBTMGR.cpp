@@ -196,6 +196,8 @@ i16 combatManager::Open(i16 priority) {
     m_autoCombatStopRequested = COMBAT_SIDE_NONE;
     m_showTurnOrder = gConfig.showCombatOrder;
     m_turnOrderCount = 0;
+    m_combatHistoryCount = 0;
+    m_combatRound = 1;
     m_turnOrderHover = -1;
     m_quickCombat = false;
     if (m_autoResolveAtStart) {
@@ -220,11 +222,17 @@ i16 combatManager::Open(i16 priority) {
     for (widget* item = m_combatWindow->m_widgetListHead; item; item = item->m_next) {
         if (item->m_id == COMBAT_CONTROL_FIELD && item->m_y + item->m_height > COMBAT_PANEL_TOP)
             item->m_height = COMBAT_PANEL_TOP - item->m_y;
-        if (item->m_id == COMBAT_STATUS_TEXT_CONTROL)
+        if (item->m_id == COMBAT_STATUS_TEXT_CONTROL) {
             item->m_y = COMBAT_PANEL_TOP + 3;
+            item->m_x = 128;
+            item->m_width = 445;
+        }
     }
     m_combatWindow->AddWidget(new goldButton(0, COMBAT_PANEL_TOP, 48, 18, COMBAT_CONTROL_OPTIONS,
                                             localization::Tr("combat.options.button")),
+                              WINDOW_Z_ORDER_APPEND);
+    m_combatWindow->AddWidget(new goldButton(582, COMBAT_PANEL_TOP, 58, 18, COMBAT_CONTROL_HISTORY,
+                                            localization::Tr("combat.history.button")),
                               WINDOW_Z_ORDER_APPEND);
     gWindowManager->AddWindow(m_combatWindow, WINDOW_Z_ORDER_APPEND, true);
     m_smallFont = gResourceManager->GetFont("smalfont.fnt");
@@ -711,7 +719,7 @@ void combatManager::CheckApplyGoodMorale(i32 side, i32 index) {
             localization::Tr("combat.morale.good"),
             gArmyNamesPlural[currentArmy->m_creatureType]
         );
-    CombatMessage(gText, true);
+    CombatEvent(gText);
     currentArmy->SpellEffect(COMBAT_EFFECT_GOOD_MORALE, 180);
     currentArmy->Stand(true);
     if (currentArmy->m_stats.attributes & MONSTER_FLAGS_TURN_SPENT)
@@ -749,7 +757,7 @@ b32 combatManager::CheckApplyBadMorale(i32 side, i32 index) {
             localization::Tr("combat.morale.bad"),
             gArmyNamesPlural[currentArmy->m_creatureType]
         );
-    CombatMessage(gText, true);
+    CombatEvent(gText);
     currentArmy->m_animationFrame = 2;
     currentArmy->SpellEffect(COMBAT_EFFECT_BAD_MORALE, 180);
     currentArmy->Stand(true);
@@ -1285,7 +1293,7 @@ void combatManager::KeepAttack(void) {
             arrowDamage,
             localization::Tr("combat.fragment.damage_points")
         );
-    gCombatManager->CombatMessage(gText, true);
+    gCombatManager->CombatEvent(gText);
     hisStack->PowEffect(hisStack->m_stats.powEffect);
     if (!(hisStack->m_stats.attributes & MONSTER_FLAGS_DEAD))
         hisStack->Stand(false);
@@ -1355,5 +1363,11 @@ void combatManager::DrawCombatBorder(void) {
     FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 2, LOGICAL_SCREEN_WIDTH - 4, upperHeight - 3, face);
     FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 3, LOGICAL_SCREEN_WIDTH - 4, 3, sheen);
     m_combatWindow->DrawWindow(0, COMBAT_STATUS_TEXT_CONTROL, COMBAT_STATUS_TEXT_CONTROL);
-    m_combatWindow->DrawWindow(0, COMBAT_CONTROL_OPTIONS, COMBAT_CONTROL_OPTIONS);
+    char round[24];
+    snprintf(round, sizeof(round), localization::Tr("combat.history.round"), m_combatRound);
+    m_smallFont->DrawBoundedString(round, 51, COMBAT_PANEL_TOP + 4, 75, 12, 1, FONT_ALIGN_CENTER);
+    if (m_combatHistoryCount > 0)
+        m_smallFont->DrawBoundedString(m_combatHistory[m_combatHistoryCount - 1], 58, COMBAT_VIEW_HEIGHT + 4,
+                                      524, 12, 1, FONT_ALIGN_CENTER);
+    m_combatWindow->DrawWindow(0, COMBAT_CONTROL_OPTIONS, COMBAT_CONTROL_HISTORY);
 }

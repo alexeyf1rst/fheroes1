@@ -211,6 +211,7 @@ void Dispatch(const platform::Event& event) {
         if (!onAdventure || event.type == platform::Event::FOCUS_LOST) {
             gAdvManager->EndMapDrag();
             pendingMapPress = false;
+            platform::CaptureMouse(false);
         } else if (event.type == platform::Event::MOUSE_MOVE) {
             if (gAdvManager->DragMap(event.x, event.y))
                 return;
@@ -218,6 +219,7 @@ void Dispatch(const platform::Event& event) {
             const bool dragged = gAdvManager->DragMap(event.x, event.y);
             gAdvManager->EndMapDrag();
             pendingMapPress = false;
+            platform::CaptureMouse(false);
             if (!dragged) {
                 PostMouse(mapPress.doubleClick ? INPUT_MESSAGE_LEFT_DOUBLE : INPUT_MESSAGE_LEFT_DOWN, mapPress);
                 PostMouse(INPUT_MESSAGE_LEFT_UP, event);
@@ -239,6 +241,7 @@ void Dispatch(const platform::Event& event) {
         && gAdvManager->BeginMapDrag(event.x, event.y)) {
         mapPress = event;
         pendingMapPress = true;
+        platform::CaptureMouse(true);
         return;
     }
 #endif

@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <algorithm>
 
 #include <PLATFORM/File.h>
 #include <PLATFORM/Platform.h>
@@ -2312,7 +2313,13 @@ void game::ViewArmy(
         sprintf(gText, "-%d", monsterInfoObj->stats.damageMax);
         strcat(statText, gText);
     }
-    sprintf(gText, "\n%s%d", gArmyStatText[4], monsterInfoObj->stats.hitPoints);
+    if (theArmy) {
+        const int maxHp = theArmy->m_stats.hitPoints;
+        snprintf(gText, 412, "\n%s%d/%d", gArmyStatText[4],
+                 numTroops > 0 ? std::max(0, maxHp - theArmy->m_hitPointsLost) : 0, maxHp);
+    } else {
+        sprintf(gText, "\n%s%d", gArmyStatText[4], monsterInfoObj->stats.hitPoints);
+    }
     strcat(statText, gText);
     sprintf(gText, "\n%s%s", gArmyStatText[5], gSpeedText[monsterInfoObj->stats.speed]);
     strcat(statText, gText);

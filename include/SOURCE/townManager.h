@@ -278,6 +278,7 @@ public:
     void SetArmyCommand(i16 qualifier);
     void SetCommandAndText(struct tag_message& message);
     void ShowText(char* text);
+    void UpdateConstructionTitle();
     void DoCommand(i8 command);
     void RedrawTownScreen(void);
     void SplitArmy(void);

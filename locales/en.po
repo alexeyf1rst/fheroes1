@@ -6612,3 +6612,12 @@ msgstr "Off"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.okay"
 msgstr "Okay"
+
+msgid "town.construction.done_suffix"
+msgstr " - Built today"
+
+msgid "combat.history.button"
+msgstr "Log"
+
+msgid "combat.history.round"
+msgstr "Round %d"

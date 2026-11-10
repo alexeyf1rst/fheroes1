@@ -537,7 +537,7 @@ void combatManager::CastSpell(
                 SpellDamage(spell),
                 CREATURE_DISPLAY_NAME(target->m_creatureType, target->m_quantity)
             );
-            CombatMessage(gText, true);
+            CombatEvent(gText);
             target->SpellEffect(COMBAT_EFFECT_LIGHTNING_BOLT, 0);
             target->Damage(SpellDamage(spell));
             target->PowEffect(COMBAT_POW_RED_FIRE);
@@ -567,7 +567,7 @@ void combatManager::CastSpell(
                     target->m_quantity - quantityBefore,
                     gArmyNames[target->m_creatureType]
                 );
-            CombatMessage(gText, true);
+            CombatEvent(gText);
             target->Stand(true);
             break;
         case SPELL_SLOW:
@@ -856,7 +856,7 @@ void combatManager::Fireball(i8 targetHex) {
     }
     if (anyAffected) {
         sprintf(gText, localization::Tr("spell.fireball.damage"), baseDamage);
-        CombatMessage(gText, true);
+        CombatEvent(gText);
     }
     target->PowEffect(COMBAT_POW_RED_FIRE);
     for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT + 1; i++) {
@@ -926,7 +926,7 @@ void combatManager::MeteorShower(i8 targetHex) {
     }
     if (anyAffected) {
         sprintf(gText, localization::Tr("spell.meteor.damage"), baseDamage);
-        CombatMessage(gText, true);
+        CombatEvent(gText);
     }
     target->PowEffect(COMBAT_POW_PHYSICAL);
     for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT + 1; i++) {
@@ -989,7 +989,7 @@ void combatManager::ElementalStorm(void) {
     }
     if (anyAffected) {
         sprintf(gText, localization::Tr("spell.storm.damage"), damage);
-        CombatMessage(gText, true);
+        CombatEvent(gText);
     }
     target->PowEffect(COMBAT_POW_ELECTRIC);
     for (side = COMBAT_SIDE_FIRST; side < COMBAT_SIDE_COUNT; side++) {
@@ -1030,7 +1030,7 @@ void combatManager::Armageddon(void) {
     }
     if (hit) {
         sprintf(gText, localization::Tr("combat.armageddon.damage"), damage);
-        CombatMessage(gText, true);
+        CombatEvent(gText);
     }
     gWindowManager->m_colorCycling = 0;
     gamePal = gResourceManager->GetPalette("kb.pal");

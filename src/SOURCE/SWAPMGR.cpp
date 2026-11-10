@@ -68,9 +68,10 @@ i16 swapManager::Open(i16 id) {
         MemError();
     SetWinText(m_window, WINDOW_TEXT_SWAP);
     const goldButton::Mark arrows[] = {goldButton::Left, goldButton::Right, goldButton::Exchange};
+    constexpr i16 columns[] = {2, 0, 1};
     for (i16 index = 0; index < 6; ++index) {
         const i16 y = index < 3 ? 192 : 335;
-        auto* button = new goldButton(176 + (index % 3) * 36, y, 32, 22,
+        auto* button = new goldButton(176 + columns[index % 3] * 36, y, 32, 22,
                                       TROOPS_LEFT + index, "", arrows[index % 3]);
         m_window->AddWidget(button, WINDOW_Z_ORDER_APPEND);
     }

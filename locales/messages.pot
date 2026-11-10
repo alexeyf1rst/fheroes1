@@ -6613,3 +6613,12 @@ msgstr ""
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.okay"
 msgstr ""
+
+msgid "town.construction.done_suffix"
+msgstr ""
+
+msgid "combat.history.button"
+msgstr ""
+
+msgid "combat.history.round"
+msgstr ""

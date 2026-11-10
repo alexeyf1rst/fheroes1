@@ -215,6 +215,12 @@ public:
     virtual i16 Main(struct tag_message& message) ;
     void NoShowCombatLog(char* message);
     void CombatMessage(char* text, b32 updateScreen);
+    void CombatEvent(char* text);
+    void ShowCombatHistory();
+    static constexpr int kCombatHistoryLength = 6;
+    char m_combatHistory[kCombatHistoryLength][112];
+    int m_combatHistoryCount = 0;
+    int m_combatRound = 1;
     void CombatMessage(i16 messageType);
     void ResetLimitCreature(void);
     void UpdateCombatArea(void);
@@ -423,6 +429,7 @@ enum CombatControlId {
 
 enum CombatStatusLineConstant {
     COMBAT_CONTROL_OPTIONS = 1000,
+    COMBAT_CONTROL_HISTORY,
     COMBAT_STATUS_FIRST_CONTROL = 2,
     COMBAT_STATUS_TEXT_CONTROL = 0xc,
     COMBAT_PANEL_TOP = COMBAT_VIEW_HEIGHT - 18
