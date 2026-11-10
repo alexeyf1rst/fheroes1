@@ -1901,23 +1901,13 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
 
     constexpr std::array<MP2::MapObjectType, 48> eventObjects = {
         MP2::OBJ_NONE, MP2::OBJ_SIGN, MP2::OBJ_BUOY, MP2::OBJ_SKELETON, MP2::OBJ_DAEMON_CAVE, MP2::OBJ_NONE, MP2::OBJ_FAERIE_RING, MP2::OBJ_CAMPFIRE,
-        MP2::OBJ_FOUNTAIN, MP2::OBJ_GAZEBO, MP2::OBJ_GENIE_LAMP, MP2::OBJ_GRAVEYARD, MP2::OBJ_ARCHER_HOUSE, MP2::OBJ_PEASANT_HUT, MP2::OBJ_CAVE,
+        MP2::OBJ_FOUNTAIN, MP2::OBJ_GAZEBO, MP2::OBJ_GENIE_LAMP, MP2::OBJ_GRAVEYARD, MP2::OBJ_GOBLIN_HUT, MP2::OBJ_PEASANT_HUT, MP2::OBJ_ARCHER_HOUSE,
         MP2::OBJ_DWARF_COTTAGE, MP2::OBJ_PEASANT_HUT, MP2::OBJ_SIGN, MP2::OBJ_SIGN, MP2::OBJ_SIGN, MP2::OBJ_SIGN, MP2::OBJ_DRAGON_CITY, MP2::OBJ_LIGHTHOUSE,
         MP2::OBJ_WATER_WHEEL, MP2::OBJ_NONE, MP2::OBJ_NONE, MP2::OBJ_OBELISK, MP2::OBJ_OASIS, MP2::OBJ_NONE, MP2::OBJ_NONE, MP2::OBJ_COAST, MP2::OBJ_NONE,
         MP2::OBJ_XANADU, MP2::OBJ_SHRINE_FIRST_CIRCLE, MP2::OBJ_SHIPWRECK, MP2::OBJ_IDOL, MP2::OBJ_NONE, MP2::OBJ_WATERING_HOLE, MP2::OBJ_DESERT_TENT,
         MP2::OBJ_NONE, MP2::OBJ_STONE_LITHS, MP2::OBJ_WAGON_CAMP, MP2::OBJ_MAGIC_WELL, MP2::OBJ_WHIRLPOOL, MP2::OBJ_WINDMILL, MP2::OBJ_NONE,
         MP2::OBJ_STANDING_STONES, MP2::OBJ_NONE
     };
-    const auto getArtifact = []( const uint8_t originalId ) {
-        if ( originalId < 4 ) {
-            return Artifact::ULTIMATE_BOOK + originalId;
-        }
-        if ( originalId < 37 ) {
-            return Artifact::ARCANE_NECKLACE + originalId - 4;
-        }
-        return originalId == 37 ? static_cast<int>( Artifact::MAGIC_BOOK ) : static_cast<int>( Artifact::UNKNOWN );
-    };
-
     std::array<bool, 37> usedArtifacts{};
     for ( int32_t i = 0; i < worldSize; ++i ) {
         const uint8_t * cell = getCell( i % width, i / width );
@@ -2040,7 +2030,7 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
                 artifactFrame = availableArtifacts.back();
                 availableArtifacts.pop_back();
             }
-            const int artifact = getArtifact( artifactFrame );
+            const int artifact = Artifact::fromHoMM1Index( artifactFrame );
             if ( artifact != Artifact::UNKNOWN ) {
                 tile.getMainObjectPart() = { Maps::OBJECT_LAYER, Maps::getNewObjectUID(), MP2::OBJ_ICN_TYPE_H1_ARTIFACT, artifactFrame };
                 tile.setMainObjectType( MP2::OBJ_ARTIFACT );
@@ -2114,7 +2104,7 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
     constexpr std::array<PlayerColor, 4> raceColors = { PlayerColor::RED, PlayerColor::YELLOW, PlayerColor::GREEN, PlayerColor::BLUE };
     constexpr std::array<uint32_t, 13> buildings = { 0, BUILD_THIEVESGUILD, BUILD_TAVERN, BUILD_SHIPYARD, BUILD_WELL, 0, 0, DWELLING_MONSTER1,
                                                      DWELLING_MONSTER2, DWELLING_MONSTER3, DWELLING_MONSTER4, DWELLING_MONSTER5, DWELLING_MONSTER6 };
-    constexpr std::array<uint32_t, 5> mageGuilds = { BUILD_MAGEGUILD1, BUILD_MAGEGUILD2, BUILD_MAGEGUILD3, BUILD_MAGEGUILD4, BUILD_MAGEGUILD5 };
+    constexpr std::array<uint32_t, 4> mageGuilds = { BUILD_MAGEGUILD1, BUILD_MAGEGUILD2, BUILD_MAGEGUILD3, BUILD_MAGEGUILD4 };
     const size_t townCount = std::min( maxTownRecords, ( data.size() - townTable ) / locationRecordSize );
     const auto getTownExtra = [&]( const uint8_t * record ) -> const uint8_t * {
         if ( record[0] >= width || record[1] >= height ) {
@@ -2156,9 +2146,7 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
                                               : ( color == PlayerColor::NONE ? races[Rand::Get( 0, static_cast<int>( races.size() ) - 1 )] : mapInfo.KingdomRace( color ) );
         auto castle = std::make_unique<Castle>( x, y, race );
         Maps::Map_Format::CastleMetadata metadata;
-        if ( ( record[2] & fortifiedFlag ) != 0 ) {
-            metadata.builtBuildings.push_back( BUILD_CASTLE );
-        }
+        metadata.builtBuildings.push_back( ( record[2] & fortifiedFlag ) != 0 ? BUILD_CASTLE : BUILD_TENT );
         metadata.defenderMonsterType.fill( -1 );
         if ( extra != nullptr ) {
             metadata.customBuildings = true;
@@ -2254,7 +2242,7 @@ bool World::loadHoMM1Map( const std::vector<uint8_t> & data )
                 }
             }
             for ( size_t slot = 0; slot < 4; ++slot ) {
-                metadata.artifact[slot] = getArtifact( bytes[17 + slot] );
+                metadata.artifact[slot] = Artifact::fromHoMM1Index( bytes[17 + slot] );
             }
             hero->applyHeroMetadata( metadata, false, false );
             hero->Recruit( getOwnerColor( bytes[0] ), point );

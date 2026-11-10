@@ -21,6 +21,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include <array>
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -111,8 +112,15 @@ int Heroes::OpenDialog( const bool readonly, const bool fade, const bool disable
     }
 
     const fheroes2::Sprite & backgroundImage = fheroes2::AGG::GetICN( ICN::HEROBKG, 0 );
-    fheroes2::Blit( backgroundImage, display, dialogRoi.x, dialogRoi.y );
-    fheroes2::Blit( fheroes2::AGG::GetICN( Settings::Get().isEvilInterfaceEnabled() ? ICN::HEROEXTE : ICN::HEROEXTG, 0 ), display, dialogRoi.x, dialogRoi.y );
+    const bool useHoMM1Layout = backgroundImage.width() < fheroes2::Display::DEFAULT_WIDTH;
+    if ( useHoMM1Layout ) {
+        fheroes2::StandardWindow::renderHoMM1Frame( display, dialogRoi, true );
+        fheroes2::Fill( display, dialogRoi.x + 49, dialogRoi.y + 1, 542, 23, fheroes2::GetColorId( 41, 21, 28 ) );
+    }
+    else {
+        fheroes2::Blit( backgroundImage, display, dialogRoi.x, dialogRoi.y );
+        fheroes2::Blit( fheroes2::AGG::GetICN( Settings::Get().isEvilInterfaceEnabled() ? ICN::HEROEXTE : ICN::HEROEXTG, 0 ), display, dialogRoi.x, dialogRoi.y );
+    }
 
     // Hero portrait.
     const fheroes2::Rect portPos( dialogRoi.x + 49, dialogRoi.y + 31, 101, 93 );
@@ -134,9 +142,14 @@ int Heroes::OpenDialog( const bool readonly, const bool fade, const bool disable
     const fheroes2::Rect titleRoi( dialogRoi.x + 60, dialogRoi.y + 1, 519, 17 );
 
     auto drawTitleText
-        = [&display, &titleRoi, &dialogRoi, &backgroundImage, language, this]( const std::string & heroName, const int heroRace, const bool restoreBackground ) {
+        = [&display, &titleRoi, &dialogRoi, &backgroundImage, useHoMM1Layout, language, this]( const std::string & heroName, const int heroRace, const bool restoreBackground ) {
               if ( restoreBackground ) {
-                  fheroes2::Copy( backgroundImage, titleRoi.x - dialogRoi.x, titleRoi.y - dialogRoi.y, display, titleRoi );
+                  if ( useHoMM1Layout ) {
+                      fheroes2::Fill( display, titleRoi.x, titleRoi.y, titleRoi.width, titleRoi.height, fheroes2::GetColorId( 41, 21, 28 ) );
+                  }
+                  else {
+                      fheroes2::Copy( backgroundImage, titleRoi.x - dialogRoi.x, titleRoi.y - dialogRoi.y, display, titleRoi );
+                  }
               }
 
               std::string titleText;
@@ -198,6 +211,24 @@ int Heroes::OpenDialog( const bool readonly, const bool fade, const bool disable
     }
 
     primarySkillsBar.Redraw( display );
+    if ( useHoMM1Layout ) {
+        const std::array<std::pair<const char *, int>, 4> skills = { {
+            { _( "Attack" ), GetAttack() }, { _( "Defense" ), GetDefense() }, { _( "Spell Power" ), GetPower() }, { _( "Knowledge" ), GetKnowledge() }
+        } };
+        for ( size_t i = 0; i < skills.size(); ++i ) {
+            const int32_t x = dialogRoi.x + 157 + 84 * static_cast<int32_t>( i );
+            const fheroes2::Text label( skills[i].first, fheroes2::FontType::smallWhite() );
+            label.draw( x, dialogRoi.y + 48, 80, display );
+            const fheroes2::Text value( std::to_string( skills[i].second ), fheroes2::FontType::normalYellow() );
+            value.draw( x, dialogRoi.y + 72, 80, display );
+        }
+
+        const fheroes2::Text armyLabel( _( "Army" ), fheroes2::FontType::normalYellow() );
+        armyLabel.draw( dialogRoi.x + 156, dialogRoi.y + 107, 350, display );
+        const fheroes2::Text artifactLabel( _( "Artifacts" ), fheroes2::FontType::normalYellow() );
+        artifactLabel.draw( dialogRoi.x + 51, dialogRoi.y + 279, 500, display );
+    }
+
 
     // Morale indicator.
     dst_pt.x = dialogRoi.x + 514;
@@ -399,9 +430,11 @@ int Heroes::OpenDialog( const bool readonly, const bool fade, const bool disable
     }
 
     // Exit button.
-    dst_pt.x = dialogRoi.x + 602;
-    const fheroes2::Sprite & exitReleased = fheroes2::AGG::GetICN( ICN::BUTTON_VERTICAL_EXIT, 0 );
-    fheroes2::ButtonSprite buttonExit( dst_pt.x, dst_pt.y - exitReleased.height() / 2, exitReleased, fheroes2::AGG::GetICN( ICN::BUTTON_VERTICAL_EXIT, 1 ) );
+    const int exitIcn = useHoMM1Layout ? ICN::BUTTON_EXIT_TOWN : ICN::BUTTON_VERTICAL_EXIT;
+    const fheroes2::Sprite & exitReleased = fheroes2::AGG::GetICN( exitIcn, 0 );
+    const fheroes2::Point exitPosition( dialogRoi.x + ( useHoMM1Layout ? 530 : 602 ),
+                                       dialogRoi.y + ( useHoMM1Layout ? 248 : 378 - exitReleased.height() / 2 ) );
+    fheroes2::ButtonSprite buttonExit( exitPosition.x, exitPosition.y, exitReleased, fheroes2::AGG::GetICN( exitIcn, 1 ) );
 
     LocalEvent & le = LocalEvent::Get();
 

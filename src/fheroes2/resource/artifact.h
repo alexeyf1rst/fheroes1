@@ -259,6 +259,17 @@ public:
     }
 
     static int32_t Rand( ArtLevel );
+    static constexpr int32_t fromHoMM1Index( const uint32_t index )
+    {
+        if ( index < 4 ) {
+            return ULTIMATE_BOOK + static_cast<int32_t>( index );
+        }
+        if ( index < 37 ) {
+            return ARCANE_NECKLACE + static_cast<int32_t>( index ) - 4;
+        }
+        return index == 37 ? MAGIC_BOOK : UNKNOWN;
+    }
+
     static Artifact getArtifactFromMapSpriteIndex( const uint32_t index );
     static const char * getDiscoveryDescription( const Artifact & );
 

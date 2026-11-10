@@ -48,7 +48,16 @@ namespace fheroes2
             break;
         }
 
-        const fheroes2::Sprite & monsterImage = fheroes2::AGG::GetICN( monster.ICNMonh(), 0 );
-        fheroes2::Blit( monsterImage, output, offset.x + monsterImage.x(), offset.y + monsterImage.y() );
+        const Sprite & monsterImage = AGG::GetICN( monster.ICNMonh(), 0 );
+        if ( monsterImage.width() > 1 ) {
+            Blit( monsterImage, output, offset.x + monsterImage.x(), offset.y + monsterImage.y() );
+            return;
+        }
+
+        const Sprite & originalUnit = AGG::GetICN( ICN::MONS32, monster.GetSpriteIndex() );
+        const Sprite & slot = AGG::GetICN( ICN::STRIP, 2 );
+        if ( originalUnit.width() > 1 ) {
+            Blit( originalUnit, output, offset.x + ( slot.width() - originalUnit.width() ) / 2, offset.y + ( slot.height() - originalUnit.height() ) / 2 );
+        }
     }
 }

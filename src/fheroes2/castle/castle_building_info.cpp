@@ -20,6 +20,9 @@
 
 #include "castle_building_info.h"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cassert>
 #include <cstdint>
 
@@ -668,8 +671,6 @@ namespace fheroes2
             return BUILD_MAGEGUILD3;
         case BUILD_MAGEGUILD3:
             return BUILD_MAGEGUILD4;
-        case BUILD_MAGEGUILD4:
-            return BUILD_MAGEGUILD5;
         default:
             break;
         }
@@ -680,120 +681,34 @@ namespace fheroes2
 
     BuildingType getBuildingRequirement( const int race, const BuildingType building )
     {
-        uint32_t requirement = 0;
-
-        switch ( building ) {
-        case DWELLING_MONSTER2:
-            switch ( race ) {
-            case Race::KNGT:
-            case Race::BARB:
-            case Race::WRLK:
-                requirement |= DWELLING_MONSTER1;
-                break;
-
-            case Race::SORC:
-                requirement |= DWELLING_MONSTER1;
-                requirement |= BUILD_TAVERN;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_MONSTER3:
-            switch ( race ) {
-            case Race::KNGT:
-                requirement |= DWELLING_MONSTER1;
-                requirement |= BUILD_WELL;
-                break;
-
-            case Race::BARB:
-            case Race::SORC:
-            case Race::WRLK:
-                requirement |= DWELLING_MONSTER1;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_MONSTER4:
-            switch ( race ) {
-            case Race::KNGT:
-                requirement |= DWELLING_MONSTER1;
-                requirement |= BUILD_TAVERN;
-                break;
-
-            case Race::BARB:
-                requirement |= DWELLING_MONSTER1;
-                break;
-
-            case Race::SORC:
-                requirement |= DWELLING_MONSTER3;
-                requirement |= BUILD_MAGEGUILD1;
-                break;
-
-            case Race::WRLK:
-                requirement |= DWELLING_MONSTER2;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_MONSTER5:
-            switch ( race ) {
-            case Race::KNGT:
-            case Race::BARB:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= DWELLING_MONSTER3;
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::SORC:
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::WRLK:
-                requirement |= DWELLING_MONSTER3;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        case DWELLING_MONSTER6:
-            switch ( race ) {
-            case Race::KNGT:
-                requirement |= DWELLING_MONSTER2;
-                requirement |= DWELLING_MONSTER3;
-                requirement |= DWELLING_MONSTER4;
-                break;
-
-            case Race::BARB:
-            case Race::SORC:
-                requirement |= DWELLING_MONSTER5;
-                break;
-
-            case Race::WRLK:
-                requirement |= DWELLING_MONSTER4;
-                requirement |= DWELLING_MONSTER5;
-                break;
-
-            default:
-                break;
-            }
-            break;
-
-        default:
-            break;
+        constexpr std::array<BuildingType, 6> dwellings = { DWELLING_MONSTER1, DWELLING_MONSTER2, DWELLING_MONSTER3, DWELLING_MONSTER4,
+                                                           DWELLING_MONSTER5, DWELLING_MONSTER6 };
+        const auto found = std::find( dwellings.begin(), dwellings.end(), building );
+        if ( found == dwellings.end() ) {
+            return BUILD_NOTHING;
         }
 
-        return static_cast<BuildingType>( requirement );
+        constexpr std::array<uint32_t, 6> knight = { 0, DWELLING_MONSTER1, DWELLING_MONSTER1 | BUILD_WELL, DWELLING_MONSTER1 | BUILD_TAVERN,
+                                                     DWELLING_MONSTER3 | DWELLING_MONSTER4, DWELLING_MONSTER3 | DWELLING_MONSTER4 };
+        constexpr std::array<uint32_t, 6> sorceress = { 0, DWELLING_MONSTER1 | BUILD_TAVERN, DWELLING_MONSTER1, DWELLING_MONSTER3 | BUILD_MAGEGUILD1,
+                                                        DWELLING_MONSTER4, DWELLING_MONSTER5 };
+        constexpr std::array<uint32_t, 6> barbarian = { 0, DWELLING_MONSTER1, DWELLING_MONSTER1, DWELLING_MONSTER1, DWELLING_MONSTER4,
+                                                        DWELLING_MONSTER5 };
+        constexpr std::array<uint32_t, 6> warlock = { 0, DWELLING_MONSTER1, DWELLING_MONSTER1, DWELLING_MONSTER2, DWELLING_MONSTER3,
+                                                      DWELLING_MONSTER4 | DWELLING_MONSTER5 };
+        const size_t slot = static_cast<size_t>( found - dwellings.begin() );
+        switch ( race ) {
+        case Race::KNGT:
+            return static_cast<BuildingType>( knight[slot] );
+        case Race::SORC:
+            return static_cast<BuildingType>( sorceress[slot] );
+        case Race::BARB:
+            return static_cast<BuildingType>( barbarian[slot] );
+        case Race::WRLK:
+            return static_cast<BuildingType>( warlock[slot] );
+        default:
+            return BUILD_NOTHING;
+        }
     }
 
     std::string getBuildingRequirementString( const int race, const BuildingType building )

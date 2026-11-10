@@ -362,23 +362,22 @@ int32_t Artifact::Rand( ArtLevel lvl )
     std::vector<int32_t> v;
     v.reserve( 25 );
 
-    // if possibly: make unique on map
-    for ( int32_t art = UNKNOWN + 1; art < ARTIFACT_COUNT; ++art ) {
-        const Artifact artifact{ art };
-
-        if ( artifact.isValid() && ( lvl & artifact.Level() ) && !( artifactGlobalStatus[art] & ART_RNDDISABLED ) && !( artifactGlobalStatus[art] & ART_RNDUSED ) ) {
-            v.push_back( art );
-        }
-    }
-
-    if ( v.empty() ) {
+    const bool isHoMM1 = Settings::Get().getCurrentMapInfo().version == GameVersion::HOMM1;
+    const auto addCandidates = [&]( const int excludedStatus ) {
         for ( int32_t art = UNKNOWN + 1; art < ARTIFACT_COUNT; ++art ) {
-            const Artifact artifact{ art };
+            if ( isHoMM1 && ( ( art > ULTIMATE_WAND && art < ARCANE_NECKLACE ) || art > SAILORS_ASTROLABE_MOBILITY ) ) {
+                continue;
+            }
 
-            if ( artifact.isValid() && ( lvl & artifact.Level() ) && !( artifactGlobalStatus[art] & ART_RNDDISABLED ) ) {
+            const Artifact artifact( art );
+            if ( artifact.isValid() && ( lvl & artifact.Level() ) && !( artifactGlobalStatus[art] & excludedStatus ) ) {
                 v.push_back( art );
             }
         }
+    };
+    addCandidates( ART_RNDDISABLED | ART_RNDUSED );
+    if ( v.empty() ) {
+        addCandidates( ART_RNDDISABLED );
     }
 
     const int32_t res = !v.empty() ? Rand::Get( v ) : Artifact::UNKNOWN;

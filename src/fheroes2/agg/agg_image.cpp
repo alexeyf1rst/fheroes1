@@ -36,6 +36,7 @@
 
 #include "agg.h"
 #include "agg_file.h"
+#include "artifact.h"
 #include "battle_cell.h"
 #include "bin_info.h"
 #include "exception.h"
@@ -4467,6 +4468,18 @@ namespace
             }
             break;
         case ICN::ARTIFACT:
+            if ( _icnVsSprite[id].size() == 38 ) {
+                auto original = std::move( _icnVsSprite[id] );
+                auto & sprites = _icnVsSprite[id];
+                sprites.resize( Artifact::ARTIFACT_COUNT );
+                sprites[0].resize( original[0].width(), original[0].height() );
+                sprites[0].fill( fheroes2::GetColorId( 49, 35, 46 ) );
+                fheroes2::DrawBorder( sprites[0], fheroes2::GetColorId( 150, 112, 54 ) );
+                for ( uint32_t i = 0; i < original.size(); ++i ) {
+                    sprites[Artifact::fromHoMM1Index( i )] = std::move( original[i] );
+                }
+                break;
+            }
             if ( _icnVsSprite[id].size() > 99 ) {
                 // This fixes "Golden Bow" (#64) large artifact icon glowing yellow pixel
                 Copy( _icnVsSprite[id][64], 35, 24, _icnVsSprite[id][64], 56, 12, 1, 1 );
@@ -5796,6 +5809,23 @@ namespace
         // Load the original ICN from AGG file.
         // WARNING: The `readIcnFromAgg()` function must be called only in this place!
         if ( id < ICN::LAST_VALID_FILE_ICN && !readIcnFromAgg( id ) ) {
+            if ( id == ICN::ARTFX ) {
+                loadICN( ICN::ARTIFACT );
+                const auto & originals = _icnVsSprite[ICN::ARTIFACT];
+                if ( originals.size() == Artifact::ARTIFACT_COUNT ) {
+                    auto & sprites = _icnVsSprite[id];
+                    sprites.resize( originals.size() - 1 );
+                    for ( size_t i = 1; i < originals.size(); ++i ) {
+                        if ( !originals[i].empty() ) {
+                            auto & sprite = sprites[i - 1];
+                            sprite.resize( 32, 32 );
+                            fheroes2::Resize( originals[i], sprite );
+                        }
+                    }
+                    return;
+                }
+            }
+
             // The ICN `id` is not present in AGG file. In example, if you try to load PoL ICN from SW AGG file.
             // In order to avoid subsequent attempts to get resources from this ICN we are making it as non-empty.
             _icnVsSprite[id].resize( 1 );

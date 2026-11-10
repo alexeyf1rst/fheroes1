@@ -79,6 +79,9 @@
 
 namespace
 {
+    constexpr uint32_t homm1Buildings = BUILD_THIEVESGUILD | BUILD_TAVERN | BUILD_SHIPYARD | BUILD_WELL | BUILD_CASTLE | BUILD_TENT
+                                        | BUILD_MAGEGUILD1 | BUILD_MAGEGUILD2 | BUILD_MAGEGUILD3 | BUILD_MAGEGUILD4 | DWELLING_MONSTERS;
+
     constexpr size_t maximumCastles = 72;
 
     const std::array<const char *, maximumCastles> defaultCastleNames
@@ -383,7 +386,7 @@ void Castle::loadFromResurrectionMap( const Maps::Map_Format::CastleMetadata & m
 {
     modes = 0;
 
-    _constructedBuildings = Maps::getBuildingsFromVector( metadata.builtBuildings );
+    _constructedBuildings = Maps::getBuildingsFromVector( metadata.builtBuildings ) & homm1Buildings;
 
     if ( !metadata.customBuildings ) {
         _setDefaultBuildings();
@@ -998,6 +1001,10 @@ uint32_t Castle::getMonstersInDwelling( const uint32_t buildingType ) const
 
 BuildingStatus Castle::CheckBuyBuilding( const uint32_t build ) const
 {
+    if ( ( build & homm1Buildings ) == 0 ) {
+        return BuildingStatus::BUILD_DISABLE;
+    }
+
     if ( build & _constructedBuildings ) {
         return BuildingStatus::ALREADY_BUILT;
     }
@@ -2061,6 +2068,7 @@ OStreamBase & operator<<( OStreamBase & stream, const Castle & castle )
 IStreamBase & operator>>( IStreamBase & stream, Castle & castle )
 {
     stream >> static_cast<MapPosition &>( castle ) >> castle.modes >> castle._race >> castle._constructedBuildings;
+    castle._constructedBuildings &= homm1Buildings;
 
     static_assert( LAST_SUPPORTED_FORMAT_VERSION < FORMAT_VERSION_1101_RELEASE, "Remove the logic below." );
     if ( Game::GetVersionOfCurrentSaveFile() < FORMAT_VERSION_1101_RELEASE ) {
