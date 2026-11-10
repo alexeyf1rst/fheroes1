@@ -414,6 +414,39 @@ namespace
     uint8_t GetPALColorId( const uint8_t red, const uint8_t green, const uint8_t blue )
     {
         constexpr uint32_t size = 64 * 64 * 64;
+        const uint32_t id = red + ( green << 6U ) + ( blue << 12U );
+        const uint32_t revision = fheroes2::getGamePaletteRevision();
+        if ( revision != 0 ) {
+            // Once Heroes I data is loaded, convert RGB using its palette. The
+            // shipped conversion table targets the Heroes II palette.
+            static uint16_t gameRgbToId[size]{};
+            static uint32_t cachedRevision = 0;
+            if ( cachedRevision != revision ) {
+                std::fill_n( gameRgbToId, size, 0 );
+                cachedRevision = revision;
+            }
+
+            uint16_t & entry = gameRgbToId[id];
+            if ( entry == 0 ) {
+                const uint8_t * palette = fheroes2::getGamePalette();
+                int bestDistance = INT32_MAX;
+                for ( uint16_t color = 0; color < 256; ++color ) {
+                    const int dr = static_cast<int>( palette[3 * color] ) - red;
+                    const int dg = static_cast<int>( palette[3 * color + 1] ) - green;
+                    const int db = static_cast<int>( palette[3 * color + 2] ) - blue;
+                    const int distance = 2 * dr * dr + 4 * dg * dg + db * db;
+                    if ( distance < bestDistance ) {
+                        bestDistance = distance;
+                        entry = color + 1;
+                        if ( distance == 0 ) {
+                            break;
+                        }
+                    }
+                }
+            }
+            return static_cast<uint8_t>( entry - 1 );
+        }
+
         static uint8_t rgbToId[size];
         static bool isInitialized = false;
         if ( !isInitialized ) {
@@ -424,7 +457,7 @@ namespace
             }
         }
 
-        return rgbToId[red + ( green << 6U ) + ( blue << 12U )];
+        return rgbToId[id];
     }
 
     void ApplyRawPalette( const fheroes2::Image & in, int32_t inX, int32_t inY, fheroes2::Image & out, int32_t outX, int32_t outY, int32_t width, int32_t height,

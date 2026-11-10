@@ -39,6 +39,7 @@ namespace
         }
 
         std::array<uint8_t, paletteSize> gamePalette;
+        uint32_t revision{ 0 };
 
     private:
         PaletteHolder()
@@ -87,6 +88,11 @@ namespace fheroes2
         return PaletteHolder::instance().gamePalette.data();
     }
 
+    uint32_t getGamePaletteRevision()
+    {
+        return PaletteHolder::instance().revision;
+    }
+
     void setGamePalette( const std::vector<uint8_t> & palette )
     {
         assert( palette.size() == paletteSize );
@@ -94,6 +100,8 @@ namespace fheroes2
             return;
         }
 
-        std::copy_n( palette.begin(), paletteSize, PaletteHolder::instance().gamePalette.begin() );
+        PaletteHolder & holder = PaletteHolder::instance();
+        std::copy_n( palette.begin(), paletteSize, holder.gamePalette.begin() );
+        ++holder.revision;
     }
 }

@@ -701,28 +701,10 @@ namespace
 
                 fheroes2::Sprite sprite( static_cast<int32_t>( w ), static_cast<int32_t>( h ), 0, 0 );
                 sprite.reset();
-                uint8_t * imageData = sprite.image();
-                uint8_t * transformData = sprite.transform();
-                const uint8_t * pixels = body.data() + 6;
-
-                const std::vector<uint8_t> & palData = ::AGG::getDataFromAggFile( "KB.PAL", false );
-                if ( palData.size() >= 256 * 3 ) {
-                    for ( uint32_t i = 0; i < w * h; ++i ) {
-                        const uint8_t idx = pixels[i];
-                        const uint8_t r = static_cast<uint8_t>( palData[idx * 3 + 0] << 2 );
-                        const uint8_t g = static_cast<uint8_t>( palData[idx * 3 + 1] << 2 );
-                        const uint8_t b = static_cast<uint8_t>( palData[idx * 3 + 2] << 2 );
-                        imageData[i] = fheroes2::GetColorId( r, g, b );
-                        transformData[i] = 0;
-                    }
-                }
-                else {
-                    // Fallback: use raw palette indices directly
-                    for ( uint32_t i = 0; i < w * h; ++i ) {
-                        imageData[i] = pixels[i];
-                        transformData[i] = 0;
-                    }
-                }
+                // These pixels already index the active Heroes I palette.
+                // Keep duplicate entries distinct so palette animation still works.
+                std::copy_n( body.data() + 6, w * h, sprite.image() );
+                std::fill_n( sprite.transform(), w * h, 0 );
 
                 _icnVsSprite[id].resize( 1 );
                 _icnVsSprite[id][0] = std::move( sprite );
