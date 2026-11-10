@@ -196,7 +196,7 @@ i16 combatManager::Open(i16 priority) {
     m_autoCombatStopRequested = COMBAT_SIDE_NONE;
     m_showTurnOrder = gConfig.showCombatOrder;
     m_turnOrderCount = 0;
-    m_combatHistoryCount = 0;
+    m_combatHistory.clear();
     m_combatRound = 1;
     m_turnOrderHover = -1;
     m_quickCombat = false;
@@ -1366,8 +1366,8 @@ void combatManager::DrawCombatBorder(void) {
     char round[24];
     snprintf(round, sizeof(round), localization::Tr("combat.history.round"), m_combatRound);
     m_smallFont->DrawBoundedString(round, 51, COMBAT_PANEL_TOP + 4, 75, 12, 1, FONT_ALIGN_CENTER);
-    if (m_combatHistoryCount > 0)
-        m_smallFont->DrawBoundedString(m_combatHistory[m_combatHistoryCount - 1], 58, COMBAT_VIEW_HEIGHT + 4,
+    if (!m_combatHistory.empty())
+        m_smallFont->DrawBoundedString(const_cast<char*>(m_combatHistory.back().c_str()), 58, COMBAT_VIEW_HEIGHT + 4,
                                       524, 12, 1, FONT_ALIGN_CENTER);
     m_combatWindow->DrawWindow(0, COMBAT_CONTROL_OPTIONS, COMBAT_CONTROL_HISTORY);
 }

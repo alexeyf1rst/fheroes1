@@ -228,6 +228,11 @@ void RunReplayAction(const ReplayAction& action) {
             QueueKey(Event::KEY_DOWN, code, arrowKey);
         if (action.verb != "key-down")
             QueueKey(Event::KEY_UP, code, arrowKey);
+    } else if (action.verb == "wheel") {
+        Event event;
+        event.type = Event::MOUSE_WHEEL;
+        event.wheelY = static_cast<float>(x);
+        gPending.push_back(event);
     } else if (action.verb == "shot") {
         Present(true);
         std::string path = action.arguments.empty() ? "screen.bmp" : action.arguments[0];
@@ -317,6 +322,12 @@ bool Translate(const SDL_Event& source, Event& event) {
                              || source.key.scancode == SDL_SCANCODE_LEFT || source.key.scancode == SDL_SCANCODE_RIGHT;
             return true;
         }
+        case SDL_EVENT_MOUSE_WHEEL:
+            if (gReplayActive)
+                return false;
+            event.type = Event::MOUSE_WHEEL;
+            event.wheelY = source.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -source.wheel.y : source.wheel.y;
+            return true;
         case SDL_EVENT_MOUSE_MOTION: {
             if (gReplayActive)
                 return false;

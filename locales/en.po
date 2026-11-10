@@ -44,6 +44,11 @@ msgid "adventure.quick_info.uncharted"
 msgstr "Uncharted territory"
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.cost"
+msgstr "Route: %d MP   Available: %d MP"
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
 msgstr "Game saved successfully."
 
@@ -273,6 +278,11 @@ msgstr "%s %s half the enemy troops!"
 msgid "combat.history.button"
 msgstr "Log"
 
+#: src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.history.page"
+msgstr "Battle history  %d / %d"
+
 #: src/SOURCE/CMBTMGR.cpp src/SOURCE/DRAWING.cpp
 #, c-format
 msgid "combat.history.round"
@@ -355,7 +365,7 @@ msgstr "Grid"
 msgid "combat.options.off"
 msgstr "Off"
 
-#: src/SOURCE/COMMAND.cpp
+#: src/SOURCE/COMMAND.cpp src/SOURCE/DRAWING.cpp
 msgid "combat.options.okay"
 msgstr "Okay"
 

@@ -6,6 +6,7 @@
 #include <BASE/bmap2.h>
 #include <BASE/font.h>
 #include <BASE/heroWindow.h>
+#include <BASE/inputManager.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
 #include <BASE/message.h>
@@ -131,27 +132,130 @@ void combatManager::UpdateGridForMove(
         UpdateGrid(hex, attributes);
 }
 
+namespace {
+enum HistoryControl { HistoryFirst = 2100, HistoryPrevious, HistoryNext, HistoryLast, HistoryOkay };
+
+class HistoryPanel : public textWidget {
+public:
+    size_t page = 0;
+    float wheel = 0;
+    std::vector<size_t> pages{0};
+    explicit HistoryPanel() : textWidget(0, 0, 440, 350, strdup(""), "smalfont.fnt",
+                                         TEXT_WIDGET_PLAIN_COLOR, -1, WIDGET_KIND_TEXT) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+        int used = 0;
+        const auto& history = gCombatManager->m_combatHistory;
+        for (size_t index = 0; index < history.size(); ++index) {
+            const int height = EntryHeight(history[index]);
+            if (used > 0 && used + height > 258) {
+                pages.push_back(index);
+                used = 0;
+            }
+            used += height;
+        }
+    }
+    int EntryHeight(const std::string& entry) const {
+        return std::max(1, m_font->LineLength(const_cast<char*>(entry.c_str()), 408)) * m_font->m_height + 8;
+    }
+    size_t LastPage() const {
+        return pages.size() - 1;
+    }
+    void Draw() override {
+        const int x = m_owner->m_posX, y = m_owner->m_posY;
+        auto* screen = gWindowManager->m_screen;
+        FillBitmapArea(screen, x, y, m_width, m_height, goldButton::MatchGold(52, 37, 7));
+        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, goldButton::MatchGold(24, 10, 35));
+        char title[100];
+        snprintf(title, sizeof(title), localization::Tr("combat.history.page"),
+                 static_cast<int>(page + 1), static_cast<int>(LastPage() + 1));
+        m_font->DrawBoundedString(title, x + 12, y + 12, 416, 20, 1, FONT_ALIGN_CENTER);
+        const auto& history = gCombatManager->m_combatHistory;
+        const size_t end = page + 1 < pages.size() ? pages[page + 1] : history.size();
+        int top = y + 42;
+        for (size_t index = pages[page]; index < end; ++index) {
+            const int height = EntryHeight(history[index]);
+            m_font->DrawBoundedString(const_cast<char*>(history[index].c_str()),
+                                      x + 16, top, 408, height - 8, 1, FONT_ALIGN_LEFT);
+            top += height;
+        }
+    }
+};
+
+HistoryPanel* gHistoryPanel = nullptr;
+
+i16 HistoryHandler(tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN) {
+        switch (message.keyCode) {
+            case INPUT_SCAN_ENTER:
+            case INPUT_SCAN_ESCAPE: message.id = HistoryOkay; break;
+            case INPUT_SCAN_NUMPAD_7: message.id = HistoryFirst; break;
+            case INPUT_SCAN_NUMPAD_1: message.id = HistoryLast; break;
+            case INPUT_SCAN_NUMPAD_8:
+            case INPUT_SCAN_NUMPAD_9: message.id = HistoryPrevious; break;
+            case INPUT_SCAN_NUMPAD_2:
+            case INPUT_SCAN_NUMPAD_3: message.id = HistoryNext; break;
+            default: return MESSAGE_DISPATCH_CONTINUE;
+        }
+        message.type = MESSAGE_WIDGET;
+        message.command = WIDGET_NOTIFY_DESELECT;
+    }
+    if (message.type != MESSAGE_WIDGET || message.command != WIDGET_NOTIFY_DESELECT
+        || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
+        return MESSAGE_DISPATCH_CONTINUE;
+    switch (message.id) {
+        case HistoryOkay:
+            FINISH_DIALOG_MESSAGE(message);
+            return MESSAGE_DISPATCH_FORWARD;
+        case HistoryFirst: gHistoryPanel->page = 0; break;
+        case HistoryPrevious:
+            if (gHistoryPanel->page > 0)
+                --gHistoryPanel->page;
+            break;
+        case HistoryNext: gHistoryPanel->page = std::min(gHistoryPanel->page + 1, gHistoryPanel->LastPage()); break;
+        case HistoryLast: gHistoryPanel->page = gHistoryPanel->LastPage(); break;
+        default: return MESSAGE_DISPATCH_CONTINUE;
+    }
+    gHistoryPanel->m_owner->DrawWindow();
+    return MESSAGE_DISPATCH_CONSUME;
+}
+}
+
+void combatManager::ScrollCombatHistory(float amount) {
+    if (!gHistoryPanel)
+        return;
+    gHistoryPanel->wheel += amount;
+    const int steps = static_cast<int>(gHistoryPanel->wheel);
+    if (steps == 0)
+        return;
+    gHistoryPanel->wheel -= static_cast<float>(steps);
+    const int last = static_cast<int>(gHistoryPanel->LastPage());
+    gHistoryPanel->page = static_cast<size_t>(std::clamp(static_cast<int>(gHistoryPanel->page) - steps, 0, last));
+    gHistoryPanel->m_owner->DrawWindow();
+}
+
 void combatManager::CombatEvent(char* text) {
     if (!m_quickCombat && text[0]) {
-        if (m_combatHistoryCount == kCombatHistoryLength) {
-            memmove(m_combatHistory, m_combatHistory + 1,
-                    sizeof(m_combatHistory) - sizeof(m_combatHistory[0]));
-            --m_combatHistoryCount;
-        }
-        auto& entry = m_combatHistory[m_combatHistoryCount++];
-        snprintf(entry, sizeof(entry), "%s", text);
+        char round[32];
+        snprintf(round, sizeof(round), localization::Tr("combat.history.round"), m_combatRound);
+        m_combatHistory.emplace_back(std::string(round) + "  " + text);
     }
     CombatMessage(text, true);
 }
 
 void combatManager::ShowCombatHistory() {
-    char log[sizeof(m_combatHistory) + 100];
-    snprintf(log, sizeof(log), localization::Tr("combat.history.round"), m_combatRound);
-    for (int index = 0; index < m_combatHistoryCount; ++index) {
-        strcat(log, "\n");
-        strcat(log, m_combatHistory[index]);
-    }
-    NormalDialog(log, NORMAL_DIALOG_TYPE_OK);
+    heroWindow window(100, 57, 440, 350, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
+    auto* panel = new HistoryPanel();
+    panel->page = panel->LastPage();
+    window.AddWidget(panel, WINDOW_Z_ORDER_APPEND);
+    const char* labels[] = {"<<", "<", ">", ">>"};
+    for (i16 index = 0; index < 4; ++index)
+        window.AddWidget(new goldButton(16 + index * 62, 310, 54, 25, HistoryFirst + index, labels[index]),
+                         WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(300, 310, 124, 25, HistoryOkay,
+                                    localization::Tr("combat.options.okay")), WINDOW_Z_ORDER_APPEND);
+    gHistoryPanel = panel;
+    gWindowManager->DoDialog(&window, HistoryHandler, false);
+    gHistoryPanel = nullptr;
     DrawFrame(false);
     UpdateCombatArea();
     gWindowManager->UpdateScreenRegion(0, COMBAT_PANEL_TOP, LOGICAL_SCREEN_WIDTH,

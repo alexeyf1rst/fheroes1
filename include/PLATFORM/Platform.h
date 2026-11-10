@@ -211,6 +211,7 @@ struct Event {
         MOUSE_MOVE,
         MOUSE_DOWN,
         MOUSE_UP,
+        MOUSE_WHEEL,
         FOCUS_GAINED,
         FOCUS_LOST
     };
@@ -226,6 +227,7 @@ struct Event {
     int y = 0;
     Button button = BUTTON_LEFT;
     bool doubleClick = false;
+    float wheelY = 0;
 };
 
 // Returns the next event; false when none is waiting. With a timeout, waits

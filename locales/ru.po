@@ -44,6 +44,11 @@ msgid "adventure.quick_info.uncharted"
 msgstr "Неизученная земля"
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.cost"
+msgstr "Путь: %d ОД   Доступно: %d ОД"
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
 msgstr "Игра успешно сохранена."
 
@@ -273,6 +278,11 @@ msgstr "%s %s уничтожил вражеских воинов!"
 msgid "combat.history.button"
 msgstr "Журнал"
 
+#: src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.history.page"
+msgstr "История боя  %d / %d"
+
 #: src/SOURCE/CMBTMGR.cpp src/SOURCE/DRAWING.cpp
 #, c-format
 msgid "combat.history.round"
@@ -355,7 +365,7 @@ msgstr "Сетка"
 msgid "combat.options.off"
 msgstr "Выкл"
 
-#: src/SOURCE/COMMAND.cpp
+#: src/SOURCE/COMMAND.cpp src/SOURCE/DRAWING.cpp
 msgid "combat.options.okay"
 msgstr "ОК"
 

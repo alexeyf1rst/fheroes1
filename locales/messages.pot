@@ -45,6 +45,11 @@ msgid "adventure.quick_info.uncharted"
 msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.cost"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
 msgstr ""
 
@@ -274,6 +279,11 @@ msgstr ""
 msgid "combat.history.button"
 msgstr ""
 
+#: src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.history.page"
+msgstr ""
+
 #: src/SOURCE/CMBTMGR.cpp src/SOURCE/DRAWING.cpp
 #, c-format
 msgid "combat.history.round"
@@ -356,7 +366,7 @@ msgstr ""
 msgid "combat.options.off"
 msgstr ""
 
-#: src/SOURCE/COMMAND.cpp
+#: src/SOURCE/COMMAND.cpp src/SOURCE/DRAWING.cpp
 msgid "combat.options.okay"
 msgstr ""
 

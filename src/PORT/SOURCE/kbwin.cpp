@@ -8,6 +8,7 @@
 #ifndef HOMM1_EDITOR
 #include <BASE/executive.h>
 #include <SOURCE/advManager.h>
+#include <SOURCE/combatManager.h>
 #endif
 
 #include <SOURCE/kbwin.h>
@@ -254,6 +255,11 @@ void Dispatch(const platform::Event& event) {
             break;
         case platform::Event::KEY_UP:
             PostKey(INPUT_MESSAGE_KEY_UP, event);
+            break;
+        case platform::Event::MOUSE_WHEEL:
+#ifndef HOMM1_EDITOR
+            combatManager::ScrollCombatHistory(event.wheelY);
+#endif
             break;
         case platform::Event::MOUSE_MOVE:
             PostMouse(INPUT_MESSAGE_MOUSE_MOVE, event);

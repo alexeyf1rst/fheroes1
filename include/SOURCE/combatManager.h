@@ -1,6 +1,9 @@
 #ifndef HOMM1_SOURCE_COMBATMANAGER_H
 #define HOMM1_SOURCE_COMBATMANAGER_H
 
+#include <vector>
+#include <string>
+
 #include <BASE/audioTypes.h>
 #include <BASE/baseManager.h>
 #include <BASE/message.h>
@@ -217,9 +220,8 @@ public:
     void CombatMessage(char* text, b32 updateScreen);
     void CombatEvent(char* text);
     void ShowCombatHistory();
-    static constexpr int kCombatHistoryLength = 6;
-    char m_combatHistory[kCombatHistoryLength][112];
-    int m_combatHistoryCount = 0;
+    static void ScrollCombatHistory(float amount);
+    std::vector<std::string> m_combatHistory;
     int m_combatRound = 1;
     void CombatMessage(i16 messageType);
     void ResetLimitCreature(void);
