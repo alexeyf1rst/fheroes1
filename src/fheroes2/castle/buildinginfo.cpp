@@ -300,14 +300,6 @@ void BuildingInfo::Redraw() const
 
     const fheroes2::Sprite & buildingFrame = fheroes2::AGG::GetICN( ICN::BLDGXTRA, 0 );
     fheroes2::Blit( buildingFrame, display, area.x, area.y );
-    if ( _status == BuildingStatus::BUILD_DISABLE || _status == BuildingStatus::SHIPYARD_NOT_ALLOWED ) {
-        const fheroes2::Point offset( 6, 59 );
-        fheroes2::Sprite grayedOut = fheroes2::Crop( buildingFrame, offset.x, offset.y, 125, 12 );
-        fheroes2::ApplyPalette( grayedOut, PAL::GetPalette( PAL::PaletteType::GRAY ) );
-        fheroes2::ApplyPalette( grayedOut, PAL::GetPalette( PAL::PaletteType::DARKENING ) );
-        fheroes2::Copy( grayedOut, 0, 0, display, area.x + offset.x, area.y + offset.y, 125, 12 );
-    }
-
     // build image
     if ( BUILD_NOTHING == _buildingType ) {
         const bool isEvilInterface = Settings::Get().isEvilInterfaceEnabled();
@@ -340,13 +332,11 @@ void BuildingInfo::Redraw() const
             fheroes2::Blit( spriteDeny, display, area.x + buildingFrame.width() - 5 + 1 - spriteDeny.width(), area.y + 58 - 2 - spriteDeny.height() );
         }
 
-        const fheroes2::Sprite & textBackground = fheroes2::AGG::GetICN( ICN::CASLXTRA, 2 );
-        fheroes2::Copy( textBackground, 0, 0, display, area.x, area.y + 58, textBackground.width(), textBackground.height() );
     }
-    else {
-        const fheroes2::Sprite & textBackground = fheroes2::AGG::GetICN( ICN::CASLXTRA, 1 );
-        fheroes2::Copy( textBackground, 0, 0, display, area.x, area.y + 58, textBackground.width(), textBackground.height() );
-    }
+
+    const bool isUnavailable = _status == BuildingStatus::BUILD_DISABLE || _status == BuildingStatus::SHIPYARD_NOT_ALLOWED;
+    const uint8_t captionColor = isUnavailable ? fheroes2::GetColorId( 36, 32, 31 ) : fheroes2::GetColorId( 55, 30, 41 );
+    fheroes2::Fill( display, area.x + 1, area.y + 58, area.width - 2, 17, captionColor );
 
     fheroes2::Text buildingName( Castle::GetStringBuilding( _buildingType, castle.GetRace() ), fheroes2::FontType::smallWhite() );
     buildingName.fitToOneRow( 125 );

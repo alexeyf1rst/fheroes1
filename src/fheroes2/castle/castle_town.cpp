@@ -193,6 +193,7 @@ Castle::ConstructionDialogResult Castle::_openConstructionDialog( uint32_t & dwe
     const Settings & conf = Settings::Get();
     const bool isEvilInterface = conf.isEvilInterfaceEnabled();
 
+    fheroes2::Fill( display, restorer.x(), restorer.y(), restorer.width(), restorer.height(), fheroes2::GetColorId( 39, 31, 33 ) );
     fheroes2::Blit( fheroes2::AGG::GetICN( isEvilInterface ? ICN::CASLWIND_EVIL : ICN::CASLWIND, 0 ), display, dst_pt.x, dst_pt.y );
 
     // draw castle sprite

@@ -115,7 +115,7 @@ int Heroes::OpenDialog( const bool readonly, const bool fade, const bool disable
     const bool useHoMM1Layout = backgroundImage.width() < fheroes2::Display::DEFAULT_WIDTH;
     if ( useHoMM1Layout ) {
         fheroes2::StandardWindow::renderHoMM1Frame( display, dialogRoi, true );
-        fheroes2::Fill( display, dialogRoi.x + 49, dialogRoi.y + 1, 542, 23, fheroes2::GetColorId( 41, 21, 28 ) );
+        fheroes2::Fill( display, dialogRoi.x + 49, dialogRoi.y + 6, 542, 24, fheroes2::GetColorId( 41, 21, 28 ) );
     }
     else {
         fheroes2::Blit( backgroundImage, display, dialogRoi.x, dialogRoi.y );
@@ -139,7 +139,7 @@ int Heroes::OpenDialog( const bool readonly, const bool fade, const bool disable
     }
 
     // Dialog title.
-    const fheroes2::Rect titleRoi( dialogRoi.x + 60, dialogRoi.y + 1, 519, 17 );
+    const fheroes2::Rect titleRoi( dialogRoi.x + 60, dialogRoi.y + ( useHoMM1Layout ? 9 : 1 ), 519, useHoMM1Layout ? 21 : 17 );
 
     auto drawTitleText
         = [&display, &titleRoi, &dialogRoi, &backgroundImage, useHoMM1Layout, language, this]( const std::string & heroName, const int heroRace, const bool restoreBackground ) {
