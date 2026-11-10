@@ -93,14 +93,12 @@ i16 recruitUnit::Open(i16 priority) {
         m_resourceCost,
         *m_available
     );
-    Update();
     gWindowManager->BroadcastMessage(
         MESSAGE_WIDGET,
         WIDGET_COMMAND_SET_FLAGS,
         RECRUIT_CLOSE_CONTROL,
         WIDGET_FLAG_UPDATE | WIDGET_FLAG_DIMMED
     );
-    gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
 
     goldMaximum = gCurPlayerData->m_resources[RESOURCE_GOLD] / m_goldCost;
     if (m_resourceType != RESOURCE_NONE) {
@@ -110,9 +108,13 @@ i16 recruitUnit::Open(i16 priority) {
         m_maximum = goldMaximum;
     if (m_maximum > *m_available)
         m_maximum = *m_available;
+    if (m_sourceType == RECRUIT_SOURCE_TOWN)
+        m_quantity = m_maximum;
+    Update();
     m_recruited = false;
     m_noRoom = false;
-    if (*m_available == 0) {
+    gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
+    if (m_maximum == 0) {
         gWindowManager->BroadcastMessage(
             MESSAGE_WIDGET,
             WIDGET_COMMAND_CLEAR_FLAGS,

@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <PLATFORM/Platform.h>
 
 #include <BASE/audio.h>
 #include <BASE/backdropWidget.h>
@@ -127,6 +128,7 @@ i16 advManager::Open(i16 id) {
     i32 oldVolume;
     i32 i;
 
+    platform::BeginDisplayUpdate();
     firstTime = true;
     gCurBottomView = BOTTOM_VIEW_NONE;
     m_heroesLogoShown = false;
@@ -329,6 +331,7 @@ i16 advManager::Open(i16 id) {
     m_priority = id;
     m_active = 1;
     strcpy(m_name, "advManager");
+    platform::EndDisplayUpdate();
     return BASE_MANAGER_SUCCESS;
 }
 
@@ -588,7 +591,7 @@ i16 advManager::Main(struct tag_message& message) {
     CheckHandleNet();
     if (!gThisNetHumanPlayer[gCurPlayer])
         return CheckHandleNetPlayerWait(message, false);
-    if (gScreenScroll && gForegroundApp)
+    if (m_dragX < 0 && gScreenScroll && gForegroundApp)
         CheckScreenScroll();
     if (!(message.type & m_messageTypeMask)) {
         if (message.type) {
@@ -4111,8 +4114,9 @@ void advManager::DeactivateCurrHero(void) {
 void advManager::MobilizeCurrHero(b32 update) {
     if (gCurPlayerData->m_currentHero == HERO_ID_NONE)
         return;
-    if (m_heroMobilized)
+    if (m_heroMobilized && m_cursorActive)
         return;
+    m_heroMobilized = false;
     SetHeroContext(gCurPlayerData->m_currentHero, update);
 }
 
@@ -6413,6 +6417,10 @@ void advManager::ScreenScroll(i8 direction, b32 updatePointer) {
             direction + HOVER_SCROLL_FRAME_FIRST
         );
 
+    PanMap(xOrigin, yOrigin);
+}
+
+void advManager::PanMap(i16 xOrigin, i16 yOrigin) {
     if (xOrigin < SCROLL_MIN_ORIGIN)
         xOrigin = SCROLL_MIN_ORIGIN;
     if (xOrigin > SCROLL_MAX_ORIGIN)
@@ -6432,7 +6440,43 @@ void advManager::ScreenScroll(i8 direction, b32 updatePointer) {
     }
 }
 
+bool advManager::BeginMapDrag(i16 x, i16 y) {
+    if (gHeroMoving || x < BORDER_EDGE_SIZE || x >= BORDER_MIDDLE_END
+        || y < BORDER_EDGE_SIZE || y >= BORDER_MIDDLE_END)
+        return false;
+    m_dragX = x;
+    m_dragY = y;
+    m_mapDragging = false;
+    return true;
+}
+
+bool advManager::DragMap(i16 x, i16 y) {
+    constexpr int threshold = 6;
+    constexpr int tileSize = 32;
+    if (!m_mapDragging && abs(x - m_dragX) < threshold && abs(y - m_dragY) < threshold)
+        return false;
+    m_mapDragging = true;
+    const int tilesX = (x - m_dragX) / tileSize;
+    const int tilesY = (y - m_dragY) / tileSize;
+    m_dragX += tilesX * tileSize;
+    m_dragY += tilesY * tileSize;
+    PanMap(m_mapOriginX - tilesX, m_mapOriginY - tilesY);
+    return true;
+}
+
+void advManager::EndMapDrag() {
+    if (m_mapDragging)
+        m_resumeEdgeScrollOnExit = MouseInScrollZone();
+    m_dragX = m_dragY = -1;
+    m_mapDragging = false;
+}
+
 void advManager::CheckScreenScroll(void) {
+    if (m_resumeEdgeScrollOnExit) {
+        if (MouseInScrollZone())
+            return;
+        m_resumeEdgeScrollOnExit = false;
+    }
     i16 mouseX;
     i16 mouseY;
     i32 oldMapX;
@@ -6504,6 +6548,7 @@ void advManager::SetInitialMapOrigin(void) {
         WIDGET_FLAG_UPDATE | WIDGET_FLAG_DIMMED
     );
     m_hoverCellX = m_hoverCellY = 0;
+    DemobilizeCurrHero();
     m_cursorActive = false;
     gHeroMoving = false;
     if (gCurPlayerData->CurrentTown() != GAME_TOWN_NONE) {

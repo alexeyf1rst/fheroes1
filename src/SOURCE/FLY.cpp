@@ -311,7 +311,7 @@ i16 army::FlyTo(i16 destination) {
         if (gMaxExtentY > boxBottom)
             boxBottom = gMaxExtentY;
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
         UPDATE_INCLUSIVE_REGION(boxLeft, boxTop, boxRightX, boxBottom);
         m_animationFrame += flyBackwards == true ? -1 : 1;
         if (m_animationFrame > 5)

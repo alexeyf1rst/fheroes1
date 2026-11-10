@@ -22,7 +22,7 @@ enum WindowFadeMode {
 };
 
 enum WindowFadeIncrement {
-    WINDOW_FADE_SHORT = 8,
+    WINDOW_FADE_SHORT = 32,
     WINDOW_FADE_NORMAL = 0x80
 };
 

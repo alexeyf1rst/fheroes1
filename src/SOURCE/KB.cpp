@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <PLATFORM/Platform.h>
 
 #include <BASE/BITS.h>
 #include <BASE/bmap2.h>
@@ -455,6 +456,7 @@ i32 oldmain(void) {
             gGameInitialized = true;
             backdropLoaded = false;
             StopAllAudio();
+            platform::BeginDisplayUpdate();
             gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
             gMapX = 0;
             gMapY = 0;
@@ -462,6 +464,9 @@ i32 oldmain(void) {
                 ShutDown(localization::Tr("startup.manager.failed"));
             if (command == MAIN_MENU_NEW_GAME)
                 gAdvManager->SetHeroContext(gGame->m_players[0].NextHero(0), false);
+            platform::EndDisplayUpdate();
+            if (!platform::Environment("HOMM1_PROFILE_LOAD").empty())
+                platform::Log("load visible: %u", platform::Ticks());
             gExec->MainLoop();
             gMapX = gAdvManager->m_mapOriginX;
             gMapY = gAdvManager->m_mapOriginY;

@@ -4,6 +4,7 @@
 #include <PLATFORM/Records.h>
 #include <SOURCE/saveRecords.h>
 
+#include <algorithm>
 #include <vector>
 
 #include <BASE/baseManager.h>
@@ -242,6 +243,8 @@ void resourceManager::Close(void) {
     m_resourceListHead = NULL;
     if (m_aggregateDir != NULL)
         free(m_aggregateDir);
+    free(m_archive);
+    m_archive = nullptr;
     if (m_aggregateFd != FILE_DESCRIPTOR_INVALID) {
         FileClose(m_aggregateFd);
         m_aggregateFd = FILE_DESCRIPTOR_INVALID;
@@ -260,6 +263,8 @@ i16 resourceManager::LoadAggregateHeader(char* aggregateName) {
         FileClose(m_aggregateFd);
     if (m_aggregateDir != NULL)
         free(m_aggregateDir);
+    free(m_archive);
+    m_archive = nullptr;
     m_aggregateFd = aggregateFd;
     m_aggregateEntryCount = ReadWord();
     const i32 fileLength = FileLength(m_aggregateFd);
@@ -301,6 +306,22 @@ i16 resourceManager::LoadAggregateHeader(char* aggregateName) {
             return RESOURCE_MANAGER_LOAD_ERROR;
         }
     }
+    // The archive has many small reads while building the first view of a map.
+    constexpr i32 maxCachedArchive = 32 * 1024 * 1024;
+    if (fileLength <= maxCachedArchive) {
+        m_archive = static_cast<u8*>(malloc(fileLength));
+        if (m_archive != nullptr) {
+            if (FileSeek(m_aggregateFd, 0, FILE_SEEK_SET) == 0
+                && FileReadExact(m_aggregateFd, m_archive, fileLength)) {
+                m_archiveLength = fileLength;
+                m_archivePosition = directoryStart + directoryLength;
+            } else {
+                free(m_archive);
+                m_archive = nullptr;
+                FileSeek(m_aggregateFd, directoryStart + directoryLength, FILE_SEEK_SET);
+            }
+        }
+    }
     return RESOURCE_MANAGER_LOAD_SUCCESS;
 }
 
@@ -329,7 +350,7 @@ void resourceManager::PointToFile(i16 fileId) {
         );
         ShutDown(gText);
     }
-    FileSeek(m_aggregateFd, m_aggregateDir[entry].offset, FILE_SEEK_SET);
+    SeekArchive(m_aggregateDir[entry].offset);
 }
 
 u32 resourceManager::GetFileSize(i16 fileId) {
@@ -354,17 +375,36 @@ u32 resourceManager::GetFileSize(i16 fileId) {
 }
 
 void resourceManager::SavePosition(void) {
-    m_savedPosition = FileTell(m_aggregateFd);
+    m_savedPosition = m_archive != nullptr ? m_archivePosition : FileTell(m_aggregateFd);
 }
 
 void resourceManager::RestorePosition(void) {
-    FileSeek(m_aggregateFd, m_savedPosition, FILE_SEEK_SET);
+    SeekArchive(m_savedPosition);
+}
+
+void resourceManager::SeekArchive(i32 position) {
+    if (m_archive != nullptr)
+        m_archivePosition = position;
+    else
+        FileSeek(m_aggregateFd, position, FILE_SEEK_SET);
+}
+
+void resourceManager::ReadArchive(void* destination, i32 size) {
+    if (m_archive == nullptr) {
+        FileRead(m_aggregateFd, destination, size);
+        return;
+    }
+    const i32 bytes = std::min(size, m_archiveLength - m_archivePosition);
+    if (bytes > 0) {
+        memcpy(destination, m_archive + m_archivePosition, bytes);
+        m_archivePosition += bytes;
+    }
 }
 
 i8 resourceManager::ReadByte(void) {
     H1_ASSERT(m_aggregateFd != FILE_DESCRIPTOR_INVALID);
     u8 bytes[1] = {0};
-    FileRead(m_aggregateFd, bytes, sizeof(bytes));
+    ReadArchive(bytes, sizeof(bytes));
     i8 value;
     RecordReader reader(bytes, sizeof(bytes));
     reader.Get(value);
@@ -374,7 +414,7 @@ i8 resourceManager::ReadByte(void) {
 i16 resourceManager::ReadWord(void) {
     H1_ASSERT(m_aggregateFd != FILE_DESCRIPTOR_INVALID);
     u8 bytes[2] = {0, 0};
-    FileRead(m_aggregateFd, bytes, sizeof(bytes));
+    ReadArchive(bytes, sizeof(bytes));
     i16 value;
     RecordReader reader(bytes, sizeof(bytes));
     reader.Get(value);
@@ -384,7 +424,7 @@ i16 resourceManager::ReadWord(void) {
 i32 resourceManager::ReadLong(void) {
     H1_ASSERT(m_aggregateFd != FILE_DESCRIPTOR_INVALID);
     u8 bytes[4] = {0, 0, 0, 0};
-    FileRead(m_aggregateFd, bytes, sizeof(bytes));
+    ReadArchive(bytes, sizeof(bytes));
     i32 value;
     RecordReader reader(bytes, sizeof(bytes));
     reader.Get(value);
@@ -405,6 +445,6 @@ void resourceManager::Read13(char* destination) {
 void resourceManager::ReadBlock(void* destination, u32 size) {
     H1_ASSERT(m_aggregateFd != FILE_DESCRIPTOR_INVALID);
     PollSound();
-    i32 bytesRead = FileRead(m_aggregateFd, destination, size);
+    ReadArchive(destination, size);
     PollSound();
 }

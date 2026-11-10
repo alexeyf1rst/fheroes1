@@ -2848,6 +2848,7 @@ combatFinished:
     }
     gShowIt = showItSaved;
     gCurPlayer = oldPlayer;
+    gCurPlayerData = &gGame->m_players[gCurPlayer];
     if (!gHumanPlayer[gCurPlayer]) {
         gGame->ShowComputerScreen();
         gGame->TurnOnAIMusic();

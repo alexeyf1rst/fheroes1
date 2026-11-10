@@ -1,9 +1,9 @@
 #include "Internal.h"
 #include "Media.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 namespace platform {
@@ -31,7 +31,8 @@ Voice gNextVoice = 1;
 void SDLCALL RefillLoop(void* userdata, SDL_AudioStream* stream, int additional, int) {
     const VoiceState* voice = static_cast<const VoiceState*>(userdata);
     while (additional > 0 && voice->bytes > 0) {
-        SDL_PutAudioStreamData(stream, voice->data.data(), voice->bytes);
+        if (!SDL_PutAudioStreamData(stream, voice->data.data(), voice->bytes))
+            break;
         additional -= voice->bytes;
     }
 }
@@ -54,34 +55,42 @@ void ReapVoices() {
 // ---------------------------------------------------------------- music
 
 struct MusicState {
-    std::mutex lock;
     media::Decoder decoder;
     SDL_AudioStream* stream = nullptr;
     bool loop = false;
-    bool finished = true;
-    i64 framesOut = 0;
-    double startSeconds = 0;
+    bool finished = false;
+    i64 positionFrames = 0;
     std::vector<i16> buffer;
+
+    ~MusicState() { SDL_DestroyAudioStream(stream); }
 };
 
-MusicState gMusic;
+std::unique_ptr<MusicState> gMusic;
 
-void SDLCALL FeedMusic(void*, SDL_AudioStream* stream, int additional, int) {
-    std::lock_guard<std::mutex> guard(gMusic.lock);
-    while (additional > 0 && !gMusic.finished) {
-        gMusic.buffer.clear();
-        if (!gMusic.decoder.Next(nullptr, nullptr, gMusic.buffer)) {
-            if (gMusic.loop && gMusic.decoder.SeekSeconds(0)) {
-                gMusic.framesOut = 0;
-                gMusic.startSeconds = 0;
+void SDLCALL FeedMusic(void* userdata, SDL_AudioStream* stream, int additional, int) {
+    auto& music = *static_cast<MusicState*>(userdata);
+    bool rewound = false;
+    while (additional > 0 && !music.finished) {
+        music.buffer.clear();
+        if (!music.decoder.Next(nullptr, nullptr, music.buffer)) {
+            if (music.loop && !rewound && music.decoder.SeekSeconds(0)) {
+                music.positionFrames = 0;
+                rewound = true;
                 continue;
             }
-            gMusic.finished = true;
+            SDL_FlushAudioStream(stream);
+            music.finished = true;
             break;
         }
-        int bytes = static_cast<int>(gMusic.buffer.size() * sizeof(i16));
-        SDL_PutAudioStreamData(stream, gMusic.buffer.data(), bytes);
-        gMusic.framesOut += static_cast<i64>(gMusic.buffer.size() / media::kMediaChannels);
+        if (music.buffer.empty())
+            continue;
+        const int bytes = static_cast<int>(music.buffer.size() * sizeof(i16));
+        if (!SDL_PutAudioStreamData(stream, music.buffer.data(), bytes)) {
+            music.finished = true;
+            break;
+        }
+        music.positionFrames += static_cast<i64>(music.buffer.size() / media::kMediaChannels);
+        rewound = false;
         additional -= bytes;
     }
 }
@@ -153,14 +162,15 @@ Voice PlaySample(
     float volume,
     bool loop
 ) {
-    if (gDevice == 0 || data == nullptr || bytes == 0 || rate <= 0 || channels <= 0)
+    if (gDevice == 0 || data == nullptr || bytes == 0 || rate <= 0 || channels <= 0
+        || (!loop && volume <= 0))
         return NO_VOICE;
     ReapVoices();
     SDL_AudioSpec spec;
     spec.format = format == SAMPLE_U8 ? SDL_AUDIO_U8 : SDL_AUDIO_S16LE;
     spec.channels = channels;
     spec.freq = rate;
-    SDL_AudioStream* stream = SDL_CreateAudioStream(&spec, nullptr);
+    SDL_AudioStream* stream = SDL_CreateAudioStream(&spec, &spec);
     if (stream == nullptr)
         return NO_VOICE;
     Voice id = gNextVoice++;
@@ -170,13 +180,11 @@ Voice PlaySample(
         voice.data.assign(static_cast<const u8*>(data), static_cast<const u8*>(data) + bytes);
     voice.bytes = static_cast<int>(bytes);
     voice.loop = loop;
-    SDL_SetAudioStreamGain(stream, volume);
-    if (loop)
-        SDL_SetAudioStreamGetCallback(stream, RefillLoop, &voice);
-    SDL_PutAudioStreamData(stream, data, voice.bytes);
-    if (!loop)
-        SDL_FlushAudioStream(stream);
-    if (!SDL_BindAudioStream(gDevice, stream)) {
+    if (!SDL_SetAudioStreamGain(stream, volume)
+        || !SDL_PutAudioStreamData(stream, data, voice.bytes)
+        || !(loop ? SDL_SetAudioStreamGetCallback(stream, RefillLoop, &voice)
+                  : SDL_FlushAudioStream(stream))
+        || !SDL_BindAudioStream(gDevice, stream)) {
         SDL_DestroyAudioStream(stream);
         gVoices.erase(id);
         return NO_VOICE;
@@ -208,57 +216,60 @@ void SetVoiceVolume(Voice voice, float volume) {
 // ---------------------------------------------------------------- music
 
 bool PlayMusic(const char* hostPath, bool loop, double startSeconds, float volume) {
-    StopMusic();
     if (gDevice == 0)
         return false;
-    {
-        std::lock_guard<std::mutex> guard(gMusic.lock);
-        if (!gMusic.decoder.Open(hostPath, false, true))
-            return false;
-        if (startSeconds > 0 && !gMusic.decoder.SeekSeconds(startSeconds))
-            startSeconds = 0;
-        gMusic.loop = loop;
-        gMusic.finished = false;
-        gMusic.framesOut = 0;
-        gMusic.startSeconds = startSeconds;
-    }
-    gMusic.stream = OpenMediaStream();
-    if (gMusic.stream == nullptr) {
-        std::lock_guard<std::mutex> guard(gMusic.lock);
-        gMusic.decoder.Close();
-        gMusic.finished = true;
+    auto music = std::make_unique<MusicState>();
+    if (!music->decoder.Open(hostPath, false, true))
         return false;
+    if (startSeconds > 0 && !music->decoder.SeekSeconds(startSeconds)) {
+        music->decoder.SeekSeconds(0);
+        startSeconds = 0;
     }
-    SDL_SetAudioStreamGain(gMusic.stream, volume);
-    SDL_SetAudioStreamGetCallback(gMusic.stream, FeedMusic, nullptr);
+    music->loop = loop;
+    music->positionFrames = static_cast<i64>(startSeconds * media::kMediaRate);
+    SDL_AudioSpec spec = MediaSpec();
+    // A stream needs both formats to accept data before binding to the device.
+    music->stream = SDL_CreateAudioStream(&spec, &spec);
+    if (music->stream == nullptr)
+        return false;
+    FeedMusic(music.get(), music->stream, 1, 0);
+    if (!StreamBusy(music->stream)
+        || !SDL_SetAudioStreamGain(music->stream, volume)
+        || !SDL_SetAudioStreamGetCallback(music->stream, FeedMusic, music.get())
+        || !SDL_BindAudioStream(gDevice, music->stream))
+        return false;
+    gMusic = std::move(music);
     return true;
 }
 
 void StopMusic() {
-    if (gMusic.stream != nullptr) {
-        SDL_DestroyAudioStream(gMusic.stream);
-        gMusic.stream = nullptr;
-    }
-    std::lock_guard<std::mutex> guard(gMusic.lock);
-    gMusic.decoder.Close();
-    gMusic.finished = true;
+    gMusic.reset();
 }
 
 bool MusicPlaying() {
-    if (gMusic.stream == nullptr)
+    if (!gMusic)
         return false;
-    std::lock_guard<std::mutex> guard(gMusic.lock);
-    return !gMusic.finished || StreamBusy(gMusic.stream);
+    // SDL already holds the stream lock when it calls FeedMusic.
+    SDL_LockAudioStream(gMusic->stream);
+    const bool playing = !gMusic->finished || StreamBusy(gMusic->stream);
+    SDL_UnlockAudioStream(gMusic->stream);
+    return playing;
 }
 
 double MusicPosition() {
-    std::lock_guard<std::mutex> guard(gMusic.lock);
-    return gMusic.startSeconds + static_cast<double>(gMusic.framesOut) / media::kMediaRate;
+    if (!gMusic)
+        return 0;
+    SDL_LockAudioStream(gMusic->stream);
+    constexpr int frameBytes = sizeof(i16) * media::kMediaChannels;
+    const int queuedFrames = std::max(0, SDL_GetAudioStreamQueued(gMusic->stream)) / frameBytes;
+    const i64 playedFrames = std::max<i64>(0, gMusic->positionFrames - queuedFrames);
+    SDL_UnlockAudioStream(gMusic->stream);
+    return static_cast<double>(playedFrames) / media::kMediaRate;
 }
 
 void SetMusicVolume(float volume) {
-    if (gMusic.stream != nullptr)
-        SDL_SetAudioStreamGain(gMusic.stream, volume);
+    if (gMusic)
+        SDL_SetAudioStreamGain(gMusic->stream, volume);
 }
 
 // ---------------------------------------------------------------- movies

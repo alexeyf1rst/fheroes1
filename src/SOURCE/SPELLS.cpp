@@ -815,7 +815,7 @@ void combatManager::Fireball(i8 targetHex) {
     x = m_hexCells[targetHex].m_x;
     y = m_hexCells[targetHex].m_y - 30;
     for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT + 1; i++) {
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
         m_gridUpdateRow = 0;
         ClippedIconToBitmap(fireballIcon, gWindowManager->m_screen, x, y, i, ICON_DRAW_OFFSET_FULL);
         FlipClippedIconToBitmap(
@@ -886,7 +886,7 @@ void combatManager::MeteorShower(i8 targetHex) {
     target = &m_armies[m_currentSide][m_currentArmyIndex];
     SpellArea(targetHex, affectedHexes);
     for (frame = 0; frame < 10; frame++) {
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 112.5;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(112);
         m_gridUpdateRow = 0;
         DrawFrame(false);
         for (i = 0; i < COMBAT_DIRECTION_ADJACENT_COUNT + 1; i++) {
@@ -956,7 +956,7 @@ void combatManager::ElementalStorm(void) {
     storm = gResourceManager->GetIcon("storm.icn");
     for (stormRound = 0; stormRound < 5; stormRound++) {
         for (frame = 0; frame < 10; frame++) {
-            gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+            gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
             m_gridUpdateRow = 0;
             DrawFrame(false);
             for (y = 0; y < 7; y++) {
@@ -1038,7 +1038,7 @@ void combatManager::Armageddon(void) {
     if (!effectPalette)
         MemError();
     memcpy(effectPalette->Data(), gamePal->Data(), PALETTE_DATA_SIZE);
-    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
     paletteBytes = effectPalette->Data();
     for (fadeStep = 0; fadeStep < 32; fadeStep++) {
         for (color = 0; color < PALETTE_COLOR_COUNT; color++) {
@@ -1049,7 +1049,7 @@ void combatManager::Armageddon(void) {
         }
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
         SetPalette(paletteBytes, true);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
     }
     stack->PowEffect(COMBAT_POW_RED_FIRE);
     for (combatSideIndex = COMBAT_SIDE_FIRST; combatSideIndex < COMBAT_SIDE_COUNT;

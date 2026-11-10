@@ -25,6 +25,7 @@
 #include <SOURCE/KB.h>
 #include <SOURCE/wingraph.h>
 
+#include <PLATFORM/GameData.h>
 #include <PLATFORM/Platform.h>
 
 #include "../PortHost.h"
@@ -128,6 +129,20 @@ bool gTracking = false;
 // The command chosen in the open menu, run once the menu has closed.
 i32 gChosenCommand = 0;
 bool gInMenuLoop = false;
+bool gShowFullscreenMenu = false;
+
+struct ScalingChoice {
+    i32 command;
+    platform::DisplayScaling mode;
+    const char* label;
+};
+
+const ScalingChoice kScalingChoices[] = {
+    {KBWIN_MENU_SCALE_FILL, platform::DISPLAY_SCALING_FILL, localization::Tr("menu.scaling.fill")},
+    {KBWIN_MENU_SCALE_FIT, platform::DISPLAY_SCALING_FIT, localization::Tr("menu.scaling.fit")},
+    {KBWIN_MENU_SCALE_INTEGER, platform::DISPLAY_SCALING_INTEGER, localization::Tr("menu.scaling.integer")},
+    {KBWIN_MENU_SCALE_SMOOTH, platform::DISPLAY_SCALING_SMOOTH, localization::Tr("menu.scaling.smooth")},
+};
 
 std::string Lowercase(const char* text) {
     std::string result;
@@ -195,8 +210,9 @@ bool FontReady() {
 }
 
 bool Visible() {
-    return gAppMenu != NULL && CURRENT_GRAPHICS_CONFIG.showMenu != 0
-           && CURRENT_GRAPHICS_CONFIG.fullScreen == 0 && FontReady();
+    return gAppMenu != NULL && (CURRENT_GRAPHICS_CONFIG.fullScreen ? gShowFullscreenMenu
+                                                                   : CURRENT_GRAPHICS_CONFIG.showMenu != 0)
+           && FontReady();
 }
 
 i32 GlyphFor(u8 character) {
@@ -497,6 +513,13 @@ void RunMenuLoop() {
 // ---------------------------------------------------------------- input
 
 bool MenuHandleEvent(const platform::Event& event) {
+    if (gAppMenu != NULL && CURRENT_GRAPHICS_CONFIG.fullScreen && event.scanCode == INPUT_SCAN_F10) {
+        if (event.type == platform::Event::KEY_DOWN) {
+            gShowFullscreenMenu = !gShowFullscreenMenu;
+            CloseMenu();
+        }
+        return true;
+    }
     if (gBar == 0 || gAppMenu == NULL)
         return false;
     bool open = !gOpen.empty();
@@ -563,6 +586,8 @@ bool MenuHandleEvent(const platform::Event& event) {
 }
 
 void MenuRefresh() {
+    if (!CURRENT_GRAPHICS_CONFIG.fullScreen)
+        gShowFullscreenMenu = false;
     if (gAppMenu == NULL || !Visible()) {
         if (gBar != 0)
             Redraw();
@@ -600,21 +625,37 @@ KBMenu KBLoadMenu(const char* name) {
         for (MenuItem& top : menu->items) {
             if (!FindCommand(top.children, KBWIN_MENU_FULLSCREEN))
                 continue;
+            MenuItem pixelSize;
+            pixelSize.command = KBWIN_MENU_SIZE_1280_960;
+            pixelSize.text = "1280 x 960 (2x)";
+            top.children.push_back(pixelSize);
+
             MenuItem scaling;
             scaling.popup = true;
             scaling.text = localization::Tr("menu.scaling");
-            const char* labels[] = {
-                localization::Tr("menu.scaling.fit"),
-                localization::Tr("menu.scaling.integer"),
-                localization::Tr("menu.scaling.smooth")
-            };
-            for (i32 command = KBWIN_MENU_SCALE_FIT; command <= KBWIN_MENU_SCALE_SMOOTH; ++command) {
+            for (const auto& mode : kScalingChoices) {
                 MenuItem choice;
-                choice.command = command;
-                choice.text = labels[command - KBWIN_MENU_SCALE_FIT];
+                choice.command = mode.command;
+                choice.text = mode.label;
                 scaling.children.push_back(choice);
             }
             top.children.push_back(scaling);
+
+            MenuItem resolution;
+            resolution.popup = true;
+            resolution.text = localization::Tr("menu.fullscreen_resolution");
+            MenuItem desktop;
+            desktop.command = KBWIN_MENU_RESOLUTION_FIRST;
+            desktop.text = localization::Tr("menu.fullscreen_resolution.desktop");
+            resolution.children.push_back(desktop);
+            const auto& modes = platform::FullscreenResolutions();
+            for (size_t index = 0; index < modes.size() && index < KBWIN_MENU_RESOLUTION_CHOICES; ++index) {
+                MenuItem choice;
+                choice.command = KBWIN_MENU_RESOLUTION_FIRST + 1 + static_cast<i32>(index);
+                choice.text = std::to_string(modes[index].width) + " x " + std::to_string(modes[index].height);
+                resolution.children.push_back(choice);
+            }
+            top.children.push_back(resolution);
             break;
         }
 #ifndef HOMM1_EDITOR
@@ -625,6 +666,16 @@ KBMenu KBLoadMenu(const char* name) {
         autoResolve.command = KBWIN_MENU_AUTO_RESOLVE;
         autoResolve.text = localization::Tr("combat.auto_resolve.setting");
         combat.children.push_back(autoResolve);
+        MenuItem speed;
+        speed.popup = true;
+        speed.text = localization::Tr("combat.animation_speed");
+        for (i32 index = 0; index < 4; ++index) {
+            MenuItem choice;
+            choice.command = KBWIN_MENU_BATTLE_SPEED_FIRST + index;
+            choice.text = std::to_string(index + 1) + "x";
+            speed.children.push_back(choice);
+        }
+        combat.children.push_back(speed);
         menu->items.push_back(combat);
 
         MenuItem hotkeys;
@@ -652,6 +703,21 @@ KBMenu KBLoadMenu(const char* name) {
             hotkeys.children.push_back(category);
         }
         menu->items.push_back(hotkeys);
+        MenuItem mapPacks;
+        mapPacks.popup = true;
+        mapPacks.text = localization::Tr("menu.map_packs");
+        MenuItem baseMaps;
+        baseMaps.command = KBWIN_MENU_MAP_PACK_FIRST;
+        baseMaps.text = localization::Tr("menu.map_packs.original");
+        mapPacks.children.push_back(baseMaps);
+        const auto& packs = platform::ScenarioPacks();
+        for (size_t i = 0; i < packs.size(); ++i) {
+            MenuItem pack;
+            pack.command = KBWIN_MENU_MAP_PACK_FIRST + static_cast<i32>(i) + 1;
+            pack.text = platform::FromUtf8(packs[i]);
+            mapPacks.children.push_back(pack);
+        }
+        menu->items.push_back(mapPacks);
 #endif
         return menu;
     }
@@ -739,26 +805,49 @@ void SetMenus(KBMenu menu, i32 enabled) {
 // The window sizes larger than the desktop are unavailable, as in the
 // original.
 void UpdateDfltMenu(KBMenu menu) {
-    if (menu == NULL || CURRENT_GRAPHICS_CONFIG.showMenu == 0)
+    if (menu == NULL || (CURRENT_GRAPHICS_CONFIG.showMenu == 0 && !CURRENT_GRAPHICS_CONFIG.fullScreen))
         return;
     i32 desktopWidth;
     i32 desktopHeight;
     platform::DesktopSize(desktopWidth, desktopHeight);
-    if (desktopWidth <= LOGICAL_SCREEN_WIDTH)
-        MenuEnableItem(menu, KBWIN_MENU_SIZE_640_480, false);
-    if (desktopWidth <= KBWIN_WIDTH_800)
-        MenuEnableItem(menu, KBWIN_MENU_SIZE_800_600, false);
-    if (desktopWidth <= KBWIN_WIDTH_1024)
-        MenuEnableItem(menu, KBWIN_MENU_SIZE_1024_768, false);
-    if (desktopWidth <= KBWIN_WIDTH_1280)
-        MenuEnableItem(menu, KBWIN_MENU_SIZE_1280_1024, false);
+    const struct {
+        i32 command;
+        i32 width;
+        i32 height;
+    } sizes[] = {
+        {KBWIN_MENU_SIZE_640_480, 640, 480}, {KBWIN_MENU_SIZE_800_600, 800, 600}, {KBWIN_MENU_SIZE_1024_768, 1024, 768},
+        {KBWIN_MENU_SIZE_1280_960, 1280, 960}, {KBWIN_MENU_SIZE_1280_1024, 1280, 1024}
+    };
+    for (const auto& size : sizes) {
+        MenuEnableItem(menu, size.command, size.width <= desktopWidth && size.height + 40 <= desktopHeight);
+        KBCheckMenuItem(menu, size.command, size.width == CURRENT_GRAPHICS_CONFIG.width && size.height == CURRENT_GRAPHICS_CONFIG.height);
+    }
+#ifndef HOMM1_EDITOR
+    const auto& packs = platform::ScenarioPacks();
+    const auto& selected = platform::SelectedScenarioPack();
+    MenuEnableItem(menu, KBWIN_MENU_MAP_PACK_FIRST, true);
+    KBCheckMenuItem(menu, KBWIN_MENU_MAP_PACK_FIRST, selected.empty());
+    for (size_t i = 0; i < packs.size(); ++i) {
+        const i32 command = KBWIN_MENU_MAP_PACK_FIRST + static_cast<i32>(i) + 1;
+        MenuEnableItem(menu, command, true);
+        KBCheckMenuItem(menu, command, selected == packs[i]);
+    }
+#endif
     // The help book is shown converted from the game's WinHelp file; without
     // that file the item is unavailable.
     if (!HelpAvailable())
         MenuEnableItem(menu, KBWIN_MENU_HELP, false);
-    for (i32 command = KBWIN_MENU_SCALE_FIT; command <= KBWIN_MENU_SCALE_SMOOTH; ++command)
-        KBCheckMenuItem(menu, command, command - KBWIN_MENU_SCALE_FIT == gConfig.displayScaling);
+    for (const auto& choice : kScalingChoices)
+        KBCheckMenuItem(menu, choice.command, choice.mode == gConfig.displayScaling);
+    KBCheckMenuItem(menu, KBWIN_MENU_RESOLUTION_FIRST, gConfig.fullscreenWidth == 0);
+    const auto& modes = platform::FullscreenResolutions();
+    for (size_t index = 0; index < modes.size() && index < KBWIN_MENU_RESOLUTION_CHOICES; ++index)
+        KBCheckMenuItem(menu, KBWIN_MENU_RESOLUTION_FIRST + 1 + static_cast<i32>(index),
+                        modes[index].width == gConfig.fullscreenWidth && modes[index].height == gConfig.fullscreenHeight);
     KBCheckMenuItem(menu, KBWIN_MENU_AUTO_RESOLVE, gConfig.autoResolveBattles != 0);
+    for (i32 index = 0; index < 4; ++index)
+        KBCheckMenuItem(menu, KBWIN_MENU_BATTLE_SPEED_FIRST + index,
+                        index + 1 == std::clamp(gConfig.combatAnimationSpeed, 1, 4));
     for (i16 index = 0; index < GAME_SHORTCUT_COUNT; ++index) {
         MenuItem* binding = FindCommand(menu->items, KBWIN_MENU_SHORTCUT_FIRST + index);
         if (binding)

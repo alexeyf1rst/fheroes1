@@ -103,7 +103,7 @@ bool Decoder::Open(const std::string& hostPath, bool wantVideo, bool wantAudio) 
             return false;
         m_pcmFrameBytes = stereo ? 4 : 1;
         // Some retail tracks end with only one channel of the last frame.
-        file.resize(file.size() - file.size() % m_pcmFrameBytes);
+        file.resize(file.size() - file.size() % static_cast<std::size_t>(m_pcmFrameBytes));
         m_file = std::move(file);
         return true;
     }
@@ -180,7 +180,7 @@ bool Decoder::Next(std::vector<u8>* pixels, std::vector<u8>* palette, std::vecto
         const int bytes = static_cast<int>(std::min(m_file.size() - m_pcmOffset,
                                                     static_cast<std::size_t>(kMusicChunkFrames * m_pcmFrameBytes)));
         Convert(m_file.data() + m_pcmOffset, bytes, audio);
-        m_pcmOffset += bytes;
+        m_pcmOffset += static_cast<std::size_t>(bytes);
         return true;
     }
     i16 samples[kMusicChunkFrames * 2];
@@ -188,8 +188,9 @@ bool Decoder::Next(std::vector<u8>* pixels, std::vector<u8>* palette, std::vecto
                                                           kMusicChunkFrames * m_musicChannels);
     if (frames <= 0) {
         m_ended = true;
+        const auto size = audio.size();
         Drain(audio);
-        return false;
+        return audio.size() != size;
     }
     Convert(samples, frames * m_musicChannels * static_cast<int>(sizeof(i16)), audio);
     return true;
@@ -204,10 +205,10 @@ bool Decoder::SeekSeconds(double seconds) {
     if (m_music != nullptr)
         return stb_vorbis_seek(m_music, static_cast<unsigned int>(seconds * m_musicRate)) != 0;
     if (m_pcmFrameBytes != 0) {
-        const auto frameCount = m_file.size() / m_pcmFrameBytes;
+        const auto frameCount = m_file.size() / static_cast<std::size_t>(m_pcmFrameBytes);
         const auto frame = static_cast<std::size_t>(std::min(seconds * kPcmMusicRate,
                                                             static_cast<double>(frameCount)));
-        m_pcmOffset = frame * m_pcmFrameBytes;
+        m_pcmOffset = frame * static_cast<std::size_t>(m_pcmFrameBytes);
         return true;
     }
     if (!m_movie.IsOpen())

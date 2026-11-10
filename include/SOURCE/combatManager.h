@@ -301,6 +301,7 @@ public:
     bool IsAutoCombat() const { return m_quickCombat || m_autoCombatSides[m_currentSide]; }
     i8 AutoCombatInterruptSide() const;
     bool RequestAutoCombatStop();
+    void ShowBattleOptions();
     void StartQuickCombat();
     void StopQuickCombat();
     b8 IsWinner(i8 side);
@@ -417,12 +418,10 @@ enum CombatControlId {
 };
 
 enum CombatStatusLineConstant {
+    COMBAT_CONTROL_OPTIONS = 1000,
     COMBAT_STATUS_FIRST_CONTROL = 2,
     COMBAT_STATUS_TEXT_CONTROL = 0xc,
-    COMBAT_STATUS_X = 0x30,
-    COMBAT_STATUS_Y = 0x1cc,
-    COMBAT_STATUS_WIDTH = 0x21f,
-    COMBAT_STATUS_HEIGHT = 0x14
+    COMBAT_PANEL_TOP = COMBAT_VIEW_HEIGHT - 18
 };
 
 enum CombatBackground {

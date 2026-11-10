@@ -252,6 +252,7 @@ public:
     strip* m_targetStrip;
     i16 m_targetArmySlot;
     bankBox* m_bankBox;
+    class sample* m_buildSound = nullptr;
     char m_statusText[TOWN_MANAGER_STATUS_TEXT_SIZE];
     i16 m_lastHoverId;
     i8 m_command;
@@ -289,6 +290,7 @@ public:
     void DrawTown(b8 updateScreen, b32 advanceAnimation);
     i16 BuyBuild(i16 building, b8 cannotBuy, b8 quickView);
     void BuildObj(i16 building);
+    void PlayBuildSound();
     void SetupMage(class heroWindow* window);
     b8 RecruitHero(b8 quickView);
     void DoTavern(void);

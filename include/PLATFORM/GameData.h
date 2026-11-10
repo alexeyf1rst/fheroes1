@@ -22,6 +22,12 @@ std::string FindGameRoot(const std::string& requested, std::vector<std::string>&
 // game folder itself; empty when none has them.
 std::string FindCdRoot(const std::string& gameRoot);
 
+// A pack supplies scenario maps only. Campaigns continue to use MAPS at the game root.
+const std::vector<std::string>& ScenarioPacks();
+const std::string& SelectedScenarioPack();
+void SetScenarioPack(const std::string& name);
+std::string ScenarioDirectory();
+
 }  // namespace platform
 
 #endif

@@ -1175,6 +1175,14 @@ msgid "hero.title"
 msgstr "%s %s"
 
 #: src/PORT/SOURCE/Menu.cpp
+msgid "menu.map_packs"
+msgstr "Наборы карт"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.map_packs.original"
+msgstr "Оригинальные карты"
+
+#: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling"
 msgstr "Масштаб"
 
@@ -1189,6 +1197,18 @@ msgstr "Целые пиксели"
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.scaling.smooth"
 msgstr "По окну, сглаженно"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.scaling.fill"
+msgstr "На весь экран (пиксели)"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution"
+msgstr "Разрешение полного экрана"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "menu.fullscreen_resolution.desktop"
+msgstr "Как у рабочего стола"
 
 #: src/SOURCE/REMOTE.cpp
 msgid "modem.connecting"
@@ -6548,3 +6568,47 @@ msgstr "Герои"
 #: src/PORT/SOURCE/kbwin.cpp src/SOURCE/kbwin.cpp
 msgid "window.gTitle"
 msgstr "Герои Меча и Магии"
+
+#: src/PORT/SOURCE/Menu.cpp
+msgid "combat.animation_speed"
+msgstr "Скорость анимации"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.button"
+msgstr "Опции"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.title"
+msgstr "Настройки боя"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.speed"
+msgstr "Темп"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.order"
+msgstr "Очередь"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.grid"
+msgstr "Сетка"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.damage"
+msgstr "Урон"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.spells"
+msgstr "Автомагия"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.on"
+msgstr "Вкл"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.off"
+msgstr "Выкл"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.okay"
+msgstr "ОК"

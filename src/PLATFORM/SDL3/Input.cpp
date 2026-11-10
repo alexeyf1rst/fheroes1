@@ -306,7 +306,8 @@ bool Translate(const SDL_Event& source, Event& event) {
             if (code == 0)
                 return false;
             if (source.key.repeat && (source.key.scancode == SDL_SCANCODE_RETURN
-                                      || source.key.scancode == SDL_SCANCODE_KP_ENTER))
+                                      || source.key.scancode == SDL_SCANCODE_KP_ENTER
+                                      || source.key.scancode == SDL_SCANCODE_F10))
                 return false;
             event.type = source.type == SDL_EVENT_KEY_DOWN ? Event::KEY_DOWN : Event::KEY_UP;
             event.scanCode = code;

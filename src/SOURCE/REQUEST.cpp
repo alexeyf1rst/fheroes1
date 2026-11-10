@@ -25,6 +25,8 @@
 #include <PLATFORM/Records.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <string>
 #include <vector>
 #include <stdio.h>
 #include <string.h>
@@ -73,18 +75,13 @@ fileRequester::fileRequester(
     const char* directory,
     const char* defaultExtension
 ) {
-    char fullFileName[412];
+    char fullFileName[FILE_PATH_CAPACITY];
     SMapHeader header;
-    b32 found;
-    char unusedName[FILE_REQUESTER_UNUSED_NAME_SIZE];
-    i32 shiftRow;
-    i32 entryIndex;
-    char extension[FILE_REQUESTER_EXTENSION_SIZE];
-    FileFindData findFileData;
-    i32 insertCount;
-    char* extensionStart;
-    char nameBuffer[FILE_REQUESTER_LOCAL_NAME_SIZE];
-    i32 findHandle;
+    struct Entry {
+        std::string name;
+        std::string extension;
+        u64 modified;
+    };
 
     m_selectedIndex = FILE_REQUESTER_SELECTION_NONE;
     m_fileCount = 0;
@@ -102,100 +99,61 @@ fileRequester::fileRequester(
         gRequestingGames = false;
     m_mode = mode;
 
-    sprintf(gText, "%s%s", directory, pattern);
-    m_fileCount = 0;
-    findHandle = FileFindFirst(gText, &findFileData);
-    if (findHandle != FILE_INVALID) {
-        if (ShowThisMap(findFileData.name))
-            m_fileCount++;
-        while (FileFindNext(findHandle, &findFileData)) {
-            if (ShowThisMap(findFileData.name))
-                m_fileCount++;
-        }
-        FileFindClose(findHandle);
-    }
-
-    m_fileNames = new FileRequesterName[m_fileCount + 1];
-    if (!m_fileNames)
-        MemError();
-    m_extensions = new FileRequesterExtension[m_fileCount + 1];
-    if (!m_extensions)
-        MemError();
-    if (gShowMapInfo) {
-        m_mapNames = new FileRequesterName[m_fileCount + 1];
-        if (!m_mapNames)
-            MemError();
-        m_mapInfo = new FileRequesterMapInfo[m_fileCount + 1];
-        if (!m_mapInfo)
-            MemError();
-    }
-    for (entryIndex = 0; entryIndex < m_fileCount; entryIndex++) {
-        strcpy(m_fileNames[entryIndex].text, "");
-        strcpy(m_extensions[entryIndex].text, "");
-    }
-
     const bool sortByDate = mode == FILE_REQUESTER_LOAD
                             && (!strnicmp(defaultExtension, ".GM", 3) || !stricmp(defaultExtension, ".CGM"));
-    std::vector<u64> timestamps(sortByDate ? m_fileCount : 0);
-    insertCount = 0;
-    sprintf(gText, "%s%s", directory, pattern);
-    findHandle = FileFindFirst(gText, &findFileData);
-    if (findHandle != FILE_INVALID) {
-        found = true;
-        while (found && insertCount < m_fileCount) {
-            if (ShowThisMap(findFileData.name)) {
-                u64 modified = 0;
-                if (sortByDate) {
-                    snprintf(fullFileName, sizeof(fullFileName), "%s%s", directory, findFileData.name);
-                    modified = FileModificationTime(fullFileName);
-                }
-                strcpy(nameBuffer, findFileData.name);
-                extension[0] = '\0';
-                extensionStart = FindLastToken(nameBuffer, '.');
-                if (extensionStart) {
-                    strcpy(extension, extensionStart);
-                    *extensionStart = '\0';
-                }
-                for (entryIndex = 0; entryIndex < insertCount; entryIndex++) {
-                    const u64 otherDate = sortByDate ? timestamps[entryIndex] : 0;
-                    if (modified > otherDate
-                        || (modified == otherDate && strcmpi(nameBuffer, m_fileNames[entryIndex].text) < 0)) {
-                        for (shiftRow = insertCount; shiftRow > entryIndex; shiftRow--) {
-                            strcpy(m_fileNames[shiftRow].text, m_fileNames[shiftRow - 1].text);
-                            strcpy(m_extensions[shiftRow].text, m_extensions[shiftRow - 1].text);
-                            if (sortByDate)
-                                timestamps[shiftRow] = timestamps[shiftRow - 1];
-                        }
-                        goto insert;
-                    }
-                }
-            insert:
-                strcpy(m_fileNames[entryIndex].text, nameBuffer);
-                strcpy(m_extensions[entryIndex].text, extension);
-                if (sortByDate)
-                    timestamps[entryIndex] = modified;
-                insertCount++;
-            }
-            found = FileFindNext(findHandle, &findFileData);
-        }
-        FileFindClose(findHandle);
+    std::vector<Entry> entries;
+    const std::string wildcard = std::string(directory) + pattern;
+    FileFindData data;
+    const i32 find = FileFindFirst(wildcard.c_str(), &data);
+    if (find != FILE_INVALID) {
+        do {
+            if (!ShowThisMap(data.name))
+                continue;
+            const char* extension = FindLastToken(data.name, '.');
+            const std::string name(data.name, extension ? extension - data.name : strlen(data.name));
+            const u64 modified = sortByDate ? FileModificationTime((std::string(directory) + data.name).c_str()) : 0;
+            entries.push_back({name, extension ? extension : "", modified});
+        } while (FileFindNext(find, &data));
+        FileFindClose(find);
+    }
+    std::stable_sort(entries.begin(), entries.end(), [](const Entry& left, const Entry& right) {
+        if (left.modified != right.modified)
+            return left.modified > right.modified;
+        return strcmpi(left.name.c_str(), right.name.c_str()) < 0;
+    });
+
+    m_fileCount = static_cast<i16>(std::min<size_t>(entries.size(), INT16_MAX));
+    m_fileNames = new FileRequesterName[m_fileCount + 1];
+    m_extensions = new FileRequesterExtension[m_fileCount + 1];
+    for (i32 i = 0; i < m_fileCount; ++i) {
+        strcpy(m_fileNames[i].text, entries[i].name.c_str());
+        strcpy(m_extensions[i].text, entries[i].extension.c_str());
+    }
+    if (gShowMapInfo) {
+        m_mapNames = new FileRequesterName[m_fileCount + 1];
+        m_mapInfo = new FileRequesterMapInfo[m_fileCount + 1];
     }
 
     if (gShowMapInfo) {
-        for (entryIndex = 0; entryIndex < insertCount; entryIndex++) {
-            RecordReader mapFile;
-            sprintf(
-                fullFileName,
+        for (i32 entryIndex = 0; entryIndex < m_fileCount; entryIndex++) {
+            u8 bytes[MAP_HEADER_RECORD_SIZE];
+            snprintf(
+                fullFileName, sizeof(fullFileName),
                 "%s%s%s",
                 directory,
                 m_fileNames[entryIndex].text,
                 m_extensions[entryIndex].text
             );
-            if (!mapFile.LoadFile(fullFileName))
-                FileError(fullFileName);
-            ReadMapHeader(mapFile, header);
+            const i32 file = FileOpen(fullFileName, FILE_OPEN_READ);
+            const bool read = file != FILE_INVALID && FileReadExact(file, bytes, sizeof(bytes));
+            if (file != FILE_INVALID)
+                FileClose(file);
+            if (read) {
+                RecordReader mapHeader(bytes, sizeof(bytes));
+                ReadMapHeader(mapHeader, header);
+            }
             // The size and difficulty index the tables of their names.
-            if (header.id == MAP_HEADER_ID && header.size >= MAP_SIZE_SMALL
+            if (read && header.id == MAP_HEADER_ID && header.size >= MAP_SIZE_SMALL
                 && header.size <= MAP_SIZE_LARGE && header.difficulty >= MAP_DIFFICULTY_EASY
                 && header.difficulty <= MAP_DIFFICULTY_FORGET_IT) {
                 CopyTextField(

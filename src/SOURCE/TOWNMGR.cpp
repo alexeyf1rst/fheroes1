@@ -50,6 +50,7 @@ static char s_dwellingArmyLabel[1024];
 
 static i16 WellRecruitHandler(tag_message& message);
 static const i16 kWellRecruitMaximum = 100;
+static constexpr i32 kTownBuildFadeStepMs = 30;
 enum TownTransferControl { TOWN_TRANSFER_TO_HERO = 1000, TOWN_TRANSFER_TO_GARRISON, TOWN_SWAP_ARMIES };
 
 townObject::townObject(char* name) {
@@ -282,7 +283,9 @@ void townManager::Close(void) {
     gResourceManager->Dispose(m_backgroundBitmap);
     gWindowManager->RemoveWindow(m_townWindow);
     delete m_townWindow;
-    StopMusic();
+    StopSample(m_buildSound);
+    gResourceManager->Dispose(m_buildSound);
+    m_buildSound = nullptr;
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
     gMouseManager->SetPointer(MOUSE_INVALID_CURSOR_FRAME);
     m_active = 0;
@@ -554,10 +557,8 @@ void townManager::ShowText(char* text) {
 i16 townManager::Main(struct tag_message& message) {
     i32 done;
     b8 rightButton;
-    class sample* res;
     recruitUnit* recruitMgr;
 
-    res = NULL;
     done = 0;
     if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         rightButton = true;
@@ -756,7 +757,7 @@ i16 townManager::Main(struct tag_message& message) {
                                 i32 width;
 
                                 gMouseManager->ReallyHidePointer();
-                                res = LoadPlaySample("buildtwn.82M");
+                                PlayBuildSound();
                                 visitingHero = gGame->GetHero(m_town->m_occupyingHeroId);
                                 width = 0;
                                 for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
@@ -770,9 +771,8 @@ i16 townManager::Main(struct tag_message& message) {
                                     TOWN_VIEWPORT_HEIGHT,
                                     width,
                                     0xcc,
-                                    FIZZLE_USE_DEFAULT_DELAY
+                                    kTownBuildFadeStepMs
                                 );
-                                WaitSample(res);
                                 m_heroRecruited = false;
                                 gMouseManager->ReallyShowPointer();
                             }
@@ -851,13 +851,12 @@ i16 townManager::Main(struct tag_message& message) {
                                 if (gWindowManager->m_dialogResult == DIALOG_BUTTON_2) {
                                     if (gGame->CreateBoat(m_town->m_x - 1, m_town->m_y + 1)
                                         != GAME_TABLE_FREE) {
-                                        res = LoadPlaySample("buildtwn.82M");
+                                        PlayBuildSound();
                                         gGame->m_players[gCurPlayer].m_resources[RESOURCE_GOLD] -=
                                             TOWN_BOAT_GOLD_COST;
                                         gGame->m_players[gCurPlayer].m_resources[RESOURCE_WOOD] -=
                                             TOWN_BOAT_WOOD_COST;
                                         m_bankBox->Update();
-                                        WaitSample(res);
                                     }
                                 }
                             } else
@@ -1649,9 +1648,15 @@ i16 townManager::BuyBuild(
         return gWindowManager->m_dialogResult == DIALOG_BUTTON_2;
 }
 
+void townManager::PlayBuildSound() {
+    if (m_buildSound == nullptr)
+        m_buildSound = gResourceManager->GetSample("buildtwn.82M");
+    StopSample(m_buildSound);
+    PlaySample(m_buildSound);
+}
+
 void townManager::BuildObj(i16 building) {
     i16 i;
-    class sample* sample;
 
     gMouseManager->ReallyHidePointer();
     DrawTown(true, true);
@@ -1688,15 +1693,14 @@ void townManager::BuildObj(i16 building) {
         gTownBuildingExtents[m_town->m_type][building].height
     );
     DrawTown(false, true);
-    sample = LoadPlaySample("buildtwn.82M");
+    PlayBuildSound();
     gWindowManager->FizzleForward(
         gTownBuildingExtents[m_town->m_type][building].x,
         gTownBuildingExtents[m_town->m_type][building].y,
         gTownBuildingExtents[m_town->m_type][building].width,
         gTownBuildingExtents[m_town->m_type][building].height,
-        FIZZLE_USE_DEFAULT_DELAY
+        kTownBuildFadeStepMs
     );
-    WaitSample(sample);
     m_purchasedBuilding = BUILDING_SLOT_NONE;
     m_bankBox->Update();
     m_townWindow->DrawWindow();

@@ -12,13 +12,15 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace platform {
 
 enum DisplayScaling {
     DISPLAY_SCALING_FIT = 0,
     DISPLAY_SCALING_INTEGER,
-    DISPLAY_SCALING_SMOOTH
+    DISPLAY_SCALING_SMOOTH,
+    DISPLAY_SCALING_FILL
 };
 void SetDisplayScaling(DisplayScaling scaling);
 
@@ -64,6 +66,7 @@ void Sleep(u32 milliseconds);
 // The game's text is single-byte in the language's Windows code page (the
 // build defines HOMM1_CODEPAGE); the host wants UTF-8.
 std::string ToUtf8(const char* text);
+std::string FromUtf8(const std::string& text);
 // Text in a given Windows code page: 1251, else read as 1252.
 std::string ToUtf8(const std::string& text, int codepage);
 
@@ -121,9 +124,18 @@ void SetPalette(const Color* colors, int first, int count);
 // Shows pending display changes. Without force, presentation is limited to
 // the display's refresh so that many small updates make one frame.
 void Present(bool force);
+// Defer presentation while assembling a complete screen, then present once.
+void BeginDisplayUpdate();
+void EndDisplayUpdate();
 
 void SetFullscreen(bool fullscreen);
 bool Fullscreen();
+struct DisplayResolution {
+    int width;
+    int height;
+};
+const std::vector<DisplayResolution>& FullscreenResolutions();
+bool SetFullscreenResolution(int width, int height);
 // Sizes the window so that the game image shows at width x height (plus the
 // chrome bar, scaled alike). Ignored at full screen.
 void SetWindowSize(int width, int height);

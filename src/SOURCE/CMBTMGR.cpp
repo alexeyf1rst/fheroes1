@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <BASE/goldButton.h>
 
 #include <BASE/audio.h>
 #include <BASE/baseManager.h>
@@ -215,6 +216,15 @@ i16 combatManager::Open(i16 priority) {
     if (!m_combatWindow)
         MemError();
     m_combatWindow->ClearButtonHotkey(COMBAT_CONTROL_AUTO_COMBAT);
+    for (widget* item = m_combatWindow->m_widgetListHead; item; item = item->m_next) {
+        if (item->m_id == COMBAT_CONTROL_FIELD && item->m_y + item->m_height > COMBAT_PANEL_TOP)
+            item->m_height = COMBAT_PANEL_TOP - item->m_y;
+        if (item->m_id == COMBAT_STATUS_TEXT_CONTROL)
+            item->m_y -= (COMBAT_VIEW_HEIGHT - COMBAT_PANEL_TOP) / 2;
+    }
+    m_combatWindow->AddWidget(new goldButton(0, COMBAT_PANEL_TOP, 48, 18, COMBAT_CONTROL_OPTIONS,
+                                            localization::Tr("combat.options.button")),
+                              WINDOW_Z_ORDER_APPEND);
     gWindowManager->AddWindow(m_combatWindow, WINDOW_Z_ORDER_APPEND, true);
     m_smallFont = gResourceManager->GetFont("smalfont.fnt");
     LoadIcons();
@@ -234,7 +244,7 @@ i16 combatManager::Open(i16 priority) {
     if (m_autoResolveAtStart)
         StartQuickCombat();
     DrawFrame(true);
-    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
     m_combatPalette = gResourceManager->GetPalette("kb.pal");
     KBChangeMenu(gCombatMenu);
     CombatMessage("", true);
@@ -706,7 +716,8 @@ void combatManager::CheckApplyGoodMorale(i32 side, i32 index) {
     if (currentArmy->m_stats.attributes & MONSTER_FLAGS_TURN_SPENT)
         currentArmy->m_stats.attributes -= MONSTER_FLAGS_TURN_SPENT;
     currentArmy->m_stats.attributes |= MONSTER_FLAGS_HIGH_MORALE;
-    WaitSample(moraleSound);
+    if (CombatAnimationDelay(180) == 180)
+        WaitSample(moraleSound);
 }
 
 b32 combatManager::CheckApplyBadMorale(i32 side, i32 index) {
@@ -742,7 +753,8 @@ b32 combatManager::CheckApplyBadMorale(i32 side, i32 index) {
     currentArmy->SpellEffect(COMBAT_EFFECT_BAD_MORALE, 180);
     currentArmy->Stand(true);
     currentArmy->m_stats.attributes |= MONSTER_FLAGS_TURN_SPENT;
-    WaitSample(moraleSound);
+    if (CombatAnimationDelay(180) == 180)
+        WaitSample(moraleSound);
     return true;
 }
 
@@ -1210,7 +1222,7 @@ void combatManager::KeepAttack(void) {
         );
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
         UPDATE_INCLUSIVE_REGION(clipLeft, clipTop, maxX, maxY);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 10;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(10);
         lastX = inFlightX;
         lastY = inFlightY;
         inFlightX += gainX;
@@ -1331,4 +1343,14 @@ void combatManager::DrawCombatBorder(void) {
         m_savedBorder,
         LOGICAL_SCREEN_WIDTH * (LOGICAL_SCREEN_HEIGHT - COMBAT_VIEW_HEIGHT)
     );
+    auto* screen = gWindowManager->m_screen;
+    constexpr int upperHeight = COMBAT_VIEW_HEIGHT - COMBAT_PANEL_TOP;
+    const int edge = goldButton::MatchGold(52, 37, 7);
+    const int shadow = goldButton::MatchGold(21, 12, 24);
+    const int face = goldButton::MatchGold(24, 10, 35);
+    FillBitmapArea(screen, 0, COMBAT_PANEL_TOP, LOGICAL_SCREEN_WIDTH, upperHeight, shadow);
+    FillBitmapArea(screen, 1, COMBAT_PANEL_TOP + 1, LOGICAL_SCREEN_WIDTH - 2, 1, edge);
+    FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 2, LOGICAL_SCREEN_WIDTH - 4, upperHeight - 3, face);
+    m_combatWindow->DrawWindow(0, COMBAT_STATUS_TEXT_CONTROL, COMBAT_STATUS_TEXT_CONTROL);
+    m_combatWindow->DrawWindow(0, COMBAT_CONTROL_OPTIONS, COMBAT_CONTROL_OPTIONS);
 }

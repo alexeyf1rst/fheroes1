@@ -1,4 +1,7 @@
 #include <H1/Ints.h>
+#include <BASE/goldButton.h>
+#include <BASE/font.h>
+#include <algorithm>
 #include <BASE/audio.h>
 #include <BASE/bitmap.h>
 #include <BASE/bmap2.h>
@@ -41,7 +44,7 @@ i16 combatManager::Main(struct tag_message& message) {
 
     if (gTimers[COMBAT_FRAME_TIMER_SLOT] < KBTickCount()) {
         PollSound();
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 0x4b;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(0x4b);
     }
     CheckCastleAttack();
     if (CheckWin(&message))
@@ -495,6 +498,9 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                         RightClick(m_selectedHex);
                     else {
                         switch (message.id) {
+                            case COMBAT_CONTROL_OPTIONS:
+                                ShowBattleOptions();
+                                break;
                             case COMBAT_CONTROL_FIELD:
                                 DoCommand(m_currentCommand);
                                 break;
@@ -571,6 +577,9 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                         ViewGeneral(m_currentSide, true, false);
                         ResetMouse();
                     }
+                    break;
+                case INPUT_SCAN_B:
+                    ShowBattleOptions();
                     break;
                 case INPUT_SCAN_T:
                     m_showTurnOrder = !m_showTurnOrder;
@@ -692,6 +701,67 @@ void combatManager::ResetRound(void) {
 
 namespace {
 
+enum BattleOption { OptionSpeed = 2000, OptionOrder, OptionGrid, OptionDamage, OptionSpells, OptionOkay };
+heroWindow* gBattleOptions = nullptr;
+
+class BattleOptionsPanel : public textWidget {
+public:
+    BattleOptionsPanel() : textWidget(0, 0, 318, 182,
+        strdup(localization::Tr("combat.options.title")), "bigfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
+        -1, WIDGET_KIND_TEXT) { m_flags &= ~WIDGET_FLAG_ENABLED; }
+    void Draw() override {
+        const int x = m_owner->m_posX, y = m_owner->m_posY;
+        auto* screen = gWindowManager->m_screen;
+        FillBitmapArea(screen, x, y, m_width, m_height, goldButton::MatchGold(15, 8, 4));
+        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, goldButton::MatchGold(34, 21, 10));
+        FillBitmapArea(screen, x + 7, y + 7, m_width - 14, m_height - 14, goldButton::MatchGold(25, 15, 8));
+        m_font->DrawBoundedString(m_text, x + 8, y + 12, m_width - 16, 21, m_color, m_alignment);
+    }
+};
+
+void RefreshBattleOptions(heroWindow& window) {
+    const char* labels[] = {localization::Tr("combat.options.speed"), localization::Tr("combat.options.order"),
+                            localization::Tr("combat.options.grid"), localization::Tr("combat.options.damage"),
+                            localization::Tr("combat.options.spells")};
+    const bool enabled[] = {true, gConfig.showCombatOrder != 0, gConfig.showCombatGrid != 0,
+                            gConfig.hideCombatDamage == 0, gConfig.autoCombatSpells != 0};
+    for (int index = 0; index < 5; ++index) {
+        char label[80];
+        if (index == 0)
+            snprintf(label, sizeof(label), "%s %dx", labels[index], std::clamp(gConfig.combatAnimationSpeed, 1, 4));
+        else
+            snprintf(label, sizeof(label), "%s  %s", labels[index],
+                     enabled[index] ? localization::Tr("combat.options.on") : localization::Tr("combat.options.off"));
+        tag_message message{};
+        SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, OptionSpeed + index);
+        message.text = label;
+        window.BroadcastMessage(message);
+    }
+}
+
+i16 BattleOptionsHandler(tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN && (message.keyCode == INPUT_SCAN_ENTER || message.keyCode == INPUT_SCAN_ESCAPE)) {
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, OptionOkay);
+    }
+    if (message.type != MESSAGE_WIDGET || message.command != WIDGET_NOTIFY_DESELECT
+        || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
+        return MESSAGE_DISPATCH_CONTINUE;
+    switch (message.id) {
+        case OptionSpeed: gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, 4) % 4 + 1; break;
+        case OptionOrder: gConfig.showCombatOrder = !gConfig.showCombatOrder; break;
+        case OptionGrid: gConfig.showCombatGrid = !gConfig.showCombatGrid; break;
+        case OptionDamage: gConfig.hideCombatDamage = !gConfig.hideCombatDamage; break;
+        case OptionSpells: gConfig.autoCombatSpells = !gConfig.autoCombatSpells; break;
+        case OptionOkay:
+            FINISH_DIALOG_MESSAGE(message);
+            return MESSAGE_DISPATCH_FORWARD;
+        default: return MESSAGE_DISPATCH_CONTINUE;
+    }
+    RefreshBattleOptions(*gBattleOptions);
+    gBattleOptions->DrawWindow();
+    return MESSAGE_DISPATCH_CONSUME;
+}
+
 constexpr i16 kRestartBattle = 0x7840;
 
 void AddBattleReviewActions(heroWindow& window) {
@@ -701,11 +771,8 @@ void AddBattleReviewActions(heroWindow& window) {
         const i16 top = item->m_y;
         const i16 height = item->m_height;
         item->m_x -= 68;
-        char* label = strdup(localization::Tr("combat.quick.restart"));
-        if (!label)
-            MemError();
-        auto* restart = new textWidget(172, top, 122, height, label, "bigfont.fnt",
-                                       TEXT_WIDGET_PLAIN_COLOR, kRestartBattle, WIDGET_KIND_TEXT);
+        auto* restart = new goldButton(192, top, item->m_width, height, kRestartBattle,
+                                       localization::Tr("combat.quick.restart"));
         window.AddWidget(restart, WINDOW_Z_ORDER_APPEND);
         break;
     }
@@ -720,6 +787,31 @@ bool BattleRestartRequested(const tag_message& message) {
 }
 
 }  // namespace
+
+void combatManager::ShowBattleOptions() {
+    heroWindow window(161, 139, 318, 182, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
+    window.AddWidget(new BattleOptionsPanel(), WINDOW_Z_ORDER_APPEND);
+    for (i16 index = 0; index < 5; ++index)
+        window.AddWidget(new goldButton(13 + (index % 2) * 149, 44 + (index / 2) * 33,
+                                        143, 27, OptionSpeed + index, ""), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(119, 150, 80, 22, OptionOkay,
+                                    localization::Tr("combat.options.okay")), WINDOW_Z_ORDER_APPEND);
+    RefreshBattleOptions(window);
+    gBattleOptions = &window;
+    gWindowManager->DoDialog(&window, BattleOptionsHandler, false);
+    gBattleOptions = nullptr;
+    tag_message release{};
+    SET_WIDGET_MESSAGE(release, WIDGET_COMMAND_CLEAR_FLAGS, COMBAT_CONTROL_OPTIONS);
+    release.value = WIDGET_FLAG_SELECTED;
+    m_combatWindow->BroadcastMessage(release);
+    m_showTurnOrder = gConfig.showCombatOrder != 0;
+    m_backgroundDrawn = false;
+    if (m_showTurnOrder)
+        ShowTurnOrder();
+    DrawFrame(true);
+    ResetMouse();
+    WritePrefs();
+}
 
 b32 combatManager::CheckWin(struct tag_message* message) {
     i32 pos;
@@ -1014,7 +1106,7 @@ i16 WinCombatHandler(struct tag_message& message) {
         message.value = gGame->m_dialogAnimationCounter % 6 + 1;
         gCombatManager->m_winLoseWindow->BroadcastMessage(message);
         gCombatManager->m_winLoseWindow->DrawWindow();
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 0x5a;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(0x5a);
     }
     return MESSAGE_DISPATCH_CONSUME;
 }
@@ -1505,7 +1597,7 @@ bool combatManager::DoLoseWindow(bool review) {
     BlitBitmap(scrollBitmap, scrollX, 0, 0xdf, 0x7d, gWindowManager->m_screen, 0xd0, 0x28);
     walkIcon->FillToBuffer(0x10e, 0x8c, walkFrame, 0, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
     gWindowManager->UpdateScreenRegion(0x9f, 2, 0x140, 0x1ca);
-    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 0xb4;
+    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(0xb4);
     do {
         if (gTimers[COMBAT_FRAME_TIMER_SLOT] < KBTickCount()) {
             BlitBitmap(scrollBitmap, scrollX, 0, 0xdf, 0x7d, gWindowManager->m_screen, 0xd0, 0x28);
@@ -1517,7 +1609,7 @@ bool combatManager::DoLoseWindow(bool review) {
             scrollX += 2;
             if (scrollX > 0x1a0)
                 scrollX = 0;
-            gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 0xb4;
+            gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(0xb4);
         }
         Process1WindowsMessage();
         msg = gInputManager->GetEvent();
@@ -1607,7 +1699,7 @@ void combatManager::CheckGetAIMove(void) {
     if (AICheckRetreat())
         return;
     const i8 player = m_playerId[m_currentSide];
-    const bool localAutoCombat = !gRemoteOn && !m_quickCombat && IsAutoCombat() && player != GAME_PLAYER_NONE
+    const bool localAutoCombat = !gRemoteOn && (m_quickCombat || IsAutoCombat()) && player != GAME_PLAYER_NONE
                                  && gThisNetHumanPlayer[player];
     if ((!localAutoCombat || gConfig.autoCombatSpells)
         && !m_heroCastSpell[m_currentSide] && DoSpellAI(m_currentSide))

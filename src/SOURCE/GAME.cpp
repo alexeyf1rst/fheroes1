@@ -1,6 +1,7 @@
 #include <H1/Ints.h>
 
 #include <PLATFORM/File.h>
+#include <PLATFORM/Platform.h>
 #include <PLATFORM/Records.h>
 
 #include <BASE/audio.h>
@@ -44,6 +45,8 @@
 #include <SOURCE/remoteRecords.h>
 #include <SOURCE/saveRecords.h>
 #include <SOURCE/town.h>
+
+#include <PLATFORM/GameData.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -349,10 +352,9 @@ void GenerateStandardFileName(char* source, char* destination) {
 }
 
 inline void game::ReadWorldMap(RecordReader& in) {
-    for (i32 y = 0; y < MAP_CELL_GRID_SIZE; y++) {
-        for (i32 x = 0; x < MAP_CELL_GRID_SIZE; x++)
-            ReadMapCell(in, m_map[y][x]);
-    }
+    // All ten fields in the packed map cell are single bytes in file order.
+    static_assert(sizeof(mapCell) == MAP_CELL_RECORD_SIZE);
+    in.Bytes(m_map, sizeof(m_map));
 }
 
 inline void game::WriteWorldMap(RecordWriter& out) {
@@ -920,6 +922,17 @@ void game::GiveTroopsToNeutralTowns(void) {
     }
 }
 
+namespace {
+std::string gPickedScenarioName;
+std::string gPickedScenarioDirectory;
+
+std::string ScenarioFile(const char* name) {
+    if (!gPickedScenarioName.empty() && !stricmp(name, gPickedScenarioName.c_str()))
+        return gPickedScenarioDirectory + name;
+    return std::string(gMapPath) + name;
+}
+}
+
 char gCurMapName[16] = "";
 i32 gEndSequence = GAME_END_LOST;
 b32 gGameOver = false;
@@ -957,6 +970,8 @@ b8 game::NewGame(void) {
         || (gNumHumanPlayers == GAME_PLAYERS_TWO && gMapName[5] != '2')
         || (gNumHumanPlayers == GAME_PLAYERS_THREE && gMapName[6] != '3')
         || (gNumHumanPlayers == GAME_PLAYERS_FOUR && gMapName[7] != '4')) {
+        gPickedScenarioName.clear();
+        gPickedScenarioDirectory.clear();
         if (gNumHumanPlayers == 1) {
             strcpy(gMapName, "AES31000.map");
             strcpy(gFullMapName, localization::Tr("scenario.claw.name"));
@@ -990,7 +1005,13 @@ b8 game::NewGame(void) {
     gSavedDifficulties[3] = m_players[3].m_difficulty;
     gSavedKingOfTheHill = gIAmGreatest;
     gSavedCrest = m_players[0].m_color;
+    const bool profileLoad = !platform::Environment("HOMM1_PROFILE_LOAD").empty();
+    const u32 mapStart = platform::Ticks();
+    if (profileLoad)
+        platform::Log("load start: %u (%s)", mapStart, gMapName);
     NewMap(gMapName);
+    if (profileLoad)
+        platform::Log("load prepared: %u", platform::Ticks());
     return true;
 }
 
@@ -1140,7 +1161,7 @@ void game::NewMap(char* mapName) {
         strcpy(gMapName, mapName);
     LoadMap(gMapName);
     if (!MapDataValid()) {
-        sprintf(gText, "%s%s", gMapPath, gMapName);
+        snprintf(gText, 412, "%s", ScenarioFile(gMapName).c_str());
         FileError(gText);
     }
     RandomizeTerrainTiles();
@@ -1729,7 +1750,7 @@ i16 game::LoadMap(char* filename) {
     i32 wasReserved;
     i16 theVersion;
 
-    sprintf(gText, "%s%s", gMapPath, filename);
+    snprintf(gText, 412, "%s", ScenarioFile(filename).c_str());
     if (!handle.LoadFile(gText))
         FileError(gText);
     handle.Get(theVersion);
@@ -4669,7 +4690,8 @@ void game::GetMap(void) {
         sprintf(mask, "??????3?.MAP");
     else if (gNumHumanPlayers == GAME_PLAYERS_FOUR)
         sprintf(mask, "???????4.MAP");
-    theRequest = new fileRequester(310, 14, FILE_REQUESTER_LOAD, mask, gMapPath, ".MAP");
+    const std::string directory = platform::ScenarioDirectory();
+    theRequest = new fileRequester(310, 14, FILE_REQUESTER_LOAD, mask, directory.c_str(), ".MAP");
     if (!theRequest)
         MemError();
     theRequest->ShowMapInfo();
@@ -4677,6 +4699,8 @@ void game::GetMap(void) {
     gWindowManager->RemoveWindow(gReqExtraWindow);
     if (code == DIALOG_BUTTON_2) {
         strcpy(gMapName, gLastFilename);
+        gPickedScenarioName = gMapName;
+        gPickedScenarioDirectory = directory;
         delete theRequest;
     } else {
         strcpy(gMapName, oldMapName);

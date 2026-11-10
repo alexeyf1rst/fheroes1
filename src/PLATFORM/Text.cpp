@@ -1,5 +1,6 @@
 #include <PLATFORM/Platform.h>
 
+#include <array>
 #include <cstring>
 
 #ifndef HOMM1_CODEPAGE
@@ -66,6 +67,38 @@ std::string ToUtf8(const char* text) {
         return out;
     for (const char* cursor = text; *cursor != '\0'; cursor++)
         Append(out, Decode(static_cast<unsigned char>(*cursor), HOMM1_CODEPAGE));
+    return out;
+}
+
+std::string FromUtf8(const std::string& text) {
+    static const auto extended = [] {
+        std::array<std::string, 128> bytes;
+        for (size_t i = 0; i < bytes.size(); ++i) {
+            const char32_t code = Decode(static_cast<unsigned char>(0x80 + i), HOMM1_CODEPAGE);
+            if (code != 0xFFFD)
+                Append(bytes[i], code);
+        }
+        return bytes;
+    }();
+    std::string out;
+    for (size_t offset = 0; offset < text.size();) {
+        if (static_cast<unsigned char>(text[offset]) < 0x80) {
+            out += text[offset++];
+            continue;
+        }
+        size_t end = offset + 1;
+        while (end < text.size() && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80)
+            ++end;
+        char byte = '?';
+        for (size_t i = 0; i < extended.size(); ++i) {
+            if (extended[i].size() == end - offset && text.compare(offset, end - offset, extended[i]) == 0) {
+                byte = static_cast<char>(0x80 + i);
+                break;
+            }
+        }
+        out += byte;
+        offset = end;
+    }
     return out;
 }
 

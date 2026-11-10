@@ -5,6 +5,10 @@
 // units.
 
 #include <H1/Ints.h>
+#ifndef HOMM1_EDITOR
+#include <BASE/executive.h>
+#include <SOURCE/advManager.h>
+#endif
 
 #include <SOURCE/kbwin.h>
 
@@ -134,9 +138,14 @@ std::vector<SettingField> IntegerSettings() {
         {"HMM1 ModemBaudRate", &gConfig.baudRate[CONFIG_CONNECTION_MODEM]},
         {"HMM1 UseAutosave", &gConfig.autosave},
         {"HMM1 AutoCombatSpells", &gConfig.autoCombatSpells},
+        {"HMM1 CombatAnimationSpeed", &gConfig.combatAnimationSpeed},
         {"HMM1 AutoResolveBattles", &gConfig.autoResolveBattles},
+        {"HMM1 ShowCombatGrid", &gConfig.showCombatGrid},
+        {"HMM1 HideCombatDamage", &gConfig.hideCombatDamage},
         {"HMM1 ShowCombatOrder", &gConfig.showCombatOrder},
         {"HMM1 DisplayScaling", &gConfig.displayScaling},
+        {"HMM1 FullscreenWidth", &gConfig.fullscreenWidth},
+        {"HMM1 FullscreenHeight", &gConfig.fullscreenHeight},
         {"HMM1 FirstMapOffset", &gConfig.firstMapOffset},
         {"HMM1 CurrentMapOffset", &gConfig.currentMapOffset},
         {"HMM1 GameShowMenu", &gConfig.gfx[CONFIG_EXECUTABLE_GAME].showMenu},
@@ -194,6 +203,30 @@ void CloseRequested() {
 }
 
 void Dispatch(const platform::Event& event) {
+#ifndef HOMM1_EDITOR
+    static bool pendingMapPress = false;
+    static platform::Event mapPress;
+    const bool onAdventure = gAdvManager && gExec && gExec->m_managerListTail == gAdvManager && !gInDialog;
+    if (pendingMapPress) {
+        if (!onAdventure || event.type == platform::Event::FOCUS_LOST) {
+            gAdvManager->EndMapDrag();
+            pendingMapPress = false;
+        } else if (event.type == platform::Event::MOUSE_MOVE) {
+            if (gAdvManager->DragMap(event.x, event.y))
+                return;
+        } else if (event.type == platform::Event::MOUSE_UP && event.button == platform::Event::BUTTON_LEFT) {
+            const bool dragged = gAdvManager->DragMap(event.x, event.y);
+            gAdvManager->EndMapDrag();
+            pendingMapPress = false;
+            if (!dragged) {
+                PostMouse(mapPress.doubleClick ? INPUT_MESSAGE_LEFT_DOUBLE : INPUT_MESSAGE_LEFT_DOWN, mapPress);
+                PostMouse(INPUT_MESSAGE_LEFT_UP, event);
+            }
+            return;
+        }
+    }
+#endif
+
     if (MenuHandleEvent(event))
         return;
     // The game image ends at the menu bar.
@@ -201,6 +234,14 @@ void Dispatch(const platform::Event& event) {
          || event.type == platform::Event::MOUSE_UP)
         && event.y < 0)
         return;
+#ifndef HOMM1_EDITOR
+    if (onAdventure && event.type == platform::Event::MOUSE_DOWN && event.button == platform::Event::BUTTON_LEFT
+        && gAdvManager->BeginMapDrag(event.x, event.y)) {
+        mapPress = event;
+        pendingMapPress = true;
+        return;
+    }
+#endif
     switch (event.type) {
         case platform::Event::QUIT:
             CloseRequested();
@@ -295,9 +336,15 @@ bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen
         return false;
     if (fullScreen >= 0)
         CURRENT_GRAPHICS_CONFIG.fullScreen = fullScreen;
-    platform::SetFullscreen(CURRENT_GRAPHICS_CONFIG.fullScreen != 0);
     srand(static_cast<u32>(KBTickCount()));
     InitGraphics();
+    if (!platform::SetFullscreenResolution(gConfig.fullscreenWidth, gConfig.fullscreenHeight)) {
+        gConfig.fullscreenWidth = 0;
+        gConfig.fullscreenHeight = 0;
+    }
+    platform::SetFullscreen(CURRENT_GRAPHICS_CONFIG.fullScreen != 0);
+    if (platform::Environment("HOMM1_SCALE").empty())
+        platform::SetWindowSize(CURRENT_GRAPHICS_CONFIG.width, CURRENT_GRAPHICS_CONFIG.height);
     return true;
 }
 
@@ -366,11 +413,11 @@ void Process1WindowsMessage(void) {
     RunTimer();
     // The original blocked in GetMessage for its next 10 ms timer tick every
     // 150 ms; its waits are otherwise busy loops around this call. A call
-    // that follows the previous one within a millisecond is such a loop and
-    // yields the processor briefly.
+    // that follows the previous one within two milliseconds is such a loop.
+    // Use the scheduler's sleep here: very short SDL event waits can spin on Windows.
     u32 now = platform::Ticks();
-    if (!handled && now - gLastCall < 1)
-        platform::Sleep(1);
+    if (!handled && now - gLastCall < 2)
+        platform::Sleep(2);
     gLastCall = now;
     platform::Present(false);
 }
@@ -391,11 +438,33 @@ void ResizeWindow(i32 x, i32 y, i32 width, i32 height) {
     CURRENT_GRAPHICS_CONFIG.width = width;
     CURRENT_GRAPHICS_CONFIG.height = height;
     platform::SetWindowSize(width, height);
+    UpdateDfltMenu(gAppMenu);
     WritePrefs();
 }
 
 i32 AppMenuCommand(i32 command) {
+    const auto& resolutions = platform::FullscreenResolutions();
+    const i32 resolution = command - KBWIN_MENU_RESOLUTION_FIRST;
+    if (resolution >= 0 && resolution <= KBWIN_MENU_RESOLUTION_CHOICES
+        && static_cast<size_t>(resolution) <= resolutions.size()) {
+        const auto mode = resolution == 0 ? platform::DisplayResolution{} : resolutions[resolution - 1];
+        if (platform::SetFullscreenResolution(mode.width, mode.height)) {
+            gConfig.fullscreenWidth = mode.width;
+            gConfig.fullscreenHeight = mode.height;
+            UpdateDfltMenu(gAppMenu);
+            WritePrefs();
+        }
+        return 0;
+    }
 #ifndef HOMM1_EDITOR
+    const auto& packs = platform::ScenarioPacks();
+    if (command >= KBWIN_MENU_MAP_PACK_FIRST && command <= KBWIN_MENU_MAP_PACK_FIRST + static_cast<i32>(packs.size())) {
+        const i32 choice = command - KBWIN_MENU_MAP_PACK_FIRST;
+        platform::SetScenarioPack(choice == 0 ? std::string() : packs[static_cast<size_t>(choice - 1)]);
+        UpdateDfltMenu(gAppMenu);
+        WritePrefs();
+        return 0;
+    }
     if (command >= KBWIN_MENU_SHORTCUT_FIRST && command < KBWIN_MENU_SHORTCUT_FIRST + GAME_SHORTCUT_COUNT) {
         if (!gInDialog) {
             ConfigureShortcut(command - KBWIN_MENU_SHORTCUT_FIRST);
@@ -406,6 +475,14 @@ i32 AppMenuCommand(i32 command) {
 #endif
     switch (command) {
 #ifndef HOMM1_EDITOR
+        case KBWIN_MENU_BATTLE_SPEED_FIRST:
+        case KBWIN_MENU_BATTLE_SPEED_FIRST + 1:
+        case KBWIN_MENU_BATTLE_SPEED_FIRST + 2:
+        case KBWIN_MENU_BATTLE_SPEED_FIRST + 3:
+            gConfig.combatAnimationSpeed = command - KBWIN_MENU_BATTLE_SPEED_FIRST + 1;
+            UpdateDfltMenu(gAppMenu);
+            WritePrefs();
+            break;
         case KBWIN_MENU_AUTO_RESOLVE:
             gConfig.autoResolveBattles = !gConfig.autoResolveBattles;
             UpdateDfltMenu(gAppMenu);
@@ -430,6 +507,9 @@ i32 AppMenuCommand(i32 command) {
             ResizeWindow(KBWIN_KEEP_POSITION, KBWIN_KEEP_POSITION, KBWIN_WIDTH_1024,
                          KBWIN_HEIGHT_768);
             break;
+        case KBWIN_MENU_SIZE_1280_960:
+            ResizeWindow(KBWIN_KEEP_POSITION, KBWIN_KEEP_POSITION, 1280, 960);
+            break;
         case KBWIN_MENU_SIZE_1280_1024:
             ResizeWindow(KBWIN_KEEP_POSITION, KBWIN_KEEP_POSITION, KBWIN_WIDTH_1280,
                          KBWIN_HEIGHT_1024);
@@ -440,7 +520,9 @@ i32 AppMenuCommand(i32 command) {
         case KBWIN_MENU_SCALE_FIT:
         case KBWIN_MENU_SCALE_INTEGER:
         case KBWIN_MENU_SCALE_SMOOTH:
-            gConfig.displayScaling = command - KBWIN_MENU_SCALE_FIT;
+        case KBWIN_MENU_SCALE_FILL:
+            gConfig.displayScaling = command == KBWIN_MENU_SCALE_FILL ? platform::DISPLAY_SCALING_FILL
+                                                                    : command - KBWIN_MENU_SCALE_FIT;
             platform::SetDisplayScaling(static_cast<platform::DisplayScaling>(gConfig.displayScaling));
             UpdateDfltMenu(gAppMenu);
             WritePrefs();
@@ -583,6 +665,8 @@ void ReadPrefs(void) {
         return;
     }
     gConfig.autoResolveBattles = 1;
+    if (const auto found = values.find("HMM1 MapPack"); found != values.end())
+        platform::SetScenarioPack(found->second);
     for (const SettingField& field : IntegerSettings())
         ReadSetting(values, field.name, *field.value);
     for (i16 index = 0; index < GAME_SHORTCUT_COUNT; ++index) {
@@ -590,7 +674,7 @@ void ReadPrefs(void) {
             gConfig.shortcutKeys[index] = 0;
     }
     if (gConfig.displayScaling < platform::DISPLAY_SCALING_FIT
-        || gConfig.displayScaling > platform::DISPLAY_SCALING_SMOOTH)
+        || gConfig.displayScaling > platform::DISPLAY_SCALING_FILL)
         gConfig.displayScaling = platform::DISPLAY_SCALING_FIT;
     platform::SetDisplayScaling(static_cast<platform::DisplayScaling>(gConfig.displayScaling));
     ReadSetting(values, "HMM1 ModemInitString", gConfig.modemInitString,
@@ -605,6 +689,7 @@ void WritePrefs(void) {
     text << "# Heroes of Might and Magic settings (the original's registry values)\n";
     for (const SettingField& field : IntegerSettings())
         text << field.name << '=' << *field.value << '\n';
+    text << "HMM1 MapPack=" << platform::SelectedScenarioPack() << '\n';
     text << "HMM1 ModemInitString=" << gConfig.modemInitString << '\n';
     std::string contents = text.str();
     FileReplace(SettingsPath().c_str(), contents.data(), static_cast<i32>(contents.size()));

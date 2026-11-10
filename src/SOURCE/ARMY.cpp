@@ -588,7 +588,7 @@ void army::Walk(i16 direction, b8 standAfter, b8 continued) {
         if (gMaxExtentY > boundBottom)
             boundBottom = gMaxExtentY;
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
         UPDATE_INCLUSIVE_REGION(boundMinX, boundTop, boundMaxX, boundBottom);
         m_animationFrame += stepCount;
     }
@@ -772,7 +772,7 @@ void army::SpecialAttack(void) {
             maxY = inFlightY + ARMY_MISSILE_HALF_HEIGHT;
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
         UPDATE_INCLUSIVE_REGION(clipLeft, clipTop, maxX, maxY);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 15;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(15);
         oldTipX = inFlightX;
         oldTipY = inFlightY;
         inFlightX += gainX;
@@ -1075,21 +1075,21 @@ void army::DoAttack(b32 retaliation) {
     m_animationSequence = ARMY_ANIMATION_STAND;
     m_animationFrame = 3;
     gCombatManager->DrawFrame(true);
-    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 105;
+    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(105);
     PlaySample(m_samples[ARMY_SAMPLE_ATTACK]);
     m_animationFrame = 4;
     gCombatManager->m_computeExtent = true;
     gCombatManager->DrawFrame(true);
-    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 105;
+    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(105);
     m_animationFrame = frameBase;
     gCombatManager->m_computeExtent = true;
     gCombatManager->DrawFrame(true);
-    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 105;
+    gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(105);
     if (m_stats.attributes & MONSTER_FLAGS_BREATH_ATTACK) {
         m_animationFrame = frameBase + 3;
         gCombatManager->m_computeExtent = true;
         gCombatManager->DrawFrame(true);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 105;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(105);
     }
     rearVictim = NULL;
     struckArmy = NULL;
@@ -1625,7 +1625,7 @@ void army::PowEffect(i8 effect) {
     gCombatManager->ResetLimitCreature();
     while (effectFrame < frames && effectFrame < 5) {
         gCombatManager->m_computeExtent = true;
-        gTimers[COMBAT_EFFECT_TIMER_SLOT] = KBTickCount() + 30;
+        gTimers[COMBAT_EFFECT_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(30);
         for (stackSide = COMBAT_SIDE_FIRST; stackSide < COMBAT_SIDE_COUNT; stackSide++) {
             for (armyIndex = 0; armyIndex < gCombatManager->m_numArmies[stackSide]; armyIndex++) {
                 if (gCombatManager->m_armies[stackSide][armyIndex].m_powFrames >= effectFrame) {
@@ -1649,7 +1649,7 @@ void army::PowEffect(i8 effect) {
     }
     while (effectFrame < frames && effectFrame < 10) {
         gCombatManager->m_computeExtent = true;
-        gTimers[COMBAT_EFFECT_TIMER_SLOT] = KBTickCount() + 30;
+        gTimers[COMBAT_EFFECT_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(30);
         for (stackSide = COMBAT_SIDE_FIRST; stackSide < COMBAT_SIDE_COUNT; stackSide++) {
             for (armyIndex = 0; armyIndex < gCombatManager->m_numArmies[stackSide]; armyIndex++) {
                 if (gCombatManager->m_armies[stackSide][armyIndex].m_powFrames
@@ -1675,7 +1675,7 @@ void army::PowEffect(i8 effect) {
         effectFrame++;
     }
     while (++effectFrame < 10)
-        DelayMilli(15);
+        DelayMilli(CombatAnimationDelay(15));
     for (stackSide = COMBAT_SIDE_FIRST; stackSide < COMBAT_SIDE_COUNT; stackSide++) {
         for (armyIndex = 0; armyIndex < gCombatManager->m_numArmies[stackSide]; armyIndex++) {
             currentArmy = &gCombatManager->m_armies[stackSide][armyIndex];
@@ -1723,7 +1723,7 @@ void army::SpellEffect(i16 effect, i32 frameDelay) {
     gCombatManager->m_limitCreatureCount[m_side][m_index] = 1;
     for (effectFrame = 0; effectFrame < frameCount; effectFrame++) {
         gCombatManager->m_computeExtent = true;
-        gTimers[COMBAT_EFFECT_TIMER_SLOT] = KBTickCount() + frameDelay;
+        gTimers[COMBAT_EFFECT_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(frameDelay);
         gSpellEffectFrame = effectFrame;
         gCombatManager->DrawFrame(true);
         DelayTil(gTimers + COMBAT_EFFECT_TIMER_SLOT);

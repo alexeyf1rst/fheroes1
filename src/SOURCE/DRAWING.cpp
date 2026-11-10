@@ -1,4 +1,6 @@
 #include <H1/Ints.h>
+#include <BASE/goldButton.h>
+#include <algorithm>
 
 #include <BASE/bitmap.h>
 #include <BASE/bmap2.h>
@@ -117,14 +119,12 @@ void combatManager::CombatMessage(char* text, b32 updateScreen) {
     oldCompute = gComputeExtent;
     prevLimit = gLimitToExtent;
     gComputeExtent = gLimitToExtent = false;
-    m_combatWindow->DrawWindow(0, COMBAT_STATUS_FIRST_CONTROL, COMBAT_STATUS_TEXT_CONTROL);
+    m_combatWindow->DrawWindow(0, COMBAT_STATUS_FIRST_CONTROL, COMBAT_STATUS_TEXT_CONTROL - 1);
     SaveCombatBorder();
+    DrawCombatBorder();
     if (updateScreen)
         gWindowManager->UpdateScreenRegion(
-            COMBAT_STATUS_X,
-            COMBAT_STATUS_Y,
-            COMBAT_STATUS_WIDTH,
-            COMBAT_STATUS_HEIGHT
+            0, COMBAT_PANEL_TOP, LOGICAL_SCREEN_WIDTH, LOGICAL_SCREEN_HEIGHT - COMBAT_PANEL_TOP
         );
     gComputeExtent = oldCompute;
     gLimitToExtent = prevLimit;
@@ -188,7 +188,7 @@ void combatManager::CombatMessage(i16 messageType) {
                 sprintf(gText, "");
             break;
     }
-    if (targetArmy && (messageType == COMBAT_MESSAGE_COMMAND_ATTACK || messageType == COMBAT_MESSAGE_COMMAND_SHOOT)) {
+    if (!gConfig.hideCombatDamage && targetArmy && (messageType == COMBAT_MESSAGE_COMMAND_ATTACK || messageType == COMBAT_MESSAGE_COMMAND_SHOOT)) {
         i32 minimum, maximum;
         currentArmy->PreviewAttack(*targetArmy, messageType == COMBAT_MESSAGE_COMMAND_SHOOT, minimum, maximum);
         const i32 hp = targetArmy->m_stats.hitPoints;
@@ -275,6 +275,28 @@ void combatManager::DrawBackground(void) {
                     ->DrawToBuffer(0x27f, top, 7, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
                 m_combatIcons[COMBAT_ICON_CASTLE]
                     ->DrawToBuffer(0x211, top, 7, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
+            }
+        }
+    }
+    if (gConfig.showCombatGrid) {
+        const int color = goldButton::MatchGold(31, 36, 12);
+        constexpr int dx[] = {0, 39, 39, 0, -39, -39, 0};
+        constexpr int dy[] = {-53, -27, 27, 53, 27, -27, -53};
+        auto* screen = gWindowManager->m_screen;
+        for (int row = 0; row < COMBAT_GRID_ROWS; ++row) {
+            for (int col = COMBAT_GRID_FIRST_INNER_COLUMN; col <= COMBAT_GRID_LAST_INNER_COLUMN; ++col) {
+                const int x = m_hexCells[row * COMBAT_GRID_COLUMNS + col].m_x;
+                const int y = COMBAT_FIELD_TOP + row * COMBAT_HEX_HEIGHT + COMBAT_HEX_HEIGHT / 2;
+                for (int edge = 0; edge < 6; ++edge) {
+                    const int run = dx[edge + 1] - dx[edge], rise = dy[edge + 1] - dy[edge];
+                    const int steps = std::max(abs(run), abs(rise));
+                    for (int step = 0; step < steps; ++step) {
+                        const int px = x + dx[edge] + run * step / steps;
+                        const int py = y + dy[edge] + rise * step / steps;
+                        if (px >= 0 && px < LOGICAL_SCREEN_WIDTH && py >= COMBAT_FIELD_TOP && py < COMBAT_VIEW_HEIGHT)
+                            screen->m_pixels[py * LOGICAL_SCREEN_WIDTH + px] = color;
+                    }
+                }
             }
         }
     }
@@ -588,7 +610,7 @@ void combatManager::DrawFrame(b8 updateScreen) {
         gComputeExtent = false;
         gFullCombatScreenDrawn = false;
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
         if (updateScreen == true) {
             if (gMaxExtentY > COMBAT_VIEW_HEIGHT)
                 gMaxExtentY = COMBAT_VIEW_HEIGHT;
@@ -600,7 +622,7 @@ void combatManager::DrawFrame(b8 updateScreen) {
     } else if (updateScreen == true) {
         gFullCombatScreenDrawn = true;
         DelayTil(&gTimers[COMBAT_FRAME_TIMER_SLOT]);
-        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + 75;
+        gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(75);
         UpdateCombatArea();
     }
 }

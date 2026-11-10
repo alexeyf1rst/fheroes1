@@ -1,11 +1,17 @@
+#include <cstring>
 #include <PLATFORM/GameData.h>
 
 #include <PLATFORM/File.h>
 #include <PLATFORM/Platform.h>
 
+#include <algorithm>
+#include <filesystem>
+
 namespace platform {
 
 namespace {
+
+std::string gScenarioPack;
 
 bool ResolvesUnder(const std::string& directory, const char* path) {
     char resolved[FILE_PATH_CAPACITY];
@@ -59,6 +65,50 @@ std::string FindCdRoot(const std::string& gameRoot) {
             return candidate;
     }
     return std::string();
+}
+
+const std::vector<std::string>& ScenarioPacks() {
+    static const auto packs = [] {
+        std::vector<std::string> result;
+        char path[FILE_PATH_CAPACITY];
+        if (!FileResolve("EXPANSIONS", FILE_OPEN_READ, path, sizeof(path)))
+            return result;
+        std::error_code error;
+        namespace fs = std::filesystem;
+        fs::directory_iterator current(fs::path(std::u8string(path, path + std::strlen(path))), fs::directory_options::skip_permission_denied, error);
+        const fs::directory_iterator end;
+        for (; !error && current != end; current.increment(error)) {
+            const auto utf8 = current->path().filename().u8string();
+            const std::string name(utf8.begin(), utf8.end());
+            if (name.size() > 64 || name.find_first_of("\r\n") != std::string::npos)
+                continue;
+            FileFindData data;
+            const std::string pattern = "EXPANSIONS/" + name + "/MAPS/*.MAP";
+            const i32 find = FileFindFirst(pattern.c_str(), &data);
+            if (find == FILE_INVALID)
+                continue;
+            FileFindClose(find);
+            result.push_back(name);
+        }
+        std::sort(result.begin(), result.end());
+        if (result.size() > 16)
+            result.resize(16);
+        return result;
+    }();
+    return packs;
+}
+
+const std::string& SelectedScenarioPack() {
+    return gScenarioPack;
+}
+
+void SetScenarioPack(const std::string& name) {
+    const auto& packs = ScenarioPacks();
+    gScenarioPack = std::find(packs.begin(), packs.end(), name) != packs.end() ? name : std::string();
+}
+
+std::string ScenarioDirectory() {
+    return gScenarioPack.empty() ? ".\\MAPS\\" : "EXPANSIONS/" + gScenarioPack + "/MAPS/";
 }
 
 }  // namespace platform

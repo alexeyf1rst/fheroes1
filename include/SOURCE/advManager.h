@@ -342,6 +342,14 @@ public:
     void ForceNewHover(void);
     void ScreenScroll(i8 direction, b32 updatePointer);
     void CheckScreenScroll(void);
+    bool BeginMapDrag(i16 x, i16 y);
+    bool DragMap(i16 x, i16 y);
+    void EndMapDrag();
+    void PanMap(i16 xOrigin, i16 yOrigin);
+    bool m_resumeEdgeScrollOnExit = false;
+    bool m_mapDragging = false;
+    i16 m_dragX = -1;
+    i16 m_dragY = -1;
     b32 MouseInScrollZone(void);
     void SetInitialMapOrigin(void);
     void LoadRemote(void);

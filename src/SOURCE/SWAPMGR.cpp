@@ -10,6 +10,9 @@
 #include <BASE/palette.h>
 #include <BASE/resourceManager.h>
 #include <BASE/widget.h>
+#include <BASE/goldButton.h>
+#include <algorithm>
+#include <array>
 #include <SOURCE/advManager.h>
 #include <SOURCE/armyGroup.h>
 #include <SOURCE/EVENTS.h>
@@ -22,6 +25,17 @@
 
 #include <stdio.h>
 #include <string.h>
+
+namespace {
+enum MeetingControl {
+    TROOPS_LEFT = 1000, TROOPS_RIGHT, TROOPS_SWAP,
+    ARTIFACTS_LEFT, ARTIFACTS_RIGHT, ARTIFACTS_SWAP
+};
+
+bool CanTradeArtifact(i8 artifact) {
+    return artifact != ARTIFACT_MAGIC_BOOK && artifact != ARTIFACT_FIZBIN_OF_MISFORTUNE;
+}
+}
 
 swapManager::swapManager(void) {
     m_window = NULL;
@@ -53,6 +67,13 @@ i16 swapManager::Open(i16 id) {
     if (!m_window)
         MemError();
     SetWinText(m_window, WINDOW_TEXT_SWAP);
+    const goldButton::Mark arrows[] = {goldButton::Left, goldButton::Right, goldButton::Exchange};
+    for (i16 index = 0; index < 6; ++index) {
+        const i16 y = index < 3 ? 192 : 335;
+        auto* button = new goldButton(176 + (index % 3) * 36, y, 32, 22,
+                                      TROOPS_LEFT + index, "", arrows[index % 3]);
+        m_window->AddWidget(button, WINDOW_Z_ORDER_APPEND);
+    }
     message.type = MESSAGE_WIDGET;
     message.command = WIDGET_COMMAND_SET_ICON;
     sprintf(gText, "port%04d.icn", m_heroes[SWAP_SIDE_LEFT]->m_portrait);
@@ -163,6 +184,66 @@ void swapManager::DrawSelector(void) {
     }
 }
 
+void swapManager::TransferMeetingItems(i16 action) {
+    auto& left = m_heroes[SWAP_SIDE_LEFT]->m_army;
+    auto& right = m_heroes[SWAP_SIDE_RIGHT]->m_army;
+    if (action == TROOPS_LEFT) {
+        right.MoveTroopsTo(left, true, CREATURE_NONE);
+    } else if (action == TROOPS_RIGHT) {
+        left.MoveTroopsTo(right, true, CREATURE_NONE);
+    } else if (action == TROOPS_SWAP) {
+        if (left.GetNumArmies() && right.GetNumArmies())
+            std::swap(left, right);
+    } else {
+        m_selectedSide = action == ARTIFACTS_LEFT ? SWAP_SIDE_RIGHT : SWAP_SIDE_LEFT;
+        m_targetSide = m_selectedSide == SWAP_SIDE_LEFT ? SWAP_SIDE_RIGHT : SWAP_SIDE_LEFT;
+        auto& source = m_heroes[m_selectedSide]->m_artifacts;
+        auto& target = m_heroes[m_targetSide]->m_artifacts;
+        std::array<i16, HERO_ARTIFACT_SLOT_COUNT> sourceSlots, targetSlots;
+        i16 sourceCount = 0, targetCount = 0;
+        i16 sourceItems = 0, targetItems = 0;
+        for (i16 slot = 0; slot < HERO_ARTIFACT_SLOT_COUNT; ++slot) {
+            if (CanTradeArtifact(source[slot])) {
+                sourceSlots[sourceCount++] = slot;
+                sourceItems += source[slot] != ARTIFACT_NONE;
+            }
+            if (CanTradeArtifact(target[slot])) {
+                targetSlots[targetCount++] = slot;
+                targetItems += target[slot] != ARTIFACT_NONE;
+            }
+        }
+        if (action == ARTIFACTS_SWAP) {
+            if (sourceItems <= targetCount && targetItems <= sourceCount) {
+                // Pair occupied slots first so a full backpack can still be swapped.
+                std::stable_partition(sourceSlots.begin(), sourceSlots.begin() + sourceCount,
+                                      [&](i16 slot) { return source[slot] != ARTIFACT_NONE; });
+                std::stable_partition(targetSlots.begin(), targetSlots.begin() + targetCount,
+                                      [&](i16 slot) { return target[slot] != ARTIFACT_NONE; });
+                for (i16 index = 0; index < std::max(sourceItems, targetItems); ++index) {
+                    m_selectedSlot = sourceSlots[index];
+                    m_targetSlot = targetSlots[index];
+                    SwapArtifacts();
+                }
+            }
+        } else {
+            for (i16 index = 0, dest = 0; index < sourceCount; ++index) {
+                m_selectedSlot = sourceSlots[index];
+                if (source[m_selectedSlot] == ARTIFACT_NONE)
+                    continue;
+                while (dest < targetCount && target[targetSlots[dest]] != ARTIFACT_NONE)
+                    ++dest;
+                if (dest == targetCount)
+                    break;
+                m_targetSlot = targetSlots[dest++];
+                SwapArtifacts();
+            }
+        }
+    }
+    Reset();
+    Update();
+    m_window->DrawWindow();
+}
+
 i16 swapManager::Main(struct tag_message& message) {
     b8 nowCloseRequested = false;
     b8 quickView;
@@ -238,6 +319,8 @@ i16 swapManager::Main(struct tag_message& message) {
                         break;
                     if (message.id == DIALOG_BUTTON_0)
                         nowCloseRequested = true;
+                    else if (message.id >= TROOPS_LEFT && message.id <= ARTIFACTS_SWAP)
+                        TransferMeetingItems(message.id);
                     break;
                 case WIDGET_NOTIFY_SELECT:
                     switch (message.id) {
@@ -572,11 +655,13 @@ void swapManager::SwapArtifacts(void) {
     i8 targetArtifact;
     i8 selectedArtifact;
 
-    if (m_selectedSide == SWAP_SIDE_NONE && m_targetSide == SWAP_SIDE_NONE)
+    if (m_selectedSide == SWAP_SIDE_NONE || m_targetSide == SWAP_SIDE_NONE)
         return;
 
     selectedArtifact = m_heroes[m_selectedSide]->m_artifacts[m_selectedSlot];
     targetArtifact = m_heroes[m_targetSide]->m_artifacts[m_targetSlot];
+    if (selectedArtifact == targetArtifact || !CanTradeArtifact(selectedArtifact) || !CanTradeArtifact(targetArtifact))
+        return;
     gAdvManager
         ->GiveTakeArtifactStat(m_heroes[m_selectedSide], selectedArtifact, EVENT_ARTIFACT_TAKE);
     gAdvManager->GiveTakeArtifactStat(m_heroes[m_targetSide], targetArtifact, EVENT_ARTIFACT_TAKE);

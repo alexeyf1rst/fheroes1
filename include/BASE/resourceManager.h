@@ -70,6 +70,13 @@ public:
     i16 MakeId(char* name);
     void Read13(char* destination);
     void ReadBlock(void* destination, u32 size);
+
+private:
+    void SeekArchive(i32 position);
+    void ReadArchive(void* destination, i32 size);
+    u8* m_archive = nullptr;
+    i32 m_archiveLength = 0;
+    i32 m_archivePosition = 0;
 };
 #pragma pack(pop)
 

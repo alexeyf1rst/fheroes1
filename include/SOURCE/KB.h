@@ -306,10 +306,21 @@ struct configStruct {
     char modemInitString[100];
     i32 autoCombatSpells;
     i32 autoResolveBattles;
+    i32 combatAnimationSpeed;
     i32 showCombatOrder;
+    i32 showCombatGrid;
+    i32 hideCombatDamage;
     i32 displayScaling;
+    i32 fullscreenWidth;
+    i32 fullscreenHeight;
     i32 shortcutKeys[GAME_SHORTCUT_COUNT];
 };
+
+inline i32 CombatAnimationDelay(i32 milliseconds) {
+    const i32 speed = gConfig.combatAnimationSpeed;
+    return speed >= 2 && speed <= 4 ? (milliseconds + speed - 1) / speed : milliseconds;
+}
+
 #define CURRENT_GRAPHICS_CONFIG (gConfig.gfx[gCurExe])
 struct tag_tilePoint {
     i8 x;
