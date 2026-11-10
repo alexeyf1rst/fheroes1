@@ -52,6 +52,14 @@ SDL_Rect gLastCursorBounds{};
 u32 gLastPresent = 0;
 const u8* gReference = nullptr;
 
+struct DisplayTiming {
+    unsigned frames = 0;
+    unsigned over16ms = 0;
+    u64 maxPresentNs = 0;
+};
+DisplayTiming gDisplayTiming;
+bool gTraceDisplay = false;
+
 CursorImage gCursor;
 bool gCursorSet = false;
 int gCursorCount = 0;
@@ -206,6 +214,8 @@ bool OpenDisplay() {
         Log("cannot open a window: %s", SDL_GetError());
         return false;
     }
+    gTraceDisplay = std::getenv("HOMM1_TRACE_DISPLAY") != nullptr;
+    gDisplayTiming = {};
     SDL_SetRenderVSync(gRenderer, 0);
     ApplyLogicalPresentation();
     gTexture = SDL_CreateTexture(
@@ -224,6 +234,11 @@ bool OpenDisplay() {
 }
 
 void CloseDisplay() {
+    if (gTraceDisplay && gRenderer != nullptr) {
+        Log("display timing (%s): %u frames, %u presents >16 ms, max present %.2f ms",
+            SDL_GetRendererName(gRenderer), gDisplayTiming.frames, gDisplayTiming.over16ms,
+            static_cast<double>(gDisplayTiming.maxPresentNs) / 1e6);
+    }
     if (gTexture != nullptr)
         SDL_DestroyTexture(gTexture);
     if (gRenderer != nullptr)
@@ -337,6 +352,7 @@ void Present(bool force) {
     u32 now = Ticks();
     if (!force && now - gLastPresent < kPresentInterval)
         return;
+    const u64 presentStart = gTraceDisplay ? SDL_GetTicksNS() : 0;
     gLastPresent = now;
     // Recompose both cursor positions to restore the pixels it covered.
     const SDL_Rect cursorBounds = CursorBounds();
@@ -367,6 +383,13 @@ void Present(bool force) {
     SDL_FRect source = {0, 0, static_cast<float>(kWidth), static_cast<float>(kHeight + gBar)};
     SDL_RenderTexture(gRenderer, gTexture, &source, nullptr);
     SDL_RenderPresent(gRenderer);
+    if (gTraceDisplay) {
+        const u64 end = SDL_GetTicksNS();
+        const u64 duration = end - presentStart;
+        ++gDisplayTiming.frames;
+        gDisplayTiming.over16ms += duration > 16'000'000;
+        gDisplayTiming.maxPresentNs = std::max(gDisplayTiming.maxPresentNs, duration);
+    }
 }
 
 void BeginDisplayUpdate() {

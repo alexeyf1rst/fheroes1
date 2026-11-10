@@ -317,7 +317,7 @@ public:
     void DeactivateCurrTown(void);
     void DeactivateCurrHero(void);
     void MobilizeCurrHero(b32 update);
-    void DemobilizeCurrHero(void);
+    void DemobilizeCurrHero(bool redraw = true);
     void SetTownContext(i8 townId);
     void SetHeroContext(i8 heroId, b8 update);
     void DoHeroKnob(void);

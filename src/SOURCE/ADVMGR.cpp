@@ -4120,7 +4120,7 @@ void advManager::MobilizeCurrHero(b32 update) {
     SetHeroContext(gCurPlayerData->m_currentHero, update);
 }
 
-void advManager::DemobilizeCurrHero(void) {
+void advManager::DemobilizeCurrHero(bool redraw) {
     if (gCurPlayerData->m_currentHero == HERO_ID_NONE)
         return;
     if (!m_heroMobilized)
@@ -4141,8 +4141,10 @@ void advManager::DemobilizeCurrHero(void) {
     cell->m_objectMetadata = heroPointer->m_id;
     cell->m_flags &= ~MAP_CELL_HERO_CURSOR;
     m_cursorActive = false;
-    CompleteDraw(m_mapOriginX, m_mapOriginY, false);
-    UpdateScreen(false, false);
+    if (redraw) {
+        CompleteDraw(m_mapOriginX, m_mapOriginY, false);
+        UpdateScreen(false, false);
+    }
 }
 
 void advManager::SetTownContext(i8 townId) {
@@ -6432,7 +6434,7 @@ void advManager::PanMap(i16 xOrigin, i16 yOrigin) {
 
     if (xOrigin != m_mapOriginX || yOrigin != m_mapOriginY) {
         platform::BeginDisplayUpdate();
-        DemobilizeCurrHero();
+        DemobilizeCurrHero(false);
         m_mapOriginX = xOrigin;
         m_mapOriginY = yOrigin;
         UpdateRadar(true, false);
