@@ -167,6 +167,7 @@ void army::DrawToBuffer(i16 x, i16 y) {
     i16 effectPosX;
     i8 offsetMode;
     b8 outlined;
+    const bool hovered = gCombatManager->IsTurnOrderHovered(this);
     i16 spellOutlineColor;
     char countText[ARMY_QUANTITY_TEXT_SIZE];
     i16 spellMarkerX;
@@ -230,13 +231,12 @@ void army::DrawToBuffer(i16 x, i16 y) {
                 ARMY_FACING_ORIENTATION(m_facing),
                 offsetMode
             );
-            if (m_hex == gCombatManager->m_selectorHex
-                && gCombatManager->m_selectorVisible == true) {
+            if (hovered || (m_hex == gCombatManager->m_selectorHex && gCombatManager->m_selectorVisible)) {
                 m_standIcon->FillToBuffer(
                     x,
                     y,
                     0,
-                    ARMY_SELECTOR_OUTLINE_COLOR,
+                    hovered ? ARMY_GOOD_SPELL_OUTLINE_COLOR : ARMY_SELECTOR_OUTLINE_COLOR,
                     ARMY_FACING_ORIENTATION(m_facing),
                     offsetMode
                 );
@@ -827,7 +827,8 @@ void army::SpecialAttack(void) {
         enemyStack->Stand(false);
     if (m_spellEndCondition == ARMY_CANCEL_SPELLS_AFTER_ATTACK)
         CancelSpell();
-    WaitSample(m_samples[ARMY_SAMPLE_SHOOT]);
+    if (CombatAnimationDelay(4) == 4)
+        WaitSample(m_samples[ARMY_SAMPLE_SHOOT]);
     m_facing = wasFacing;
     Stand(true);
     if (enemyStack->m_quantity > 0)
@@ -929,7 +930,8 @@ void army::DoHydraAttack(void) {
     gText[0] = CyrillicToUpper(gText[0]);
     gCombatManager->CombatMessage(gText, true);
     PowEffect(m_stats.powEffect);
-    WaitSample(m_samples[ARMY_SAMPLE_ATTACK]);
+    if (CombatAnimationDelay(4) == 4)
+        WaitSample(m_samples[ARMY_SAMPLE_ATTACK]);
     m_animationSequence = ARMY_ANIMATION_STAND;
     gCombatManager->ResetLimitCreature();
     gCombatManager->m_limitCreatureCount[m_side][m_index]++;
@@ -1222,7 +1224,8 @@ void army::DoAttack(b32 retaliation) {
         if (!(rearVictim->m_stats.attributes & MONSTER_FLAGS_DEAD))
             rearVictim->Stand(false);
     }
-    WaitSample(m_samples[ARMY_SAMPLE_ATTACK]);
+    if (CombatAnimationDelay(4) == 4)
+        WaitSample(m_samples[ARMY_SAMPLE_ATTACK]);
     if (m_stats.attributes & MONSTER_FLAGS_BREATH_ATTACK) {
         if (rearVictim) {
             m_animationFrame = frameBase + 6;
@@ -1426,7 +1429,8 @@ void army::CheckLuck(void) {
             SpellEffect(COMBAT_EFFECT_GOOD_LUCK, 180);
         }
         Stand(true);
-        WaitSample(luckSample);
+        if (CombatAnimationDelay(4) == 4)
+            WaitSample(luckSample);
     }
 }
 
@@ -1698,7 +1702,8 @@ void army::PowEffect(i8 effect) {
     gCombatManager->DrawFrame(true);
     for (stackSide = COMBAT_SIDE_FIRST; stackSide < COMBAT_SIDE_COUNT; stackSide++)
         for (armyIndex = 0; armyIndex < gCombatManager->m_numArmies[stackSide]; armyIndex++)
-            WaitSample(gCombatManager->m_armies[stackSide][armyIndex].m_samples[ARMY_SAMPLE_WINCE]);
+            if (CombatAnimationDelay(4) == 4)
+                WaitSample(gCombatManager->m_armies[stackSide][armyIndex].m_samples[ARMY_SAMPLE_WINCE]);
 }
 
 u32 army::Strength(void) {

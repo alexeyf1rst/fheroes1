@@ -154,10 +154,14 @@ public:
     struct TurnOrderEntry {
         i8 creature;
         i8 side;
+        i8 armyIndex;
         i16 quantity;
     };
     TurnOrderEntry m_turnOrder[COMBAT_TURN_ORDER_CAPACITY];
     i8 m_turnOrderCount = 0;
+    i8 m_turnOrderHover = -1;
+    void UpdateTurnOrderHover();
+    bool IsTurnOrderHovered(const army* unit) const;
     bool m_quickCombat = false;
     bool m_autoResolveAtStart = false;
     i8 m_autoCombatStopRequested = COMBAT_SIDE_NONE;

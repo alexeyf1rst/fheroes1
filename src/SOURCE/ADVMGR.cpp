@@ -6455,12 +6455,26 @@ bool advManager::DragMap(i16 x, i16 y) {
     constexpr int tileSize = 32;
     if (!m_mapDragging && abs(x - m_dragX) < threshold && abs(y - m_dragY) < threshold)
         return false;
+    if (!m_mapDragging)
+        DemobilizeCurrHero();
     m_mapDragging = true;
-    const int tilesX = (x - m_dragX) / tileSize;
-    const int tilesY = (y - m_dragY) / tileSize;
+    const auto nearestTile = [](int pixels) {
+        return (pixels + (pixels < 0 ? -tileSize / 2 : tileSize / 2)) / tileSize;
+    };
+    const int tilesX = nearestTile(x - m_dragX);
+    const int tilesY = nearestTile(y - m_dragY);
+    const int targetX = m_mapOriginX - tilesX;
+    const int targetY = m_mapOriginY - tilesY;
     m_dragX += tilesX * tileSize;
     m_dragY += tilesY * tileSize;
-    PanMap(m_mapOriginX - tilesX, m_mapOriginY - tilesY);
+    const int oldOffsetX = m_scrollOffsetX, oldOffsetY = m_scrollOffsetY;
+    m_scrollOffsetX = targetX >= SCROLL_MIN_ORIGIN && targetX <= SCROLL_MAX_ORIGIN ? m_dragX - x : 0;
+    m_scrollOffsetY = targetY >= SCROLL_MIN_ORIGIN && targetY <= SCROLL_MAX_ORIGIN ? m_dragY - y : 0;
+    const int originX = m_mapOriginX, originY = m_mapOriginY;
+    PanMap(targetX, targetY);
+    if (originX == m_mapOriginX && originY == m_mapOriginY
+        && (oldOffsetX != m_scrollOffsetX || oldOffsetY != m_scrollOffsetY))
+        UpdateScreen(false, false);
     return true;
 }
 
@@ -6469,6 +6483,10 @@ void advManager::EndMapDrag() {
         m_resumeEdgeScrollOnExit = MouseInScrollZone();
     m_dragX = m_dragY = -1;
     m_mapDragging = false;
+    if (m_scrollOffsetX || m_scrollOffsetY) {
+        m_scrollOffsetX = m_scrollOffsetY = 0;
+        UpdateScreen(false, false);
+    }
 }
 
 void advManager::CheckScreenScroll(void) {

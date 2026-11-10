@@ -46,6 +46,7 @@ i16 combatManager::Main(struct tag_message& message) {
         PollSound();
         gTimers[COMBAT_FRAME_TIMER_SLOT] = KBTickCount() + CombatAnimationDelay(0x4b);
     }
+    UpdateTurnOrderHover();
     CheckCastleAttack();
     if (CheckWin(&message))
         return MESSAGE_DISPATCH_FORWARD;

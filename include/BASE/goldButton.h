@@ -3,6 +3,7 @@
 
 #include <BASE/bmap2.h>
 #include <BASE/heroWindow.h>
+#include <BASE/font.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/palette.h>
 #include <BASE/textWidget.h>
@@ -26,11 +27,19 @@ public:
         const int shine = MatchGold(63, 49, 13);
         const int gold = MatchGold(49, 31, 3);
         bitmap* screen = gWindowManager->m_screen;
-        FillBitmapArea(screen, x, y, m_width, m_height, shade);
-        FillBitmapArea(screen, x + 1, y + 1, m_width - 3, m_height - 3, shine);
+        const int bevel = MatchGold(39, 23, 2);
+        const int highlight = MatchGold(58, 42, 5);
+        FillBitmapArea(screen, x + 1, y, m_width - 2, m_height, shade);
+        FillBitmapArea(screen, x, y + 1, m_width, m_height - 2, shade);
+        FillBitmapArea(screen, x + 1, y + 1, m_width - 2, m_height - 3, bevel);
+        FillBitmapArea(screen, x + 2, y + 1, m_width - 4, 1, shine);
+        FillBitmapArea(screen, x + 1, y + 2, 1, m_height - 5, highlight);
         FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, gold);
+        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, 1, highlight);
         if (m_mark == Label) {
-            textWidget::Draw();
+            const i16 top = y + (m_height - m_font->m_height) / 2;
+            m_font->DrawBoundedString(m_text, x + 2, top + 1, m_width - 3, m_font->m_height, shade, m_alignment);
+            m_font->DrawBoundedString(m_text, x + 1, top, m_width - 3, m_font->m_height, shine, m_alignment);
         } else {
             const auto arrow = [&](int cy, bool right) {
                 const int cx = x + m_width / 2;

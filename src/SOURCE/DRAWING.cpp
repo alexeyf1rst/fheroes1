@@ -9,6 +9,7 @@
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
 #include <BASE/message.h>
+#include <BASE/mouseManager.h>
 #include <SOURCE/army.h>
 #include <SOURCE/armyGroup.h>
 #include <SOURCE/combatManager.h>
@@ -48,7 +49,7 @@ void combatManager::ShowTurnOrder() {
         army& current = m_armies[m_currentSide][m_currentArmyIndex];
         current.m_stats.attributes |= MONSTER_FLAGS_TURN_SPENT;
         if (current.m_quantity > 0 && current.m_creatureType >= CREATURE_FIRST)
-            m_turnOrder[m_turnOrderCount++] = {current.m_creatureType, m_currentSide, current.m_quantity};
+            m_turnOrder[m_turnOrderCount++] = {current.m_creatureType, m_currentSide, m_currentArmyIndex, current.m_quantity};
     }
 
     for (i8 team = 0; team < COMBAT_SIDE_COUNT; ++team) {
@@ -64,6 +65,28 @@ void combatManager::ShowTurnOrder() {
     }
 }
 
+void combatManager::UpdateTurnOrderHover() {
+    i8 hover = -1;
+    if (m_showTurnOrder && !m_quickCombat && m_combatResult == COMBAT_RESULT_PENDING) {
+        i16 x, y;
+        gMouseManager->MouseCoords(x, y);
+        if (y >= 0 && y < kOrderHeight && x >= kOrderX
+            && x < kOrderX + m_turnOrderCount * kOrderSlotWidth)
+            hover = (x - kOrderX) / kOrderSlotWidth;
+    }
+    if (hover != m_turnOrderHover) {
+        m_turnOrderHover = hover;
+        DrawFrame(true);
+    }
+}
+
+bool combatManager::IsTurnOrderHovered(const army* unit) const {
+    if (!m_showTurnOrder || m_quickCombat || m_turnOrderHover < 0 || m_turnOrderHover >= m_turnOrderCount)
+        return false;
+    const auto& entry = m_turnOrder[m_turnOrderHover];
+    return unit == &m_armies[entry.side][entry.armyIndex];
+}
+
 void combatManager::DrawTurnOrder() {
     if (!m_showTurnOrder || m_quickCombat || m_combatResult != COMBAT_RESULT_PENDING || !m_turnOrderCount)
         return;
@@ -72,7 +95,8 @@ void combatManager::DrawTurnOrder() {
     for (i8 index = 0; index < m_turnOrderCount; ++index) {
         const TurnOrderEntry& entry = m_turnOrder[index];
         const i16 x = kOrderX + index * kOrderSlotWidth;
-        const i16 color = index == 0 ? ARMY_SELECTOR_OUTLINE_COLOR
+        const i16 color = index == m_turnOrderHover ? ARMY_GOOD_SPELL_OUTLINE_COLOR
+                          : index == 0 ? ARMY_SELECTOR_OUTLINE_COLOR
                           : entry.side == m_currentSide ? ARMY_GOOD_SPELL_OUTLINE_COLOR
                                                         : ARMY_BAD_SPELL_OUTLINE_COLOR;
         FillBitmapArea(screen, x + 1, 1, kOrderSlotWidth - 2, kOrderHeight - 2, color);

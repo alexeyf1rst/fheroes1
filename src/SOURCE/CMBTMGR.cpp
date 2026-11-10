@@ -196,6 +196,7 @@ i16 combatManager::Open(i16 priority) {
     m_autoCombatStopRequested = COMBAT_SIDE_NONE;
     m_showTurnOrder = gConfig.showCombatOrder;
     m_turnOrderCount = 0;
+    m_turnOrderHover = -1;
     m_quickCombat = false;
     if (m_autoResolveAtStart) {
         m_autoResolveBackground = new bitmap(BITMAP_TYPE_NONE, LOGICAL_SCREEN_WIDTH, LOGICAL_SCREEN_HEIGHT);
@@ -220,7 +221,7 @@ i16 combatManager::Open(i16 priority) {
         if (item->m_id == COMBAT_CONTROL_FIELD && item->m_y + item->m_height > COMBAT_PANEL_TOP)
             item->m_height = COMBAT_PANEL_TOP - item->m_y;
         if (item->m_id == COMBAT_STATUS_TEXT_CONTROL)
-            item->m_y -= (COMBAT_VIEW_HEIGHT - COMBAT_PANEL_TOP) / 2;
+            item->m_y = COMBAT_PANEL_TOP + 3;
     }
     m_combatWindow->AddWidget(new goldButton(0, COMBAT_PANEL_TOP, 48, 18, COMBAT_CONTROL_OPTIONS,
                                             localization::Tr("combat.options.button")),
@@ -1348,9 +1349,11 @@ void combatManager::DrawCombatBorder(void) {
     const int edge = goldButton::MatchGold(52, 37, 7);
     const int shadow = goldButton::MatchGold(21, 12, 24);
     const int face = goldButton::MatchGold(24, 10, 35);
+    const int sheen = goldButton::MatchGold(36, 18, 48);
     FillBitmapArea(screen, 0, COMBAT_PANEL_TOP, LOGICAL_SCREEN_WIDTH, upperHeight, shadow);
     FillBitmapArea(screen, 1, COMBAT_PANEL_TOP + 1, LOGICAL_SCREEN_WIDTH - 2, 1, edge);
     FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 2, LOGICAL_SCREEN_WIDTH - 4, upperHeight - 3, face);
+    FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 3, LOGICAL_SCREEN_WIDTH - 4, 3, sheen);
     m_combatWindow->DrawWindow(0, COMBAT_STATUS_TEXT_CONTROL, COMBAT_STATUS_TEXT_CONTROL);
     m_combatWindow->DrawWindow(0, COMBAT_CONTROL_OPTIONS, COMBAT_CONTROL_OPTIONS);
 }
