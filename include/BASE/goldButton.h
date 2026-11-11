@@ -85,7 +85,7 @@ private:
     Mark m_mark;
 };
 
-// Keep the original button's side bevels and extend its unlettered right margin.
+// Keep the original bevels and replace the lettering with a readable label.
 class battleGoldButton : public textWidget {
 public:
     battleGoldButton(i16 x, i16 y, i16 width, i16 height, i16 id, const char* label,
@@ -96,8 +96,8 @@ public:
             if (item->m_id != sourceId)
                 continue;
             if (const auto* original = dynamic_cast<const button*>(item)) {
-                LoadFace(*original->m_icon, original->m_normalFrame, m_normal);
-                LoadFace(*original->m_icon, original->m_pressedFrame, m_pressed);
+                LoadFace(*original->m_icon, original->m_normalFrame, false, m_normal);
+                LoadFace(*original->m_icon, original->m_pressedFrame, true, m_pressed);
             }
             break;
         }
@@ -120,14 +120,15 @@ public:
                 }
         }
         const int top = y + (m_height - m_font->m_height) / 2 + pressed;
-        const int dark = goldButton::MatchGold(13, 8, 2, true);
-        const int light = goldButton::MatchGold(63, 55, 25, true);
-        m_font->DrawBoundedString(m_text, x + 4, top + 1, m_width - 8, m_font->m_height, dark, FONT_ALIGN_CENTER);
-        m_font->DrawBoundedString(m_text, x + 3, top, m_width - 8, m_font->m_height, light, FONT_ALIGN_CENTER);
+        const int shadow = goldButton::MatchGold(8, 5, 2, true);
+        m_font->DrawBoundedString(m_text, x + 4, top + 1, m_width - 8, m_font->m_height,
+                                  shadow, FONT_ALIGN_CENTER);
+        m_font->DrawBoundedString(m_text, x + 3, top, m_width - 8, m_font->m_height,
+                                  TEXT_WIDGET_PLAIN_COLOR, FONT_ALIGN_CENTER);
     }
 
 private:
-    void LoadFace(icon& source, int index, std::vector<u8>& face) {
+    void LoadFace(icon& source, int index, bool pressed, std::vector<u8>& face) {
         const auto& frame = source.m_frames[index];
         constexpr int edge = 5;
         if (frame.w <= 2 * edge || frame.h <= 2 * edge)
@@ -135,6 +136,8 @@ private:
         bitmap sprite(BITMAP_TYPE_MEMORY, frame.w, frame.h);
         std::memset(sprite.m_pixels, 0, frame.w * frame.h);
         IconToBitmap(&source, &sprite, -frame.x, -frame.y, index, ICON_DRAW_OFFSET_FULL);
+        const auto gold = static_cast<u8>(pressed ? goldButton::MatchGold(31, 19, 4, true)
+                                                  : goldButton::MatchGold(43, 29, 5, true));
         face.resize(m_width * m_height);
         for (int y = 0; y < m_height; ++y) {
             const int row = y < edge ? y : y >= m_height - edge ? frame.h - (m_height - y)
@@ -142,7 +145,8 @@ private:
             for (int x = 0; x < m_width; ++x) {
                 const int col = x < edge ? x : x >= m_width - edge ? frame.w - (m_width - x)
                     : frame.w - edge - 1;
-                face[y * m_width + x] = sprite.m_pixels[row * frame.w + col];
+                const bool interior = x >= edge && x < m_width - edge && y >= edge && y < m_height - edge;
+                face[y * m_width + x] = interior ? gold : sprite.m_pixels[row * frame.w + col];
             }
         }
     }
