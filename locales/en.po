@@ -274,10 +274,6 @@ msgstr "creatures"
 msgid "combat.genie.half_army.buka"
 msgstr "%s %s half the enemy troops!"
 
-#: src/SOURCE/CMBTMGR.cpp
-msgid "combat.history.button"
-msgstr "Log"
-
 #: src/SOURCE/DRAWING.cpp
 #, c-format
 msgid "combat.history.page"

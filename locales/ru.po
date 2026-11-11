@@ -274,10 +274,6 @@ msgstr "воинов"
 msgid "combat.genie.half_army.buka"
 msgstr "%s %s уничтожил вражеских воинов!"
 
-#: src/SOURCE/CMBTMGR.cpp
-msgid "combat.history.button"
-msgstr "Журнал"
-
 #: src/SOURCE/DRAWING.cpp
 #, c-format
 msgid "combat.history.page"

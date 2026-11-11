@@ -275,10 +275,6 @@ msgstr ""
 msgid "combat.genie.half_army.buka"
 msgstr ""
 
-#: src/SOURCE/CMBTMGR.cpp
-msgid "combat.history.button"
-msgstr ""
-
 #: src/SOURCE/DRAWING.cpp
 #, c-format
 msgid "combat.history.page"
