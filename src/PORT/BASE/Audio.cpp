@@ -17,9 +17,12 @@
 
 #include "../PortHost.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -220,7 +223,47 @@ bool MusicSuspended() {
 
 // ---------------------------------------------------------------- samples
 
-static void PlaySampleAtSpeed(sample* resource, int speed) {
+// Waveform similarity overlap-add for the original unsigned 8-bit mono intro.
+// Keep the original sample rate and align overlapping chunks before blending.
+static std::vector<u8> DoubleTempoMono(const u8* input, int length, int rate) {
+    const int overlap = rate * 15 / 1000;
+    const int search = rate * 8 / 1000;
+    const int outputLength = length / 2;
+    if (overlap < 2 || outputLength < overlap * 2)
+        return {};
+    std::vector<u8> output(input, input + outputLength);
+    for (int out = overlap; out < outputLength; out += overlap) {
+        const int blend = std::min(overlap, outputLength - out);
+        const int chunk = std::min(overlap * 2, outputLength - out);
+        const int expected = std::min(out * 2, length - chunk);
+        int best = expected;
+        double bestScore = -1.0;
+        for (int in = std::max(0, expected - search); in <= std::min(length - chunk, expected + search); ++in) {
+            int dot = 0, leftEnergy = 0, rightEnergy = 0;
+            for (int j = 0; j < blend; j += 2) {
+                const int left = output[out + j] - 128;
+                const int right = input[in + j] - 128;
+                dot += left * right;
+                leftEnergy += left * left;
+                rightEnergy += right * right;
+            }
+            if (leftEnergy == 0 || rightEnergy == 0)
+                continue;
+            const double similarity = dot / std::sqrt(static_cast<double>(leftEnergy) * rightEnergy);
+            const double score = similarity - 0.01 * std::abs(in - expected) / std::max(1, search);
+            if (score > bestScore) {
+                best = in;
+                bestScore = score;
+            }
+        }
+        for (int j = 0; j < blend; ++j)
+            output[out + j] = (output[out + j] * (blend - j) + input[best + j] * j) / blend;
+        std::copy(input + best + blend, input + best + chunk, output.begin() + out + blend);
+    }
+    return output;
+}
+
+static void PlaySampleWithTempo(sample* resource, bool doubleTempo) {
     if (!gAudioReady || SamplesSuspended() || resource == NULL)
         return;
     auto found = gVoices.find(resource);
@@ -233,8 +276,13 @@ static void PlaySampleAtSpeed(sample* resource, int speed) {
     const SamplePlaybackData& data = resource->m_playbackData;
     if (data.data == NULL || data.size <= 0)
         return;
+    std::vector<u8> shortened;
+    if (doubleTempo && !data.stereo && !data.sampleFormat)
+        shortened = DoubleTempoMono(reinterpret_cast<const u8*>(data.data), data.size, data.sampleRate);
+    const void* frames = shortened.empty() ? static_cast<const void*>(data.data) : shortened.data();
+    const size_t bytes = shortened.empty() ? static_cast<size_t>(data.size) : shortened.size();
     platform::Voice voice = platform::PlaySample(
-        data.data, static_cast<size_t>(data.size), data.sampleRate * speed, data.stereo != 0 ? 2 : 1,
+        frames, bytes, data.sampleRate, data.stereo != 0 ? 2 : 1,
         data.sampleFormat != 0 ? platform::SAMPLE_S16 : platform::SAMPLE_U8,
         ScaleSampleVolume(data.volume), data.repeat != 0);
     if (voice != platform::NO_VOICE)
@@ -242,16 +290,18 @@ static void PlaySampleAtSpeed(sample* resource, int speed) {
 }
 
 void PlaySample(sample* resource) {
-    PlaySampleAtSpeed(resource, 1);
+    PlaySampleWithTempo(resource, false);
 }
 
 sample* LoadPlaySample(char* name) {
-    return LoadPlaySample(name, 1);
+    sample* resource = gResourceManager->GetSample(name);
+    PlaySample(resource);
+    return resource;
 }
 
-sample* LoadPlaySample(char* name, int speed) {
+sample* LoadPlaySampleAtDoubleTempo(char* name) {
     sample* resource = gResourceManager->GetSample(name);
-    PlaySampleAtSpeed(resource, speed);
+    PlaySampleWithTempo(resource, true);
     return resource;
 }
 

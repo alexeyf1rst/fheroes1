@@ -734,7 +734,7 @@ void RefreshBattleOptions(heroWindow& window) {
     for (int index = 0; index < 5; ++index) {
         char label[80];
         if (index == 0)
-            snprintf(label, sizeof(label), "%s %dx", labels[index], std::clamp(gConfig.combatAnimationSpeed, 1, 4));
+            snprintf(label, sizeof(label), "%s %dx", labels[index], std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED));
         else
             snprintf(label, sizeof(label), "%s  %s", labels[index],
                      enabled[index] ? localization::Tr("combat.options.on") : localization::Tr("combat.options.off"));
@@ -753,7 +753,7 @@ i16 BattleOptionsHandler(tag_message& message) {
         || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
         return MESSAGE_DISPATCH_CONTINUE;
     switch (message.id) {
-        case OptionSpeed: gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, 4) % 4 + 1; break;
+        case OptionSpeed: gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED) % COMBAT_MAX_ANIMATION_SPEED + 1; break;
         case OptionOrder: gConfig.showCombatOrder = !gConfig.showCombatOrder; break;
         case OptionGrid: gConfig.showCombatGrid = !gConfig.showCombatGrid; break;
         case OptionDamage: gConfig.hideCombatDamage = !gConfig.hideCombatDamage; break;

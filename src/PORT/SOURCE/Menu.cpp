@@ -673,7 +673,7 @@ KBMenu KBLoadMenu(const char* name) {
         MenuItem speed;
         speed.popup = true;
         speed.text = localization::Tr("combat.animation_speed");
-        for (i32 index = 0; index < 4; ++index) {
+        for (i32 index = 0; index < COMBAT_MAX_ANIMATION_SPEED; ++index) {
             MenuItem choice;
             choice.command = KBWIN_MENU_BATTLE_SPEED_FIRST + index;
             choice.text = std::to_string(index + 1) + "x";
@@ -849,9 +849,9 @@ void UpdateDfltMenu(KBMenu menu) {
         KBCheckMenuItem(menu, KBWIN_MENU_RESOLUTION_FIRST + 1 + static_cast<i32>(index),
                         modes[index].width == gConfig.fullscreenWidth && modes[index].height == gConfig.fullscreenHeight);
     KBCheckMenuItem(menu, KBWIN_MENU_AUTO_RESOLVE, gConfig.autoResolveBattles != 0);
-    for (i32 index = 0; index < 4; ++index)
+    for (i32 index = 0; index < COMBAT_MAX_ANIMATION_SPEED; ++index)
         KBCheckMenuItem(menu, KBWIN_MENU_BATTLE_SPEED_FIRST + index,
-                        index + 1 == std::clamp(gConfig.combatAnimationSpeed, 1, 4));
+                        index + 1 == std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED));
     for (i16 index = 0; index < GAME_SHORTCUT_COUNT; ++index) {
         MenuItem* binding = FindCommand(menu->items, KBWIN_MENU_SHORTCUT_FIRST + index);
         if (binding)

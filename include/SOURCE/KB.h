@@ -316,9 +316,11 @@ struct configStruct {
     i32 shortcutKeys[GAME_SHORTCUT_COUNT];
 };
 
+inline constexpr i32 COMBAT_MAX_ANIMATION_SPEED = 4;
+
 inline i32 CombatAnimationDelay(i32 milliseconds) {
     const i32 speed = gConfig.combatAnimationSpeed;
-    return speed >= 2 && speed <= 4 ? (milliseconds + speed - 1) / speed : milliseconds;
+    return speed >= 2 && speed <= COMBAT_MAX_ANIMATION_SPEED ? (milliseconds + speed - 1) / speed : milliseconds;
 }
 
 #define CURRENT_GRAPHICS_CONFIG (gConfig.gfx[gCurExe])
