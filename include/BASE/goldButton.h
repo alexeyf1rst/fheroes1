@@ -58,9 +58,11 @@ public:
         }
     }
 
-    static int MatchGold(int r, int g, int b) {
+    static int MatchGold(int r, int g, int b, bool stable = false) {
         int best = 10, distance = 3 * 64 * 64;
         for (int index = 10; index < 246; ++index) {
+            if (stable && index >= PALETTE_CYCLE_FIRST && index < PALETTE_CYCLE_FIRST + PALETTE_CYCLE_COLOR_COUNT)
+                continue;
             const auto* color = gPalette->m_data + 3 * index;
             const int dr = r - color[0], dg = g - color[1], db = b - color[2];
             const int error = dr * dr + dg * dg + db * db;

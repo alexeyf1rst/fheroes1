@@ -77,8 +77,8 @@ public:
     void Draw() override {
         if (!gThisNetHumanPlayer[gCurPlayer] || gAllBlack)
             return;
-        const int crossShadow = goldButton::MatchGold(12, 3, 1);
-        const int crossColor = goldButton::MatchGold(60, 12, 7);
+        const int crossShadow = goldButton::MatchGold(12, 3, 1, true);
+        const int crossColor = goldButton::MatchGold(60, 12, 7, true);
         for (widget* item = m_owner->m_widgetListHead; item; item = item->m_next) {
             const int slot = item->m_id - ADVENTURE_CONTROL_TOWN_LOCATOR_1;
             if (slot < 0 || slot >= LOCATOR_VISIBLE_COUNT)
@@ -97,46 +97,29 @@ public:
                 FillBitmapArea(gWindowManager->m_screen, x + 9 - i, y + 1 + i, 1, 1, crossColor);
             }
         }
-        if (!gAdvManager->m_routeShown || gAdvManager->m_routeCost < 0 || gHeroMoving
-            || gCurPlayerData->CurrentHero() == HERO_ID_NONE)
-            return;
-        const hero* currentHero = gGame->GetHero(gCurPlayerData->CurrentHero());
-        char label[128];
-        snprintf(label, sizeof(label), localization::Tr("adventure.route.cost"),
-                 gAdvManager->m_routeCost, currentHero->m_remainingMobility);
-        FillBitmapArea(gWindowManager->m_screen, 17, 447, 445, 16, goldButton::MatchGold(24, 10, 35));
-        m_font->DrawBoundedString(label, 20, 449, 439, 12, 1, FONT_ALIGN_CENTER);
     }
 };
 
-class AdventureArmySlot : public textWidget {
+class MovementPreview : public textWidget {
 public:
-    int slot;
-    icon* monsters;
-    AdventureArmySlot(int armySlot) : textWidget(
-        armySlot < 2 ? 530 + armySlot * 47 : 482 + (armySlot - 2) * 47,
-        armySlot < 2 ? 393 : 429, 44, armySlot < 2 ? 34 : 33, strdup(""), "smalfont.fnt",
-        TEXT_WIDGET_PLAIN_COLOR, BOTTOM_HERO_FIRST_ICON_ID + armySlot, WIDGET_KIND_TEXT),
-        slot(armySlot), monsters(gResourceManager->GetIcon("mons32.icn")) {}
-    ~AdventureArmySlot() override { gResourceManager->Dispose(monsters); }
+    MovementPreview() : textWidget(BOTTOM_VIEW_PANEL_X, BOTTOM_VIEW_PANEL_Y,
+        BOTTOM_VIEW_PANEL_WIDTH, BOTTOM_VIEW_PANEL_HEIGHT, strdup(""), "smalfont.fnt",
+        TEXT_WIDGET_PLAIN_COLOR, BOTTOM_VIEW_DRAW_LAST_WIDGET, WIDGET_KIND_TEXT) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
     void Draw() override {
-        const int heroId = gCurPlayerData->CurrentHero();
-        if (heroId == HERO_ID_NONE)
+        const int cost = gAdvManager->m_previewCost;
+        if (cost < 0)
             return;
-        const auto& army = gGame->GetHero(heroId)->m_army;
-        const int x = m_x + m_owner->m_posX, y = m_y + m_owner->m_posY;
-        const bool selected = gAdvManager->m_bottomArmyHero == heroId && gAdvManager->m_bottomArmySelected == slot;
-        FillBitmapArea(gWindowManager->m_screen, x, y, m_width, m_height,
-                       goldButton::MatchGold(selected ? 63 : 35, selected ? 51 : 24, 4));
-        FillBitmapArea(gWindowManager->m_screen, x + 1, y + 1, m_width - 2, m_height - 2,
-                       goldButton::MatchGold(10, 22, 12));
-        const int creature = army.m_creatureTypes[slot];
-        if (creature != CREATURE_NONE) {
-            monsters->DrawToBuffer(x + 4, y + 1, creature, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
-            char count[12];
-            snprintf(count, sizeof(count), "%d", army.m_creatureCounts[slot]);
-            m_font->DrawBoundedString(count, x + 2, y + 21, 40, 12, 1, FONT_ALIGN_RIGHT);
-        }
+        const int available = gAdvManager->m_previewAvailable;
+        // A standard straight step costs four native units. Display it as 100 MP.
+        constexpr int scale = 25;
+        char label[180];
+        snprintf(label, sizeof(label), localization::Tr("adventure.route.cost"),
+                 available * scale, cost * scale, std::max(0, available - cost) * scale);
+        FillBitmapArea(gWindowManager->m_screen, m_x, m_y, m_width, m_height,
+                       goldButton::MatchGold(24, 10, 35, true));
+        m_font->DrawBoundedString(label, m_x + 4, m_y + 12, m_width - 8, m_height - 12, 1, FONT_ALIGN_CENTER);
     }
 };
 }
@@ -208,9 +191,7 @@ i16 advManager::Open(i16 id) {
 
     platform::BeginDisplayUpdate();
     firstTime = true;
-    m_bottomArmySelected = -1;
-    m_bottomArmyHero = -1;
-    m_routeCost = -1;
+    m_previewCost = -1;
     gCurBottomView = BOTTOM_VIEW_NONE;
     m_heroesLogoShown = false;
     gShowIt = false;
@@ -271,6 +252,8 @@ i16 advManager::Open(i16 id) {
         for (i = 0; i < ADVMGR_PANEL_ICON_COUNT; i++)
             m_adventureWindow->AddWidget(m_panelBackdrops[i], WINDOW_Z_ORDER_APPEND);
         m_adventureWindow->AddWidget(new AdventureIndicators(), WINDOW_Z_ORDER_APPEND);
+        m_movementPreview = new MovementPreview();
+        m_adventureWindow->AddWidget(m_movementPreview, WINDOW_Z_ORDER_APPEND);
     }
     if (gThisNetHumanPlayer[gCurPlayer])
         gMouseManager->SetPointer("advmice.mse", ADVENTURE_POINTER_DEFAULT);
@@ -675,6 +658,7 @@ i16 advManager::Main(struct tag_message& message) {
         return CheckHandleNetPlayerWait(message, false);
     if (m_dragX < 0 && gScreenScroll && gForegroundApp)
         CheckScreenScroll();
+    UpdateMovementPreview();
     if (!(message.type & m_messageTypeMask)) {
         if (message.type) {
             message.type = MESSAGE_NONE;
@@ -1404,26 +1388,6 @@ i32 advManager::ProcessDeSelect(
     i32* result,
     class mapCell** eventCell
 ) {
-    if (gCurBottomView == BOTTOM_VIEW_HERO && control >= BOTTOM_HERO_FIRST_ICON_ID
-        && control < BOTTOM_HERO_FIRST_ICON_ID + ARMY_GROUP_SLOT_COUNT
-        && gCurPlayerData->CurrentHero() != HERO_ID_NONE && gThisNetHumanPlayer[gCurPlayer]) {
-        hero* currentHero = gGame->GetHero(gCurPlayerData->CurrentHero());
-        const int slot = control - BOTTOM_HERO_FIRST_ICON_ID;
-        if (m_bottomArmyHero != currentHero->m_id) {
-            m_bottomArmySelected = -1;
-            m_bottomArmyHero = currentHero->m_id;
-        }
-        if (m_bottomArmySelected < 0) {
-            if (currentHero->m_army.m_creatureTypes[slot] != CREATURE_NONE)
-                m_bottomArmySelected = slot;
-        } else {
-            currentHero->m_army.Swap(static_cast<i8>(slot), &currentHero->m_army,
-                                    static_cast<i8>(m_bottomArmySelected));
-            m_bottomArmySelected = -1;
-        }
-        UpdBottomView(true, true, true);
-        return MESSAGE_DISPATCH_CONSUME;
-    }
     switch (control) {
         case ADVENTURE_CONTROL_CONTINUE_ROUTE:
             m_pendingCommand = ADVMGR_COMMAND_CONTINUE_ROUTE;
@@ -1856,6 +1820,36 @@ i32 advManager::ProcessHover(struct tag_message* message) {
             return MESSAGE_DISPATCH_CONSUME;
     }
     return MESSAGE_DISPATCH_CONSUME;
+}
+
+void advManager::UpdateMovementPreview() {
+    int cost = -1;
+    int available = 0;
+    if ((gInputManager->m_modifiers & MESSAGE_MODIFIER_ALT) && gForegroundApp
+        && !gAllBlack && !gHeroMoving && gSeedingValid
+        && m_pendingCommand == ADVMGR_COMMAND_MOVE_TO
+        && gCurPlayerData->CurrentHero() != HERO_ID_NONE) {
+        i16 x, y;
+        gMouseManager->MouseCoords(x, y);
+        if (x >= BORDER_EDGE_SIZE && x < BORDER_MIDDLE_END
+            && y >= BORDER_EDGE_SIZE && y < BORDER_MIDDLE_END
+            && x / CELL_PIXELS + m_mapOriginX == m_commandTargetX
+            && y / CELL_PIXELS + m_mapOriginY == m_commandTargetY
+            && MAP_CELL_IN_BOUNDS(m_commandTargetX, m_commandTargetY)) {
+            const auto& target = gSearchArray->m_cells[m_commandTargetX][m_commandTargetY];
+            if (target.visited) {
+                cost = target.distance;
+                available = gGame->GetHero(gCurPlayerData->CurrentHero())->m_remainingMobility;
+            }
+        }
+    }
+    if (cost == m_previewCost && available == m_previewAvailable)
+        return;
+    m_previewCost = cost;
+    m_previewAvailable = available;
+    m_adventureWindow->DrawWindow(0, BOTTOM_VIEW_DRAW_FIRST_WIDGET, BOTTOM_VIEW_DRAW_LAST_WIDGET);
+    gWindowManager->UpdateScreenRegion(BOTTOM_VIEW_PANEL_X, BOTTOM_VIEW_PANEL_Y,
+                                       BOTTOM_VIEW_PANEL_WIDTH, BOTTOM_VIEW_PANEL_HEIGHT);
 }
 
 void advManager::UpdateScreen(b8 cursorUpdate, b8 forceUpdate) {
@@ -2957,6 +2951,10 @@ void advManager::UpdBottomView(b8 forceUpdate, b8 drawWindow, b8 updateScreen) {
         updated = UpdBottomViewHero();
 
 update_bottom_view:
+    if (updated && m_movementPreview) {
+        m_adventureWindow->RemoveWidget(m_movementPreview);
+        m_adventureWindow->AddWidget(m_movementPreview, WINDOW_Z_ORDER_APPEND);
+    }
     if (updated && drawWindow) {
         m_adventureWindow
             ->DrawWindow(0, BOTTOM_VIEW_DRAW_FIRST_WIDGET, BOTTOM_VIEW_DRAW_LAST_WIDGET);
@@ -3478,9 +3476,17 @@ b8 advManager::UpdBottomViewKingdom(void) {
 }
 
 b8 advManager::UpdBottomViewHero(void) {
+    i8 creatureType;
+    i16 slotNumPos;
+    char* countStrData[ARMY_GROUP_SLOT_COUNT];
+    i32 j;
     hero* curHero;
+    i32 y;
+    i32 iconDrawX;
+    i16 nStacks;
     i16 crestFrame;
     char* heroNameCopy;
+    i32 labelDrawX;
 
     if (!gForceUpdate && gCurBottomView == BOTTOM_VIEW_HERO)
         return false;
@@ -3488,6 +3494,7 @@ b8 advManager::UpdBottomViewHero(void) {
     ClearBottomView();
     gCurBottomView = BOTTOM_VIEW_HERO;
     curHero = gGame->GetHero(gCurPlayerData->CurrentHero());
+    nStacks = 0;
 
     m_bottomViewIconWidgets[ADVMGR_BOTTOM_VIEW_BACKGROUND] = new iconWidget(
         BOTTOM_VIEW_PANEL_X,
@@ -3512,7 +3519,7 @@ b8 advManager::UpdBottomViewHero(void) {
                  + curHero->m_heroClass;
     m_bottomViewIconWidgets[ADVMGR_BOTTOM_VIEW_FOREGROUND] = new iconWidget(
         495,
-        392,
+        395,
         25,
         25,
         "smcrest.icn",
@@ -3533,9 +3540,9 @@ b8 advManager::UpdBottomViewHero(void) {
     strcpy(heroNameCopy, curHero->m_shortName);
     heroNameCopy[sizeof(curHero->m_shortName) - 1] = 0;
     m_bottomViewTextWidgets[ADVMGR_BOTTOM_VIEW_TEXT] = new textWidget(
-        480,
-        417,
-        48,
+        475,
+        418,
+        66,
         12,
         heroNameCopy,
         "smalfont.fnt",
@@ -3550,14 +3557,73 @@ b8 advManager::UpdBottomViewHero(void) {
         WINDOW_Z_ORDER_APPEND
     );
 
-    if (m_bottomArmyHero != curHero->m_id) {
-        m_bottomArmyHero = curHero->m_id;
-        m_bottomArmySelected = -1;
+    for (j = 0; j < ARMY_GROUP_SLOT_COUNT; j++) {
+        if (curHero->m_army.m_creatureTypes[j] != CREATURE_NONE)
+            nStacks++;
     }
-    for (int slot = 0; slot < ARMY_GROUP_SLOT_COUNT; ++slot) {
-        auto* item = new AdventureArmySlot(slot);
-        m_bottomViewIconWidgets[slot + ADVMGR_BOTTOM_VIEW_ICON_FIRST] = item;
-        m_adventureWindow->AddWidget(item, WINDOW_Z_ORDER_APPEND);
+    if (nStacks) {
+        slotNumPos = 0;
+        for (j = 0; j < ARMY_GROUP_SLOT_COUNT; j++) {
+            creatureType = curHero->m_army.m_creatureTypes[j];
+            if (creatureType != CREATURE_NONE) {
+                countStrData[slotNumPos] = static_cast<char*>(malloc(BOTTOM_HERO_LABEL_BYTES));
+                sprintf(countStrData[slotNumPos], "%d", curHero->m_army.m_creatureCounts[j]);
+                y = slotNumPos <= 2 ? 38 : 3;
+                if (slotNumPos == 0) {
+                    iconDrawX = nStacks <= 2 ? 77 : 101;
+                } else if (slotNumPos == 1) {
+                    iconDrawX = nStacks == BOTTOM_HERO_TWO_STACKS ? 28 : 52;
+                } else if (slotNumPos == BOTTOM_HERO_SLOT_THIRD) {
+                    iconDrawX = 3;
+                } else if (slotNumPos == BOTTOM_HERO_SLOT_FOURTH) {
+                    iconDrawX = nStacks == BOTTOM_HERO_FOUR_STACKS ? 77 : 101;
+                } else {
+                    iconDrawX = 52;
+                }
+                m_bottomViewIconWidgets[slotNumPos + ADVMGR_BOTTOM_VIEW_ICON_FIRST] =
+                    new iconWidget(
+                        iconDrawX + BOTTOM_VIEW_PANEL_X,
+                        y + BOTTOM_VIEW_PANEL_Y,
+                        BOTTOM_HERO_ICON_WIDTH,
+                        BOTTOM_HERO_ICON_HEIGHT,
+                        "mons32.icn",
+                        creatureType,
+                        ICON_DRAW_NORMAL,
+                        slotNumPos + BOTTOM_HERO_FIRST_ICON_ID,
+                        ICON_WIDGET_DRAW,
+                        1
+                    );
+                if (!m_bottomViewIconWidgets[slotNumPos + ADVMGR_BOTTOM_VIEW_ICON_FIRST])
+                    MemError();
+                if (gMons32Width[creatureType] < 28 && strlen(countStrData[slotNumPos]) <= 2)
+                    labelDrawX = iconDrawX + 30;
+                else
+                    labelDrawX = iconDrawX + gMons32Width[creatureType] + 2;
+                m_bottomViewTextWidgets[slotNumPos + ADVMGR_BOTTOM_VIEW_HERO_TEXT_FIRST] =
+                    new textWidget(
+                        labelDrawX + BOTTOM_VIEW_PANEL_X,
+                        y + 414,
+                        strlen(countStrData[slotNumPos]) * BOTTOM_HERO_CHARACTER_WIDTH,
+                        BOTTOM_HERO_LABEL_HEIGHT,
+                        countStrData[slotNumPos],
+                        "smalfont.fnt",
+                        TEXT_WIDGET_PLAIN_COLOR,
+                        slotNumPos + BOTTOM_HERO_FIRST_TEXT_ID,
+                        WIDGET_KIND_TEXT
+                    );
+                if (!m_bottomViewTextWidgets[slotNumPos + ADVMGR_BOTTOM_VIEW_HERO_TEXT_FIRST])
+                    MemError();
+                m_adventureWindow->AddWidget(
+                    m_bottomViewIconWidgets[slotNumPos + ADVMGR_BOTTOM_VIEW_ICON_FIRST],
+                    WINDOW_Z_ORDER_APPEND
+                );
+                m_adventureWindow->AddWidget(
+                    m_bottomViewTextWidgets[slotNumPos + ADVMGR_BOTTOM_VIEW_HERO_TEXT_FIRST],
+                    WINDOW_Z_ORDER_APPEND
+                );
+                slotNumPos++;
+            }
+        }
     }
     return true;
 }
@@ -6257,7 +6323,6 @@ void advManager::ShowRoute(b32 redraw, i32, b32 updateButton) {
         currentHero->m_destinationY,
         SEARCH_UNLIMITED_COST
     );
-    m_routeCost = -1;
     if (gSearchArray->m_pathLength > 0) {
         memset(m_routeMap, 0, MAP_CELL_GRID_SIZE * MAP_CELL_GRID_SIZE);
         m_routeShown = true;
@@ -6286,7 +6351,6 @@ void advManager::ShowRoute(b32 redraw, i32, b32 updateButton) {
                 reachable = true;
             }
         }
-        m_routeCost = currentHero->m_remainingMobility - remain;
         if (updateButton) {
             flagCommand = reachable ? WIDGET_COMMAND_CLEAR_FLAGS : WIDGET_COMMAND_SET_FLAGS;
             gWindowManager->BroadcastMessage(
@@ -6309,7 +6373,6 @@ void advManager::ShowRoute(b32 redraw, i32, b32 updateButton) {
 
 void advManager::HideRoute(b32 redraw, b32 clearDestination, b32 updateButton) {
     hero* currentHero;
-    m_routeCost = -1;
 
     if (!gThisNetHumanPlayer[gCurPlayer] && (!gDebugLevel || !gShowComputerRoute))
         return;

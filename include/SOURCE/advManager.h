@@ -184,9 +184,10 @@ public:
     class heroWindow* m_adventureWindow;
     i8* m_routeMap;
     b8 m_routeShown;
-    int m_routeCost = -1;
-    int m_bottomArmySelected = -1;
-    int m_bottomArmyHero = -1;
+    class widget* m_movementPreview = nullptr;
+    int m_previewCost = -1;
+    int m_previewAvailable = 0;
+    void UpdateMovementPreview();
     i8 m_currentTerrain;
     char m_unused9b[4];
     class mapCell (*m_mapData)[MAP_CELL_GRID_SIZE];

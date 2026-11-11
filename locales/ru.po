@@ -46,7 +46,7 @@ msgstr "Неизученная земля"
 #: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
-msgstr "Путь: %d ОД   Доступно: %d ОД"
+msgstr "Очки хода: %d\nДо цели: %d\nОстаток: %d"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"

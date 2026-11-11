@@ -222,16 +222,18 @@ i16 combatManager::Open(i16 priority) {
     for (widget* item = m_combatWindow->m_widgetListHead; item; item = item->m_next) {
         if (item->m_id == COMBAT_CONTROL_FIELD && item->m_y + item->m_height > COMBAT_PANEL_TOP)
             item->m_height = COMBAT_PANEL_TOP - item->m_y;
+        if (item->m_id == COMBAT_CONTROL_SKIP_TURN)
+            item->m_x = 528;
         if (item->m_id == COMBAT_STATUS_TEXT_CONTROL) {
             item->m_y = COMBAT_PANEL_TOP + 3;
-            item->m_x = 128;
-            item->m_width = 445;
+            item->m_x = 181;
+            item->m_width = 343;
         }
     }
-    m_combatWindow->AddWidget(new goldButton(0, COMBAT_PANEL_TOP, 48, 18, COMBAT_CONTROL_OPTIONS,
+    m_combatWindow->AddWidget(new goldButton(48, COMBAT_PANEL_TOP, 60, 20, COMBAT_CONTROL_OPTIONS,
                                             localization::Tr("combat.options.button")),
                               WINDOW_Z_ORDER_APPEND);
-    m_combatWindow->AddWidget(new goldButton(582, COMBAT_PANEL_TOP, 58, 18, COMBAT_CONTROL_HISTORY,
+    m_combatWindow->AddWidget(new goldButton(582, COMBAT_PANEL_TOP, 58, 20, COMBAT_CONTROL_HISTORY,
                                             localization::Tr("combat.history.button")),
                               WINDOW_Z_ORDER_APPEND);
     gWindowManager->AddWindow(m_combatWindow, WINDOW_Z_ORDER_APPEND, true);
@@ -1352,22 +1354,11 @@ void combatManager::DrawCombatBorder(void) {
         m_savedBorder,
         LOGICAL_SCREEN_WIDTH * (LOGICAL_SCREEN_HEIGHT - COMBAT_VIEW_HEIGHT)
     );
-    auto* screen = gWindowManager->m_screen;
-    constexpr int upperHeight = COMBAT_VIEW_HEIGHT - COMBAT_PANEL_TOP;
-    const int edge = goldButton::MatchGold(52, 37, 7);
-    const int shadow = goldButton::MatchGold(21, 12, 24);
-    const int face = goldButton::MatchGold(24, 10, 35);
-    const int sheen = goldButton::MatchGold(36, 18, 48);
-    FillBitmapArea(screen, 0, COMBAT_PANEL_TOP, LOGICAL_SCREEN_WIDTH, upperHeight, shadow);
-    FillBitmapArea(screen, 1, COMBAT_PANEL_TOP + 1, LOGICAL_SCREEN_WIDTH - 2, 1, edge);
-    FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 2, LOGICAL_SCREEN_WIDTH - 4, upperHeight - 3, face);
-    FillBitmapArea(screen, 2, COMBAT_PANEL_TOP + 3, LOGICAL_SCREEN_WIDTH - 4, 3, sheen);
+    FillBitmapArea(gWindowManager->m_screen, 108, COMBAT_PANEL_TOP, 420,
+                   LOGICAL_SCREEN_HEIGHT - COMBAT_PANEL_TOP, goldButton::MatchGold(24, 10, 35, true));
     m_combatWindow->DrawWindow(0, COMBAT_STATUS_TEXT_CONTROL, COMBAT_STATUS_TEXT_CONTROL);
     char round[24];
     snprintf(round, sizeof(round), localization::Tr("combat.history.round"), m_combatRound);
-    m_smallFont->DrawBoundedString(round, 51, COMBAT_PANEL_TOP + 4, 75, 12, 1, FONT_ALIGN_CENTER);
-    if (!m_combatHistory.empty())
-        m_smallFont->DrawBoundedString(const_cast<char*>(m_combatHistory.back().c_str()), 58, COMBAT_VIEW_HEIGHT + 4,
-                                      524, 12, 1, FONT_ALIGN_CENTER);
+    m_smallFont->DrawBoundedString(round, 110, COMBAT_PANEL_TOP + 4, 70, 12, 1, FONT_ALIGN_CENTER);
     m_combatWindow->DrawWindow(0, COMBAT_CONTROL_OPTIONS, COMBAT_CONTROL_HISTORY);
 }

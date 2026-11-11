@@ -46,7 +46,7 @@ msgstr "Uncharted territory"
 #: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
-msgstr "Route: %d MP   Available: %d MP"
+msgstr "Move points: %d\nTo target: %d\nRemaining: %d"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"

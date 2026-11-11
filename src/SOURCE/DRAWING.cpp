@@ -247,10 +247,6 @@ void combatManager::ShowCombatHistory() {
     auto* panel = new HistoryPanel();
     panel->page = panel->LastPage();
     window.AddWidget(panel, WINDOW_Z_ORDER_APPEND);
-    const char* labels[] = {"<<", "<", ">", ">>"};
-    for (i16 index = 0; index < 4; ++index)
-        window.AddWidget(new goldButton(16 + index * 62, 310, 54, 25, HistoryFirst + index, labels[index]),
-                         WINDOW_Z_ORDER_APPEND);
     window.AddWidget(new goldButton(300, 310, 124, 25, HistoryOkay,
                                     localization::Tr("combat.options.okay")), WINDOW_Z_ORDER_APPEND);
     gHistoryPanel = panel;
