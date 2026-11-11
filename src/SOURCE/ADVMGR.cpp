@@ -2623,6 +2623,31 @@ static char* QuickInfoObjectName(i32 type) {
     return gEventText[type - 63 - GAME_TOWN_COUNT];
 }
 
+// Large adventure objects may have several graphic cells and only
+// one cell that runs the visit event.
+static const mapCell& VisitEventCell(const mapCell& cell, int x, int y) {
+    if ((cell.m_triggerType & MAP_TRIGGER_EVENT) || cell.m_triggerType == MAP_OBJECT_NONE)
+        return cell;
+    const int trigger = MAP_EVENT_TRIGGER(MAP_TRIGGER_OBJECT(cell.m_triggerType));
+    const int tileset = cell.m_objectTileset & MAP_CELL_TILESET_MASK;
+    for (int distance = 1; distance <= 3; ++distance) {
+        for (int dy = -distance; dy <= distance; ++dy) {
+            const int dx = distance - abs(dy);
+            for (int side = -1; side <= 1; side += 2) {
+                const int nearX = x + side * dx;
+                const int nearY = y + dy;
+                if (!MAP_CELL_IN_BOUNDS(nearX, nearY))
+                    continue;
+                const mapCell& neighbor = gGame->m_map[nearX][nearY];
+                if (neighbor.m_triggerType == trigger
+                    && (neighbor.m_objectTileset & MAP_CELL_TILESET_MASK) == tileset)
+                    return neighbor;
+            }
+        }
+    }
+    return cell;
+}
+
 // Use the same state as each object's event handler, including when a
 // temporary bonus expires or a weekly reward is replenished.
 static std::optional<bool> ObjectVisitStatus(const mapCell& cell, const hero* selectedHero) {
@@ -2764,7 +2789,8 @@ void advManager::QuickInfo(i16 cellX, i16 cellY) {
             }
             const int heroId = gCurPlayerData->CurrentHero();
             const hero* selectedHero = heroId == HERO_ID_NONE ? nullptr : gGame->GetHero(heroId);
-            if (const auto visited = ObjectVisitStatus(*currentCell, selectedHero)) {
+            const mapCell& visitCell = VisitEventCell(*currentCell, m_mapOriginX + cellX, m_mapOriginY + cellY);
+            if (const auto visited = ObjectVisitStatus(visitCell, selectedHero)) {
                 const size_t used = strlen(gText);
                 if (used < sizeof(savedTextLocal))
                     snprintf(gText + used, sizeof(savedTextLocal) - used, "\n%s",

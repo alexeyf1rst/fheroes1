@@ -151,6 +151,7 @@ i16 townManager::Open(i16 priority) {
     m_townWindow = new heroWindow(0, 0, "townwind.bin");
     if (m_townWindow == NULL)
         MemError();
+    m_townWindow->SetConfirmButton(TOWN_CLOSE_CONTROL, true);
     UpdateConstructionTitle();
     SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, TOWN_STATUS_TEXT_CONTROL);
     strcpy(gText, localization::Tr("town.screen.title"));
