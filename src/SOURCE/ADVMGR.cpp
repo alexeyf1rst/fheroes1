@@ -1417,10 +1417,8 @@ i32 advManager::ProcessDeSelect(
             if (currentHero->m_army.m_creatureTypes[slot] != CREATURE_NONE)
                 m_bottomArmySelected = slot;
         } else {
-            std::swap(currentHero->m_army.m_creatureTypes[slot],
-                      currentHero->m_army.m_creatureTypes[m_bottomArmySelected]);
-            std::swap(currentHero->m_army.m_creatureCounts[slot],
-                      currentHero->m_army.m_creatureCounts[m_bottomArmySelected]);
+            currentHero->m_army.Swap(static_cast<i8>(slot), &currentHero->m_army,
+                                    static_cast<i8>(m_bottomArmySelected));
             m_bottomArmySelected = -1;
         }
         UpdBottomView(true, true, true);
