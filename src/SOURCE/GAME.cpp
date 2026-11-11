@@ -2034,7 +2034,7 @@ void game::UpdateSpellWidgets(void) {
             m_viewSpellsWindow->BroadcastMessage(message);
             sprintf(
                 gText,
-                "%s[%d]",
+                "%s [%d]",
                 gSpellNames[m_viewSpellsHero->m_spells[m_viewSpellsTop + i]],
                 m_viewSpellsHero->m_spellCharges[m_viewSpellsTop + i]
             );
