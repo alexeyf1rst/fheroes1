@@ -135,7 +135,7 @@ public:
             monsters->DrawToBuffer(x + 4, y + 1, creature, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
             char count[12];
             snprintf(count, sizeof(count), "%d", army.m_creatureCounts[slot]);
-            m_font->DrawBoundedString(count, x + 2, y + 23, 40, 10, 1, FONT_ALIGN_RIGHT);
+            m_font->DrawBoundedString(count, x + 2, y + 21, 40, 12, 1, FONT_ALIGN_RIGHT);
         }
     }
 };
@@ -3514,7 +3514,7 @@ b8 advManager::UpdBottomViewHero(void) {
                  + curHero->m_heroClass;
     m_bottomViewIconWidgets[ADVMGR_BOTTOM_VIEW_FOREGROUND] = new iconWidget(
         495,
-        394,
+        392,
         25,
         25,
         "smcrest.icn",
@@ -3536,9 +3536,9 @@ b8 advManager::UpdBottomViewHero(void) {
     heroNameCopy[sizeof(curHero->m_shortName) - 1] = 0;
     m_bottomViewTextWidgets[ADVMGR_BOTTOM_VIEW_TEXT] = new textWidget(
         480,
-        419,
+        417,
         48,
-        10,
+        12,
         heroNameCopy,
         "smalfont.fnt",
         TEXT_WIDGET_PLAIN_COLOR,
