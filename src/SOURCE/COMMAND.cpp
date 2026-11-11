@@ -798,10 +798,11 @@ void combatManager::ShowBattleOptions() {
     heroWindow window(161, 139, 318, 182, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
     window.AddWidget(new BattleOptionsPanel(), WINDOW_Z_ORDER_APPEND);
     for (i16 index = 0; index < 5; ++index)
-        window.AddWidget(new goldButton(13 + (index % 2) * 149, 44 + (index / 2) * 33,
-                                        143, 27, OptionSpeed + index, ""), WINDOW_Z_ORDER_APPEND);
-    window.AddWidget(new goldButton(119, 150, 80, 22, OptionOkay,
-                                    localization::Tr("combat.options.okay")), WINDOW_Z_ORDER_APPEND);
+        window.AddWidget(new battleGoldButton(13 + (index % 2) * 149, 44 + (index / 2) * 33,
+                                        143, 27, OptionSpeed + index, "", *m_combatWindow, COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new battleGoldButton(119, 150, 80, 22, OptionOkay,
+                                          localization::Tr("combat.options.okay"), *m_combatWindow,
+                                          COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
     RefreshBattleOptions(window);
     gBattleOptions = &window;
     gWindowManager->DoDialog(&window, BattleOptionsHandler, false);

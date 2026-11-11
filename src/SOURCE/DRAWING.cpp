@@ -164,7 +164,7 @@ public:
         const int x = m_owner->m_posX, y = m_owner->m_posY;
         auto* screen = gWindowManager->m_screen;
         FillBitmapArea(screen, x, y, m_width, m_height, goldButton::MatchGold(52, 37, 7));
-        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, goldButton::MatchGold(24, 10, 35));
+        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, goldButton::MatchGold(12, 11, 9, true));
         char title[100];
         snprintf(title, sizeof(title), localization::Tr("combat.history.page"),
                  static_cast<int>(page + 1), static_cast<int>(LastPage() + 1));
@@ -247,8 +247,9 @@ void combatManager::ShowCombatHistory() {
     auto* panel = new HistoryPanel();
     panel->page = panel->LastPage();
     window.AddWidget(panel, WINDOW_Z_ORDER_APPEND);
-    window.AddWidget(new goldButton(300, 310, 124, 25, HistoryOkay,
-                                    localization::Tr("combat.options.okay")), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new battleGoldButton(300, 310, 124, 25, HistoryOkay,
+                                          localization::Tr("combat.options.okay"), *m_combatWindow,
+                                          COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
     gHistoryPanel = panel;
     gWindowManager->DoDialog(&window, HistoryHandler, false);
     gHistoryPanel = nullptr;

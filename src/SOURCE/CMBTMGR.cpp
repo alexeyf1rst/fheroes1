@@ -39,6 +39,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+namespace {
+class BattleLogStrip : public textWidget {
+public:
+    BattleLogStrip() : textWidget(108, COMBAT_PANEL_TOP, 484, 20, strdup(""), "smalfont.fnt",
+                                  TEXT_WIDGET_PLAIN_COLOR, COMBAT_CONTROL_HISTORY, WIDGET_KIND_TEXT) {}
+    void Draw() override {}
+    i16 Main(tag_message& message) override {
+        if (message.type == MESSAGE_RIGHT_BUTTON_DOWN || message.type == MESSAGE_RIGHT_BUTTON_UP)
+            return MESSAGE_DISPATCH_CONTINUE;
+        return textWidget::Main(message);
+    }
+};
+}
+
 b32 gInHighMoraleBonus = false;
 #define gSavedSeed gSeed
 i32 gSavedSeed = 1;
@@ -222,20 +236,16 @@ i16 combatManager::Open(i16 priority) {
     for (widget* item = m_combatWindow->m_widgetListHead; item; item = item->m_next) {
         if (item->m_id == COMBAT_CONTROL_FIELD && item->m_y + item->m_height > COMBAT_PANEL_TOP)
             item->m_height = COMBAT_PANEL_TOP - item->m_y;
-        if (item->m_id == COMBAT_CONTROL_SKIP_TURN)
-            item->m_x = 528;
         if (item->m_id == COMBAT_STATUS_TEXT_CONTROL) {
             item->m_y = COMBAT_PANEL_TOP + 3;
             item->m_x = 181;
-            item->m_width = 343;
+            item->m_width = 405;
         }
     }
-    m_combatWindow->AddWidget(new goldButton(48, COMBAT_PANEL_TOP, 60, 20, COMBAT_CONTROL_OPTIONS,
-                                            localization::Tr("combat.options.button")),
-                              WINDOW_Z_ORDER_APPEND);
-    m_combatWindow->AddWidget(new goldButton(582, COMBAT_PANEL_TOP, 58, 20, COMBAT_CONTROL_HISTORY,
-                                            localization::Tr("combat.history.button")),
-                              WINDOW_Z_ORDER_APPEND);
+    m_combatWindow->AddWidget(new battleGoldButton(48, COMBAT_PANEL_TOP, 60, 20, COMBAT_CONTROL_OPTIONS,
+                                                   localization::Tr("combat.options.button"), *m_combatWindow,
+                                                   COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
+    m_combatWindow->AddWidget(new BattleLogStrip(), WINDOW_Z_ORDER_APPEND);
     gWindowManager->AddWindow(m_combatWindow, WINDOW_Z_ORDER_APPEND, true);
     m_smallFont = gResourceManager->GetFont("smalfont.fnt");
     LoadIcons();
@@ -1354,8 +1364,10 @@ void combatManager::DrawCombatBorder(void) {
         m_savedBorder,
         LOGICAL_SCREEN_WIDTH * (LOGICAL_SCREEN_HEIGHT - COMBAT_VIEW_HEIGHT)
     );
-    FillBitmapArea(gWindowManager->m_screen, 108, COMBAT_PANEL_TOP, 420,
-                   LOGICAL_SCREEN_HEIGHT - COMBAT_PANEL_TOP, goldButton::MatchGold(24, 10, 35, true));
+    auto* screen = gWindowManager->m_screen;
+    FillBitmapArea(screen, 108, COMBAT_PANEL_TOP, 484, 20, goldButton::MatchGold(12, 11, 9, true));
+    FillBitmapArea(screen, 108, COMBAT_PANEL_TOP, 484, 1, goldButton::MatchGold(41, 31, 12, true));
+    FillBitmapArea(screen, 108, COMBAT_PANEL_TOP + 19, 484, 1, goldButton::MatchGold(24, 18, 9, true));
     m_combatWindow->DrawWindow(0, COMBAT_STATUS_TEXT_CONTROL, COMBAT_STATUS_TEXT_CONTROL);
     char round[24];
     snprintf(round, sizeof(round), localization::Tr("combat.history.round"), m_combatRound);

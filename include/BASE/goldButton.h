@@ -2,6 +2,13 @@
 #define HOMM1_BASE_GOLDBUTTON_H
 
 #include <BASE/bmap2.h>
+#include <BASE/bitmap.h>
+#include <BASE/button.h>
+#include <BASE/icon.h>
+#include <BASE/Icon2b.h>
+
+#include <algorithm>
+#include <vector>
 #include <BASE/heroWindow.h>
 #include <BASE/font.h>
 #include <BASE/heroWindowManager.h>
@@ -76,6 +83,72 @@ public:
 
 private:
     Mark m_mark;
+};
+
+// Keep the original button's side bevels and extend its unlettered right margin.
+class battleGoldButton : public textWidget {
+public:
+    battleGoldButton(i16 x, i16 y, i16 width, i16 height, i16 id, const char* label,
+                     const heroWindow& combat, i16 sourceId)
+        : textWidget(x, y, width, height, strdup(label), "smalfont.fnt",
+                     TEXT_WIDGET_PLAIN_COLOR, id, WIDGET_KIND_TEXT) {
+        for (auto* item = combat.m_widgetListHead; item; item = item->m_next) {
+            if (item->m_id != sourceId)
+                continue;
+            if (const auto* original = dynamic_cast<const button*>(item)) {
+                LoadFace(*original->m_icon, original->m_normalFrame, m_normal);
+                LoadFace(*original->m_icon, original->m_pressedFrame, m_pressed);
+            }
+            break;
+        }
+    }
+
+    void Draw() override {
+        auto* screen = gWindowManager->m_screen;
+        const int x = m_owner->m_posX + m_x;
+        const int y = m_owner->m_posY + m_y;
+        const bool pressed = (m_flags & WIDGET_FLAG_SELECTED) != 0;
+        const auto& face = pressed && !m_pressed.empty() ? m_pressed : m_normal;
+        if (face.empty()) {
+            FillBitmapArea(screen, x, y, m_width, m_height, goldButton::MatchGold(41, 26, 5, true));
+        } else {
+            for (int row = 0; row < m_height; ++row)
+                for (int col = 0; col < m_width; ++col) {
+                    const auto pixel = face[row * m_width + col];
+                    if (pixel != 0)
+                        screen->m_pixels[(y + row) * screen->m_width + x + col] = pixel;
+                }
+        }
+        const int top = y + (m_height - m_font->m_height) / 2 + pressed;
+        const int dark = goldButton::MatchGold(13, 8, 2, true);
+        const int light = goldButton::MatchGold(63, 55, 25, true);
+        m_font->DrawBoundedString(m_text, x + 4, top + 1, m_width - 8, m_font->m_height, dark, FONT_ALIGN_CENTER);
+        m_font->DrawBoundedString(m_text, x + 3, top, m_width - 8, m_font->m_height, light, FONT_ALIGN_CENTER);
+    }
+
+private:
+    void LoadFace(icon& source, int index, std::vector<u8>& face) {
+        const auto& frame = source.m_frames[index];
+        constexpr int edge = 5;
+        if (frame.w <= 2 * edge || frame.h <= 2 * edge)
+            return;
+        bitmap sprite(BITMAP_TYPE_MEMORY, frame.w, frame.h);
+        std::memset(sprite.m_pixels, 0, frame.w * frame.h);
+        IconToBitmap(&source, &sprite, -frame.x, -frame.y, index, ICON_DRAW_OFFSET_FULL);
+        face.resize(m_width * m_height);
+        for (int y = 0; y < m_height; ++y) {
+            const int row = y < edge ? y : y >= m_height - edge ? frame.h - (m_height - y)
+                : edge + (y - edge) * (frame.h - 2 * edge) / (m_height - 2 * edge);
+            for (int x = 0; x < m_width; ++x) {
+                const int col = x < edge ? x : x >= m_width - edge ? frame.w - (m_width - x)
+                    : frame.w - edge - 1;
+                face[y * m_width + x] = sprite.m_pixels[row * frame.w + col];
+            }
+        }
+    }
+
+    std::vector<u8> m_normal;
+    std::vector<u8> m_pressed;
 };
 
 #endif

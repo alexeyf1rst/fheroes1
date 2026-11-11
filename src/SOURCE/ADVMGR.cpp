@@ -117,8 +117,9 @@ public:
         char label[180];
         snprintf(label, sizeof(label), localization::Tr("adventure.route.cost"),
                  available * scale, cost * scale, std::max(0, available - cost) * scale);
-        FillBitmapArea(gWindowManager->m_screen, m_x, m_y, m_width, m_height,
-                       goldButton::MatchGold(24, 10, 35, true));
+        auto* stone = gResourceManager->GetIcon("stonback.icn");
+        stone->DrawToBuffer(m_x, m_y, 0, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
+        gResourceManager->Dispose(stone);
         m_font->DrawBoundedString(label, m_x + 4, m_y + 12, m_width - 8, m_height - 12, 1, FONT_ALIGN_CENTER);
     }
 };
