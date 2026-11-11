@@ -152,9 +152,9 @@ i16 CombatSpecialHandler(struct tag_message& message) {
                     case SPELL_BOOK_ENTRY_FIRST + 5:
                     case SPELL_BOOK_ENTRY_FIRST + 6:
                     case SPELL_BOOK_ENTRY_LAST: {
-                        const i16 index = gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST;
-                        if (index <= gGame->m_spellLast) {
-                            const i8 spell = gGame->m_viewSpellsHero->m_spells[index];
+                        const i16 slot = gGame->SpellBookSlot(message.id);
+                        if (slot >= 0) {
+                            const i8 spell = gGame->m_viewSpellsHero->m_spells[slot];
                             if (spell == SPELL_ARMAGEDDON || spell == SPELL_STORM) {
                                 gCombatManager->SpellMessage(spell, ARMY_HEX_INVALID);
                                 break;

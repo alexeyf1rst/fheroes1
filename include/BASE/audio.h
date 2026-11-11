@@ -28,6 +28,7 @@ bool MusicSuspended();
 class sample;
 void PlaySample(sample* resource);
 sample* LoadPlaySample(char* name);
+sample* LoadPlaySample(char* name, int speed);
 void StopSample(sample* resource);
 void WaitSample(sample* resource);
 void UpdateSampleVolume(sample* resource);

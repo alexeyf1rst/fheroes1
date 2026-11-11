@@ -181,6 +181,7 @@ void combatManager::SetupCombat(
 }
 
 i16 combatManager::Open(i16 priority) {
+    constexpr int introSpeed = 2;
     i32 song;
     class sample* sample;
     i32 musicList[4];
@@ -203,7 +204,7 @@ i16 combatManager::Open(i16 priority) {
     StopMusic();
     m_backgroundBuffer = new bitmap(BITMAP_TYPE_NONE, LOGICAL_SCREEN_WIDTH, COMBAT_VIEW_HEIGHT);
     m_backgroundDrawn = false;
-    sample = m_autoResolveAtStart ? nullptr : LoadPlaySample("PREBATTL.82M");
+    sample = m_autoResolveAtStart ? nullptr : LoadPlaySample("PREBATTL.82M", introSpeed);
     gNextAction = ACTION_NONE;
     m_replayRequested = false;
     m_autoCombatSides[COMBAT_DEFENDER_SIDE] = m_autoCombatSides[COMBAT_ATTACKER_SIDE] = false;
@@ -219,7 +220,7 @@ i16 combatManager::Open(i16 priority) {
         BlitBitmap(gWindowManager->m_screen, 0, 0, LOGICAL_SCREEN_WIDTH, LOGICAL_SCREEN_HEIGHT,
                    m_autoResolveBackground, 0, 0);
     }
-    gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
+    gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT * introSpeed, NULL);
     m_sideRetreated[COMBAT_DEFENDER_SIDE] = false;
     m_sideRetreated[COMBAT_ATTACKER_SIDE] = false;
     m_combatResult = COMBAT_RESULT_PENDING;
@@ -270,7 +271,7 @@ i16 combatManager::Open(i16 priority) {
     KBChangeMenu(gCombatMenu);
     CombatMessage("", true);
     if (!m_autoResolveAtStart)
-        gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, m_combatPalette);
+        gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT * introSpeed, m_combatPalette);
     gLimitedCombatUpdatePalette = true;
     gMouseManager->NewUpdate(true);
     gMouseManager->WarpPointer(m_hexCells[m_selectorHex].m_x, m_hexCells[m_selectorHex].m_y - 50);

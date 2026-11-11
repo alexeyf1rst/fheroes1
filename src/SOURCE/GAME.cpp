@@ -1950,16 +1950,15 @@ i8 game::ViewSpells(
     tag_message msg;
 
     m_viewSpell = SPELL_NONE;
-    if (!spellHero->GetNumSpells(spellType)) {
+    m_viewSpellsHero = spellHero;
+    SetupSpellRange(spellType == SPELL_TYPE_ALL ? SPELL_TYPE_ADVENTURE : spellType);
+    if (spellType == SPELL_TYPE_ALL && m_viewSpellCount == 0)
+        SetupSpellRange(SPELL_TYPE_COMBAT);
+    if (m_viewSpellCount == 0) {
         NormalDialog(localization::Tr("spell.none.available"), NORMAL_DIALOG_TYPE_OK);
     } else {
         m_viewSpellsCallback = callback;
         m_viewSpellsReadOnly = readOnly;
-        m_viewSpellsHero = spellHero;
-        const i8 initialType = spellType == SPELL_TYPE_ALL && !spellHero->GetNumSpells(SPELL_TYPE_ADVENTURE)
-                                   ? SPELL_TYPE_COMBAT : spellType;
-        SetupSpellRange(initialType);
-        m_viewSpellsTop = m_spellFirst;
         if (spellType == SPELL_TYPE_ALL || spellType == SPELL_TYPE_COMBAT) {
             m_viewSpellsWindow = new heroWindow(146, 145, "spellwin.bin");
             if (!m_viewSpellsWindow)
@@ -1989,18 +1988,25 @@ i8 game::ViewSpells(
 }
 
 void game::SetupSpellRange(i16 spellType) {
-    switch (spellType) {
-        case SPELL_TYPE_COMBAT:
-            m_spellFirst = 0;
-            m_spellLast = m_spellFirst + HERO_COMBAT_SPELL_SLOT_COUNT - 1;
-            break;
-        default:
-            m_spellFirst = HERO_COMBAT_SPELL_SLOT_COUNT;
-            m_spellLast = m_spellFirst + HERO_SPELL_SLOT_COUNT - HERO_COMBAT_SPELL_SLOT_COUNT - 1;
-            break;
+    const bool combat = spellType == SPELL_TYPE_COMBAT;
+    const int first = combat ? 0 : HERO_COMBAT_SPELL_SLOT_COUNT;
+    const int end = combat ? HERO_COMBAT_SPELL_SLOT_COUNT : HERO_SPELL_SLOT_COUNT;
+    m_viewSpellsTop = 0;
+    m_viewSpellCount = 0;
+    for (int slot = first; slot < end; ++slot) {
+        const int spell = m_viewSpellsHero->m_spells[slot];
+        const bool valid = combat ? spell >= SPELL_FIRST && spell < SPELL_ADVENTURE_FIRST
+                                  : spell >= SPELL_ADVENTURE_FIRST && spell < SPELL_COUNT;
+        if (valid && m_viewSpellsHero->m_spellCharges[slot] > 0)
+            m_viewSpellSlots[m_viewSpellCount++] = slot;
     }
-    while (m_spellLast >= m_spellFirst && m_viewSpellsHero->m_spellCharges[m_spellLast] < 1)
-        m_spellLast--;
+}
+
+i16 game::SpellBookSlot(i16 entry) const {
+    const int index = m_viewSpellsTop + entry - SPELL_BOOK_ENTRY_FIRST;
+    if (entry < SPELL_BOOK_ENTRY_FIRST || entry > SPELL_BOOK_ENTRY_LAST || index >= m_viewSpellCount)
+        return -1;
+    return m_viewSpellSlots[index];
 }
 
 void game::UpdateSpellWidgets(void) {
@@ -2009,7 +2015,8 @@ void game::UpdateSpellWidgets(void) {
 
     message.type = MESSAGE_WIDGET;
     for (i = 0; i < SPELL_BOOK_PAGE_SIZE; i++) {
-        if (m_viewSpellsTop + i > m_spellLast) {
+        const i16 slot = SpellBookSlot(SPELL_BOOK_ENTRY_FIRST + i);
+        if (slot < 0) {
             message.command = WIDGET_COMMAND_CLEAR_FLAGS;
             message.id = i + SPELL_BOOK_ENTRY_FIRST;
             message.value = WIDGET_FLAG_ENABLED | WIDGET_FLAG_DRAW;
@@ -2030,13 +2037,13 @@ void game::UpdateSpellWidgets(void) {
             }
             message.command = WIDGET_COMMAND_SET_FRAME;
             message.value =
-                m_viewSpellsHero->m_spells[m_viewSpellsTop + i];
+                m_viewSpellsHero->m_spells[slot];
             m_viewSpellsWindow->BroadcastMessage(message);
             sprintf(
                 gText,
                 "%s [%d]",
-                gSpellNames[m_viewSpellsHero->m_spells[m_viewSpellsTop + i]],
-                m_viewSpellsHero->m_spellCharges[m_viewSpellsTop + i]
+                gSpellNames[m_viewSpellsHero->m_spells[slot]],
+                m_viewSpellsHero->m_spellCharges[slot]
             );
             message.command = WIDGET_COMMAND_SET_TEXT;
             message.id = i + SPELL_BOOK_LABEL_FIRST;
@@ -2047,7 +2054,6 @@ void game::UpdateSpellWidgets(void) {
 }
 
 i16 ViewSpellsHandler(tag_message& message) {
-    i32 spell;
     if (message.type == MESSAGE_KEY_DOWN && message.keyCode == INPUT_SCAN_ESCAPE) {
         FINISH_DIALOG_MESSAGE(message);
         return MESSAGE_DISPATCH_FORWARD;
@@ -2068,12 +2074,11 @@ i16 ViewSpellsHandler(tag_message& message) {
                         case SPELL_BOOK_ENTRY_FIRST + 4:
                         case SPELL_BOOK_ENTRY_FIRST + 5:
                         case SPELL_BOOK_ENTRY_FIRST + 6:
-                        case SPELL_BOOK_ENTRY_LAST:
-                            if (gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST > gGame->m_spellLast)
+                        case SPELL_BOOK_ENTRY_LAST: {
+                            const i16 slot = gGame->SpellBookSlot(message.id);
+                            if (slot < 0)
                                 break;
-                            spell = gGame->m_viewSpellsHero->m_spells
-                                        [gGame->m_viewSpellsTop
-                                         + (message.id - SPELL_BOOK_ENTRY_FIRST)];
+                            const i8 spell = gGame->m_viewSpellsHero->m_spells[slot];
                             NormalDialog(
                                 gSpellDesc[spell],
                                 NORMAL_DIALOG_TYPE_QUICK_VIEW,
@@ -2083,6 +2088,7 @@ i16 ViewSpellsHandler(tag_message& message) {
                                 spell
                             );
                             break;
+                        }
                         case SPELL_BOOK_PREVIOUS_PAGE:
                             NormalDialog(
                                 gSpellHelp[SPELL_HELP_PREVIOUS_PAGE],
@@ -2117,13 +2123,12 @@ i16 ViewSpellsHandler(tag_message& message) {
                         case SPELL_BOOK_ENTRY_FIRST + 4:
                         case SPELL_BOOK_ENTRY_FIRST + 5:
                         case SPELL_BOOK_ENTRY_FIRST + 6:
-                        case SPELL_BOOK_ENTRY_LAST:
-                            if (gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST > gGame->m_spellLast)
+                        case SPELL_BOOK_ENTRY_LAST: {
+                            const i16 slot = gGame->SpellBookSlot(message.id);
+                            if (slot < 0)
                                 break;
+                            const i8 spell = gGame->m_viewSpellsHero->m_spells[slot];
                             if (gGame->m_viewSpellsReadOnly) {
-                                spell = gGame->m_viewSpellsHero->m_spells
-                                            [gGame->m_viewSpellsTop
-                                             + (message.id - SPELL_BOOK_ENTRY_FIRST)];
                                 NormalDialog(
                                     gSpellDesc[spell],
                                     NORMAL_DIALOG_TYPE_OK,
@@ -2134,37 +2139,31 @@ i16 ViewSpellsHandler(tag_message& message) {
                                 );
                                 return MESSAGE_DISPATCH_CONSUME;
                             }
-                            gGame->m_viewSpell = gGame->m_viewSpellsHero->m_spells
-                                                     [gGame->m_viewSpellsTop
-                                                      + (message.id - SPELL_BOOK_ENTRY_FIRST)];
+                            gGame->m_viewSpell = spell;
                             message.command = WIDGET_COMMAND_DIALOG_SELECT;
                             return MESSAGE_DISPATCH_FORWARD;
+                        }
                         case SPELL_BOOK_PREVIOUS_PAGE:
-                            if (gGame->m_viewSpellsTop == gGame->m_spellFirst)
+                            if (gGame->m_viewSpellsTop == 0)
                                 break;
                             gGame->m_viewSpellsTop -= SPELL_BOOK_PAGE_SIZE;
-                            if (gGame->m_viewSpellsTop < gGame->m_spellFirst)
-                                gGame->m_viewSpellsTop = gGame->m_spellFirst;
                             gGame->UpdateSpellWidgets();
                             gGame->m_viewSpellsWindow->MoveWindow(0, 0);
                             break;
                         case SPELL_BOOK_NEXT_PAGE:
-                            if (gGame->m_viewSpellsTop + SPELL_BOOK_PAGE_SIZE <= gGame->m_spellLast)
-                                gGame->m_viewSpellsTop += SPELL_BOOK_PAGE_SIZE;
-                            if (gGame->m_viewSpellsTop < gGame->m_spellFirst)
-                                gGame->m_viewSpellsTop = gGame->m_spellFirst;
+                            if (gGame->m_viewSpellsTop + SPELL_BOOK_PAGE_SIZE >= gGame->m_viewSpellCount)
+                                break;
+                            gGame->m_viewSpellsTop += SPELL_BOOK_PAGE_SIZE;
                             gGame->UpdateSpellWidgets();
                             gGame->m_viewSpellsWindow->MoveWindow(0, 0);
                             break;
                         case SPELL_BOOK_ADVENTURE_SPELLS:
                             gGame->SetupSpellRange(SPELL_TYPE_ADVENTURE);
-                            gGame->m_viewSpellsTop = gGame->m_spellFirst;
                             gGame->UpdateSpellWidgets();
                             gGame->m_viewSpellsWindow->MoveWindow(0, 0);
                             break;
                         case SPELL_BOOK_COMBAT_SPELLS:
                             gGame->SetupSpellRange(SPELL_TYPE_COMBAT);
-                            gGame->m_viewSpellsTop = gGame->m_spellFirst;
                             gGame->UpdateSpellWidgets();
                             gGame->m_viewSpellsWindow->MoveWindow(0, 0);
                             break;

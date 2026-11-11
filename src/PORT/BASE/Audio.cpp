@@ -220,7 +220,7 @@ bool MusicSuspended() {
 
 // ---------------------------------------------------------------- samples
 
-void PlaySample(sample* resource) {
+static void PlaySampleAtSpeed(sample* resource, int speed) {
     if (!gAudioReady || SamplesSuspended() || resource == NULL)
         return;
     auto found = gVoices.find(resource);
@@ -234,16 +234,24 @@ void PlaySample(sample* resource) {
     if (data.data == NULL || data.size <= 0)
         return;
     platform::Voice voice = platform::PlaySample(
-        data.data, static_cast<size_t>(data.size), data.sampleRate, data.stereo != 0 ? 2 : 1,
+        data.data, static_cast<size_t>(data.size), data.sampleRate * speed, data.stereo != 0 ? 2 : 1,
         data.sampleFormat != 0 ? platform::SAMPLE_S16 : platform::SAMPLE_U8,
         ScaleSampleVolume(data.volume), data.repeat != 0);
     if (voice != platform::NO_VOICE)
         gVoices[resource] = voice;
 }
 
+void PlaySample(sample* resource) {
+    PlaySampleAtSpeed(resource, 1);
+}
+
 sample* LoadPlaySample(char* name) {
+    return LoadPlaySample(name, 1);
+}
+
+sample* LoadPlaySample(char* name, int speed) {
     sample* resource = gResourceManager->GetSample(name);
-    PlaySample(resource);
+    PlaySampleAtSpeed(resource, speed);
     return resource;
 }
 

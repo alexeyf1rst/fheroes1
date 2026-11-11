@@ -259,8 +259,8 @@ public:
     i16 m_dialogAnimationCounter;
     class heroWindow* m_viewSpellsWindow;
     class hero* m_viewSpellsHero;
-    i16 m_spellFirst;
-    i16 m_spellLast;
+    i16 m_viewSpellCount;
+    i8 m_viewSpellSlots[HERO_SPELL_SLOT_COUNT];
     i16 m_viewSpell;
     i16 m_viewSpellsTop;
     i16 (*m_viewSpellsCallback)(struct tag_message&);
@@ -318,6 +318,7 @@ public:
         b8 readOnly
     );
     void SetupSpellRange(i16 spellType);
+    i16 SpellBookSlot(i16 entry) const;
     void UpdateSpellWidgets(void);
     void ViewArmy(
         i16 x,
