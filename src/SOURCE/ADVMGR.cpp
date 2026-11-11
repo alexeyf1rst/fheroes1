@@ -53,7 +53,8 @@
 #include <SOURCE/town.h>
 #include <SOURCE/wingraph.h>
 
-#include <algorithm>
+#include <iterator>
+#include <optional>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -993,20 +994,6 @@ i16 advManager::Main(struct tag_message& message) {
                         break;
                     case INPUT_SCAN_H:
                         SetHeroContext(gCurPlayerData->NextHero(0), false);
-                        break;
-                    case INPUT_SCAN_SPACE:
-                        if (gCurPlayerData->CurrentTown() != GAME_TOWN_NONE) {
-                            m_pendingCommand = ADVMGR_COMMAND_TOWN_VIEW;
-                            DoAdvCommand();
-                        } else if (curHero) {
-                            const u8 location = m_heroMobilized
-                                ? GetCell(m_mapOriginX + m_cursorMapX, m_mapOriginY + m_cursorMapY)->m_triggerType
-                                : curHero->m_locationType;
-                            if (location == MAP_EVENT_TRIGGER(MAP_OBJECT_TOWN)) {
-                                m_pendingCommand = ADVMGR_COMMAND_OCCUPIED_TOWN_VIEW;
-                                DoAdvCommand();
-                            }
-                        }
                         break;
                     case INPUT_SCAN_ENTER:
                         if (gCurPlayerData->CurrentTown() != GAME_TOWN_NONE) {
@@ -2636,6 +2623,50 @@ static char* QuickInfoObjectName(i32 type) {
     return gEventText[type - 63 - GAME_TOWN_COUNT];
 }
 
+// Use the same state as each object's event handler, including when a
+// temporary bonus expires or a weekly reward is replenished.
+static std::optional<bool> ObjectVisitStatus(const mapCell& cell, const hero* selectedHero) {
+    if (!(cell.m_triggerType & MAP_TRIGGER_EVENT))
+        return std::nullopt;
+    switch (MAP_TRIGGER_OBJECT(cell.m_triggerType)) {
+        case MAP_OBJECT_WINDMILL:
+            return cell.m_objectMetadata > WINDMILL_RESOURCE_LAST;
+        case MAP_OBJECT_WATERWHEEL:
+            return cell.m_objectMetadata == MAP_EVENT_DATA_EMPTY;
+        case MAP_OBJECT_OBELISK:
+            if (cell.m_objectMetadata > 0 && cell.m_objectMetadata <= sizeof(gGame->m_obeliskVisitors))
+                return (gGame->m_obeliskVisitors[cell.m_objectMetadata - 1] & gCurPlayerBit) != 0;
+            return std::nullopt;
+        default:
+            break;
+    }
+    if (!selectedHero)
+        return std::nullopt;
+    switch (MAP_TRIGGER_OBJECT(cell.m_triggerType)) {
+        case MAP_OBJECT_BUOY:
+            return (selectedHero->m_eventFlags & HERO_EVENT_BUOY) != 0;
+        case MAP_OBJECT_FAERIE_RING:
+            return (selectedHero->m_eventFlags & HERO_EVENT_FAERIE_RING) != 0;
+        case MAP_OBJECT_FOUNTAIN:
+            return (selectedHero->m_eventFlags & HERO_EVENT_FOUNTAIN) != 0;
+        case MAP_OBJECT_OASIS:
+            return (selectedHero->m_eventFlags & HERO_EVENT_OASIS) != 0;
+        case MAP_OBJECT_STATUE:
+            return (selectedHero->m_eventFlags & HERO_EVENT_STATUE) != 0;
+        case MAP_OBJECT_GAZEBO:
+            return (selectedHero->m_visitedSites & (1u << (cell.m_objectMetadata & 31))) != 0;
+        case MAP_OBJECT_SPELL_SHRINE: {
+            const int spell = cell.m_objectMetadata - MAP_EVENT_SPELL_OFFSET;
+            if (spell < SPELL_FIRST || spell >= SPELL_COUNT)
+                return std::nullopt;
+            return std::find(std::begin(selectedHero->m_spells), std::end(selectedHero->m_spells), spell)
+                != std::end(selectedHero->m_spells);
+        }
+        default:
+            return std::nullopt;
+    }
+}
+
 void advManager::QuickInfo(i16 cellX, i16 cellY) {
     mapCell* currentCell;
     i16 posX;
@@ -2730,6 +2761,15 @@ void advManager::QuickInfo(i16 cellX, i16 cellY) {
                         QuickInfoObjectName(currentCell->m_triggerType & MAP_TRIGGER_TYPE_MASK)
                     );
                     break;
+            }
+            const int heroId = gCurPlayerData->CurrentHero();
+            const hero* selectedHero = heroId == HERO_ID_NONE ? nullptr : gGame->GetHero(heroId);
+            if (const auto visited = ObjectVisitStatus(*currentCell, selectedHero)) {
+                const size_t used = strlen(gText);
+                if (used < sizeof(savedTextLocal))
+                    snprintf(gText + used, sizeof(savedTextLocal) - used, "\n%s",
+                             *visited ? localization::Tr("adventure.visit.yes")
+                                      : localization::Tr("adventure.visit.no"));
             }
         }
     }
@@ -4533,6 +4573,7 @@ void advManager::ViewPuzzle(void) {
         gWindowManager->ReleaseFizzleSource();
     }
 
+    puzzleWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
     gWindowManager->DoDialog(puzzleWindow, EventWindowHandler, false);
     delete puzzleWindow;
     CompleteDraw(m_mapOriginX, m_mapOriginY, false);
@@ -5156,6 +5197,7 @@ i16 advManager::ControlPanel(void) {
         gAdventurePanel->BroadcastMessage(message);
     }
     UpdateCPanel(true);
+    gAdventurePanel->SetConfirmButton(PANEL_CLOSE_WIDGET, true);
     gWindowManager->DoDialog(gAdventurePanel, CPanelHandler, false);
     delete gAdventurePanel;
     switch (gWindowManager->m_dialogResult) {
@@ -5466,6 +5508,7 @@ void advManager::AdvPanel(void) {
             adventurePanel->BroadcastMessage(message);
         }
 
+        adventurePanel->SetConfirmButton(PANEL_CLOSE_WIDGET, true);
         gWindowManager->DoDialog(adventurePanel, APanelHandler, false);
         delete adventurePanel;
         switch (gWindowManager->m_dialogResult) {

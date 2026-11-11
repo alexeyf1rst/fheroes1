@@ -147,6 +147,10 @@ i16 CombatSpecialHandler(struct tag_message& message) {
                     case SPELL_BOOK_ENTRY_FIRST:
                     case SPELL_BOOK_ENTRY_FIRST + 1:
                     case SPELL_BOOK_ENTRY_FIRST + 2:
+                    case SPELL_BOOK_ENTRY_FIRST + 3:
+                    case SPELL_BOOK_ENTRY_FIRST + 4:
+                    case SPELL_BOOK_ENTRY_FIRST + 5:
+                    case SPELL_BOOK_ENTRY_FIRST + 6:
                     case SPELL_BOOK_ENTRY_LAST: {
                         const i16 index = gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST;
                         if (index <= gGame->m_spellLast) {

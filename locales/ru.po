@@ -113,6 +113,14 @@ msgid "adventure.town_gate.occupied"
 msgstr "Ближайший город оккупирован. Не удалось направить Врата города!"
 
 #: src/SOURCE/ADVMGR.cpp
+msgid "adventure.visit.no"
+msgstr "Не посещено"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.visit.yes"
+msgstr "Посещено"
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.world_map_help"
 msgstr "Карта мира (Левой кнопкой мыши осматривать районы карты)."
 
@@ -1228,10 +1236,15 @@ msgstr "%d уровень\n\n%d оч. опыта\nСледующий урове�
 msgid "hero.meeting.title"
 msgstr "Встречаются %s и %s"
 
-#: src/SOURCE/HERO.cpp src/SOURCE/VIEW.cpp
+#: src/SOURCE/VIEW.cpp
 #, c-format
 msgid "hero.title"
 msgstr "%s %s"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.title.with_level"
+msgstr "%s - %s   (Уровень %d)"
 
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"

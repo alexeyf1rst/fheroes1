@@ -82,14 +82,18 @@ enum GameWeeklyConstant {
     MONTHLY_CREATURE_GROWTH_FACTOR = 2
 };
 
+enum SpellBookConstant {
+    SPELL_BOOK_PAGE_SIZE = 8
+};
+
 enum SpellBookControl {
     SPELL_BOOK_PREVIOUS_PAGE = 2,
     SPELL_BOOK_NEXT_PAGE = 3,
     SPELL_BOOK_ADVENTURE_SPELLS = 4,
     SPELL_BOOK_COMBAT_SPELLS = 5,
     SPELL_BOOK_ENTRY_FIRST = 6,
-    SPELL_BOOK_ENTRY_LAST = 9,
-    SPELL_BOOK_LABEL_FIRST = 10
+    SPELL_BOOK_ENTRY_LAST = SPELL_BOOK_ENTRY_FIRST + SPELL_BOOK_PAGE_SIZE - 1,
+    SPELL_BOOK_LABEL_FIRST = SPELL_BOOK_ENTRY_LAST + 1
 };
 
 enum CampaignInfoControl {
@@ -107,9 +111,6 @@ enum CampaignScenarioConstant {
 
 enum MapSoundConstant {
     MAP_SOUND_NONE = -1
-};
-enum SpellBookConstant {
-    SPELL_BOOK_PAGE_SIZE = 4
 };
 
 enum UltimateHintConstant {

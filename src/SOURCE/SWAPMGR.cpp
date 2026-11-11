@@ -295,7 +295,7 @@ i16 swapManager::Main(struct tag_message& message) {
                 const armyGroup previous = left;
                 left = right;
                 right = previous;
-            } else if (message.keyCode == INPUT_SCAN_ESCAPE) {
+            } else if (message.keyCode == INPUT_SCAN_ESCAPE || message.keyCode == INPUT_SCAN_ENTER) {
                 nowCloseRequested = true;
                 break;
             } else {

@@ -114,6 +114,14 @@ msgid "adventure.town_gate.occupied"
 msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
+msgid "adventure.visit.no"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.visit.yes"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.world_map_help"
 msgstr ""
 
@@ -1229,9 +1237,14 @@ msgstr ""
 msgid "hero.meeting.title"
 msgstr ""
 
-#: src/SOURCE/HERO.cpp src/SOURCE/VIEW.cpp
+#: src/SOURCE/VIEW.cpp
 #, c-format
 msgid "hero.title"
+msgstr ""
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.title.with_level"
 msgstr ""
 
 #: src/PORT/SOURCE/Menu.cpp

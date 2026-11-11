@@ -1,34 +1,53 @@
-# fheroes1 · Quick Split
+# fheroes1
 
-Heroes of Might and Magic I with quality-of-life changes for Windows in Parallels. This branch contains the native game and scenario editor. Game data comes from your installed copy of Heroes I.
+Heroes of Might and Magic I с доработками интерфейса и управления для Windows в Parallels. В основе проекта — [порт восстановленного кода издания «Бука» 2003 года от sushi-shi](https://github.com/sushi-shi/homm1-decomp/tree/port). Для запуска нужны данные собственной копии Heroes I.
 
-This is a fork of sushi-shi’s reconstructed Buka 2003 port. Changes here include castle controls, army splitting and transfer, hotkeys, pre-battle results with replay, and GOG audio support. The original port’s license is included. [Upstream source](https://github.com/sushi-shi/homm1-decomp/tree/port)
+## Изменения относительно исходного порта
 
-## Quick Split controls
+### Карта приключений и герои
 
-- Drag the adventure map with the left mouse button. A click still selects an object or sets a route.
-- In manual combat, click **Options** above **Auto**, or press **B**. Set animation speed, turn order, the hex grid, damage hints and automatic spellcasting there.
-- **F4** toggles fullscreen. In fullscreen, **F10** shows the host menu. The **Display** menu offers scaling and fullscreen resolution.
-- Castle dwellings open recruitment at the maximum affordable quantity. The meeting screen has separate arrows for armies and artifacts.
-- The optional pre-battle result uses the battle engine and AI. **Restart** returns to manual combat from the initial state.
+- Перетаскивание карты левой кнопкой мыши. Одиночный клик по-прежнему выбирает цель. Исправлена отрисовка рамки и боковой панели при прокрутке.
+- При зажатом `Alt` (`Option` на Mac) подсказка справа внизу показывает запас очков движения, стоимость маршрута и остаток. Расчёт использует правила местности Heroes I.
+- Красный крестик у города показывает, что в нём уже строили в этот день.
+- Статус посещения выводится в подсказке у объектов с состоянием визита. Личные бонусы проверяются для выбранного героя, общие и недельные награды — по правилам объекта. У отрядов и других героев эта строка отсутствует.
+- В заголовке окна героя отображается его уровень. В оригинальном развороте книги помещается восемь заклинаний вместо четырёх.
+- Встреча героев позволяет переносить отряды и артефакты в обе стороны и менять их местами. Добавлено быстрое деление отрядов, в том числе по одному.
 
-To add a scenario pack, put its Heroes I maps in `EXPANSIONS/<pack name>/MAPS` in your game folder. Restart and select the pack under **Map packs**. Keep the original 8.3 map filenames.
+### Города
 
-## Build for Windows
+- В окне найма из жилища выбрано максимальное доступное и оплачиваемое количество. В колодце есть общий найм.
+- Стрелки передают войска между гарнизоном и героем. В городе есть отдельные клавиши для строительства, колодца, гильдии магов, верфи, таверны и гильдии воров.
+- Ускорены переходы при постройке и обновление экрана города.
 
-Install CMake 3.25 or later, Ninja, Python 3 and an x86-64 MinGW-w64 C/C++ toolchain. Run from a shell where the toolchain is available. If cross-compiling, pass the Windows toolchain file when configuring.
+### Бой
+
+- Быстрый бой рассчитывает исход в боевом движке и показывает потери. Можно принять результат или начать тот же бой вручную кнопкой **Restart**. Автобой с анимацией доступен отдельно.
+- Кнопка **Options** открывает настройки скорости анимации, сетки, очереди ходов, подсказок урона и автозаклинаний.
+- При наведении на значок в очереди подсвечивается соответствующий отряд. В карточке отряда видно текущее здоровье.
+- Внизу показаны раунд и последнее событие. Нажатие на строку открывает прокручиваемый журнал боя.
+- Добавлены подсказки области действия и урона заклинаний, а также исправления их применения и расчёта целей.
+
+### Управление, экран и звук
+
+- `Enter` подтверждает основное действие в диалогах и закрывает информационные окна. `S` сохраняет игру с карты. Хоткеи карты, города и боя настраиваются через меню **Hotkeys**.
+- `F4` переключает полноэкранный режим. В полноэкранном режиме `F10` открывает верхнее меню. Параметры вывода доступны в **Display**.
+- Добавлены улучшения отрисовки и диагностика задержек кадра, поддержка игровых данных GOG и воспроизведение музыки из установленной копии.
+- Дополнительные наборы карт можно выбрать в **Map packs**. Помести карты Heroes I в `EXPANSIONS/<имя набора>/MAPS` внутри папки игры и перезапусти её. Сохрани исходные имена файлов формата 8.3.
+- В редактор карт добавлены отмена и повтор действий, клавиши открытия и сохранения и исправления работы с объектами карты.
+
+## Сборка и запуск в Parallels
+
+Понадобятся CMake 3.25 или новее, Ninja, Python 3 и MinGW-w64 для x86-64. При кросс-компиляции укажи файл конфигурации Windows toolchain.
 
 ```powershell
 cmake --preset windows
 cmake --build --preset windows --target homm1 homm1_editor
 ```
 
-The build produces `build/windows/heroes.exe` and `build/windows/heroes-editor.exe`.
-
-## Run in Parallels
-
-Pass the directory that contains your Heroes I `DATA` and `MAPS` folders. Use a separate copy of the directory for testing.
+Исполняемые файлы `heroes.exe` и `heroes-editor.exe` появятся в `build/windows`. Передай игре каталог своей установленной копии, в котором лежат `DATA` и `MAPS`.
 
 ```powershell
-.\build\windows\heroes.exe --data "C:\Games\heroes1_orig\heroes1-quick-split-test" --window /I0
+.\build\windows\heroes.exe --data "C:\Games\Heroes I" --window
 ```
+
+Лицензия исходного порта включена в репозиторий. Игровые ресурсы и сохранения используются локально.

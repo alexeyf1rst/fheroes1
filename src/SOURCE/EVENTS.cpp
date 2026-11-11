@@ -725,6 +725,7 @@ void advManager::DoEvent(class mapCell* cell, i32 x, i32 y) {
             SET_WIDGET_MESSAGE(widgetEvent, WIDGET_COMMAND_SET_TEXT, 0);
             widgetEvent.text = gText;
             thiefWindow->BroadcastMessage(widgetEvent);
+            thiefWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
             gWindowManager->DoDialog(thiefWindow, TrueFalseDialogHandler, false);
             delete thiefWindow;
             RedrawAdvScreen(true);

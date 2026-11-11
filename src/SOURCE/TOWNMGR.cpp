@@ -2496,6 +2496,7 @@ void townManager::DoTavern(void) {
         MemError();
     SetWinText(m_buildingWindow, WINDOW_TEXT_TAVERN);
     PlayMusic(MUSIC_TRACK_TAVERN);
+    m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
     gWindowManager->DoDialog(m_buildingWindow, TavernHandler, false);
     delete m_buildingWindow;
     PlayMusic(gTownTheme[m_town->m_type] + MUSIC_TRACK_TOWN_FIRST);

@@ -340,6 +340,7 @@ b8 game::SetupGame(b8 newGame) {
     window = new heroWindow(400, 35, "stpnewgm.bin");
     if (!window)
         MemError();
+    window->SetConfirmButton(CHOICE_ONE, true);
     gWindowManager->DoDialog(window, SetupGameHandler, false);
     delete window;
 

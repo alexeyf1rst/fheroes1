@@ -528,8 +528,12 @@ bool MenuHandleEvent(const platform::Event& event) {
         case platform::Event::KEY_UP:
             if (!open)
                 return false;
-            if (event.type == platform::Event::KEY_DOWN && event.scanCode == INPUT_SCAN_ESCAPE)
-                CloseMenu();
+            if (event.type == platform::Event::KEY_DOWN) {
+                if (event.scanCode == INPUT_SCAN_ESCAPE)
+                    CloseMenu();
+                else if (event.returnKey && gHover.back() >= 0)
+                    Choose(gOpen.size() - 1, gHover.back());
+            }
             return true;
         case platform::Event::MOUSE_MOVE: {
             if (!open)

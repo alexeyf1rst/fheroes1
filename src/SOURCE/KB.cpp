@@ -338,6 +338,7 @@ i32 oldmain(void) {
                 if (!mainMenuWindow)
                     MemError();
                 gInSetupDialog = true;
+                mainMenuWindow->SetConfirmButton(MAIN_MENU_NEW_GAME, true);
                 gWindowManager->DoDialog(mainMenuWindow, InitMenuHandler, false);
                 delete mainMenuWindow;
                 command = gWindowManager->m_dialogResult;
@@ -898,6 +899,7 @@ void ConfigureShortcut(i16 index) {
 static i16 CombatModeDialogHandler(tag_message& message) {
     if (message.type == MESSAGE_KEY_DOWN) {
         switch (TranslateShortcut(message.keyCode, SHORTCUT_BATTLE)) {
+            case INPUT_SCAN_ENTER:
             case INPUT_SCAN_A:
                 SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, NORMAL_DIALOG_BUTTON_YES);
                 break;

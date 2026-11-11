@@ -113,6 +113,14 @@ msgid "adventure.town_gate.occupied"
 msgstr "Nearest town occupied.  Town Gate Failed!!!"
 
 #: src/SOURCE/ADVMGR.cpp
+msgid "adventure.visit.no"
+msgstr "Not visited"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.visit.yes"
+msgstr "Visited"
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.world_map_help"
 msgstr "World Map (Left click to move viewing area)."
 
@@ -1228,10 +1236,15 @@ msgstr "Level %d\n\nCurrent experience %d\nNext level %d"
 msgid "hero.meeting.title"
 msgstr "%s meets %s"
 
-#: src/SOURCE/HERO.cpp src/SOURCE/VIEW.cpp
+#: src/SOURCE/VIEW.cpp
 #, c-format
 msgid "hero.title"
 msgstr "%s the %s"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.title.with_level"
+msgstr "%s the %s   (Level %d)"
 
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"

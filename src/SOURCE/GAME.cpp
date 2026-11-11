@@ -21,6 +21,7 @@
 #include <BASE/mouseManager.h>
 #include <BASE/resource.h>
 #include <BASE/resourceManager.h>
+#include <BASE/textWidget.h>
 #include <BASE/TILE.h>
 #include <BASE/tileset.h>
 #include <BASE/widget.h>
@@ -1053,6 +1054,7 @@ void game::ShowCampaignInfo(i32 scenario, b32 viewOnly, i32) {
     }
     if (!viewOnly)
         PlayMusic(MUSIC_TRACK_MAIN_MENU);
+    window->SetConfirmButton(viewOnly ? DIALOG_BUTTON_0 : DIALOG_BUTTON_2, true);
     gWindowManager->DoDialog(window, EventWindowHandler, false);
     delete window;
     if (gWindowManager->m_dialogResult == CAMPAIGN_INFO_RESTART) {
@@ -1914,6 +1916,31 @@ void game::ClaimMine(i8 mineId, i8 player) {
     }
 }
 
+namespace {
+void ExpandSpellBook(heroWindow& book) {
+    constexpr int originalEntries = 4;
+    constexpr int originalLabelFirst = SPELL_BOOK_ENTRY_FIRST + originalEntries;
+    constexpr int columnCenters[] = {58, 125, 201, 269};
+    for (widget* item = book.m_widgetListHead; item;) {
+        widget* next = item->m_next;
+        if (item->m_id >= SPELL_BOOK_ENTRY_FIRST && item->m_id < originalLabelFirst + originalEntries) {
+            book.RemoveWidget(item);
+            delete item;
+        }
+        item = next;
+    }
+    for (int index = 0; index < SPELL_BOOK_PAGE_SIZE; ++index) {
+        const int center = columnCenters[(index / 4) * 2 + index % 2];
+        const int y = index % 4 < 2 ? 12 : 75;
+        book.AddWidget(new iconWidget(center - 22, y, 44, 46, "spells.icn", 0,
+            ICON_DRAW_NORMAL, SPELL_BOOK_ENTRY_FIRST + index, ICON_WIDGET_DRAW, 0), WINDOW_Z_ORDER_APPEND);
+        book.AddWidget(new textWidget(center - 33, y + 46, 66, 24, strdup(""),
+            "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR, SPELL_BOOK_LABEL_FIRST + index,
+            WIDGET_KIND_TEXT), WINDOW_Z_ORDER_APPEND);
+    }
+}
+}
+
 i8 game::ViewSpells(
     class hero* spellHero,
     i8 spellType,
@@ -1923,15 +1950,15 @@ i8 game::ViewSpells(
     tag_message msg;
 
     m_viewSpell = SPELL_NONE;
-    i16 winX[3] = {177, 97, 177};
-    i16 winY[3] = {100, 47, 100};
     if (!spellHero->GetNumSpells(spellType)) {
         NormalDialog(localization::Tr("spell.none.available"), NORMAL_DIALOG_TYPE_OK);
     } else {
         m_viewSpellsCallback = callback;
         m_viewSpellsReadOnly = readOnly;
         m_viewSpellsHero = spellHero;
-        SetupSpellRange(spellType);
+        const i8 initialType = spellType == SPELL_TYPE_ALL && !spellHero->GetNumSpells(SPELL_TYPE_ADVENTURE)
+                                   ? SPELL_TYPE_COMBAT : spellType;
+        SetupSpellRange(initialType);
         m_viewSpellsTop = m_spellFirst;
         if (spellType == SPELL_TYPE_ALL || spellType == SPELL_TYPE_COMBAT) {
             m_viewSpellsWindow = new heroWindow(146, 145, "spellwin.bin");
@@ -1942,6 +1969,8 @@ i8 game::ViewSpells(
             if (!m_viewSpellsWindow)
                 MemError();
         }
+        ExpandSpellBook(*m_viewSpellsWindow);
+        m_viewSpellsWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
         if (spellType != SPELL_TYPE_ALL) {
             SET_WIDGET_MESSAGE(
                 msg,
@@ -1970,7 +1999,7 @@ void game::SetupSpellRange(i16 spellType) {
             m_spellLast = m_spellFirst + HERO_SPELL_SLOT_COUNT - HERO_COMBAT_SPELL_SLOT_COUNT - 1;
             break;
     }
-    while (m_viewSpellsHero->m_spellCharges[m_spellLast] < 1)
+    while (m_spellLast >= m_spellFirst && m_viewSpellsHero->m_spellCharges[m_spellLast] < 1)
         m_spellLast--;
 }
 
@@ -2019,7 +2048,13 @@ void game::UpdateSpellWidgets(void) {
 
 i16 ViewSpellsHandler(tag_message& message) {
     i32 spell;
+    if (message.type == MESSAGE_KEY_DOWN && message.keyCode == INPUT_SCAN_ESCAPE) {
+        FINISH_DIALOG_MESSAGE(message);
+        return MESSAGE_DISPATCH_FORWARD;
+    }
     if (message.type == MESSAGE_WIDGET) {
+        if (message.id >= SPELL_BOOK_LABEL_FIRST && message.id < SPELL_BOOK_LABEL_FIRST + SPELL_BOOK_PAGE_SIZE)
+            message.id = SPELL_BOOK_ENTRY_FIRST + message.id - SPELL_BOOK_LABEL_FIRST;
         switch (message.command) {
             case WIDGET_NOTIFY_SELECT:
             case WIDGET_NOTIFY_RIGHT_CLICK:
@@ -2029,7 +2064,13 @@ i16 ViewSpellsHandler(tag_message& message) {
                         case SPELL_BOOK_ENTRY_FIRST:
                         case SPELL_BOOK_ENTRY_FIRST + 1:
                         case SPELL_BOOK_ENTRY_FIRST + 2:
+                        case SPELL_BOOK_ENTRY_FIRST + 3:
+                        case SPELL_BOOK_ENTRY_FIRST + 4:
+                        case SPELL_BOOK_ENTRY_FIRST + 5:
+                        case SPELL_BOOK_ENTRY_FIRST + 6:
                         case SPELL_BOOK_ENTRY_LAST:
+                            if (gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST > gGame->m_spellLast)
+                                break;
                             spell = gGame->m_viewSpellsHero->m_spells
                                         [gGame->m_viewSpellsTop
                                          + (message.id - SPELL_BOOK_ENTRY_FIRST)];
@@ -2072,7 +2113,13 @@ i16 ViewSpellsHandler(tag_message& message) {
                         case SPELL_BOOK_ENTRY_FIRST:
                         case SPELL_BOOK_ENTRY_FIRST + 1:
                         case SPELL_BOOK_ENTRY_FIRST + 2:
+                        case SPELL_BOOK_ENTRY_FIRST + 3:
+                        case SPELL_BOOK_ENTRY_FIRST + 4:
+                        case SPELL_BOOK_ENTRY_FIRST + 5:
+                        case SPELL_BOOK_ENTRY_FIRST + 6:
                         case SPELL_BOOK_ENTRY_LAST:
+                            if (gGame->m_viewSpellsTop + message.id - SPELL_BOOK_ENTRY_FIRST > gGame->m_spellLast)
+                                break;
                             if (gGame->m_viewSpellsReadOnly) {
                                 spell = gGame->m_viewSpellsHero->m_spells
                                             [gGame->m_viewSpellsTop
@@ -4911,6 +4958,7 @@ void game::ShowScenInfo(void) {
             + NEW_GAME_FRAME_CREST_BASE;
         scenWindow->BroadcastMessage(packet);
     }
+    scenWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
     gWindowManager->DoDialog(scenWindow, EventWindowHandler, false);
 }
 

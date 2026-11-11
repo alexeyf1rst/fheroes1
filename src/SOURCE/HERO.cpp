@@ -233,7 +233,8 @@ b8 hero::HeroView(b8 viewOnly) {
     gHeroWin = gHeroScreenWindow;
     SetWinText(gHeroScreenWindow, WINDOW_TEXT_HERO);
     message.type = MESSAGE_WIDGET;
-    sprintf(gText, localization::Tr("hero.title"), m_name, gClassNames[m_heroClass]);
+    snprintf(gText, 200, localization::Tr("hero.title.with_level"), m_name,
+             gClassNames[m_heroClass], GetLevel(m_experience));
     message.command = WIDGET_COMMAND_SET_TEXT;
     message.id = HERO_SCREEN_TITLE;
     message.text = gText;
