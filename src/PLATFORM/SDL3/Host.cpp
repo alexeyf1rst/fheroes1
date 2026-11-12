@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <filesystem>
 #if defined(_WIN32)
+#include <cwchar>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
@@ -47,6 +48,17 @@ u32 gTickStart = 1000000u;
 u32 gTimeScale = 1u;
 
 #if defined(_WIN32)
+void PreferParallelsRenderer() {
+    wchar_t manufacturer[128] = {};
+    DWORD size = sizeof(manufacturer);
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, L"HARDWARE\\DESCRIPTION\\System\\BIOS", L"SystemManufacturer",
+                     RRF_RT_REG_SZ, nullptr, manufacturer, &size) == ERROR_SUCCESS
+        && std::wcsstr(manufacturer, L"Parallels") != nullptr) {
+        // SDL's Direct3D 9 backend reuses the staging texture for our partial frame uploads.
+        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "direct3d,direct3d11,software", SDL_HINT_DEFAULT);
+    }
+}
+
 // The programs are Windows GUI programs, which start without a console. The
 // log goes where the standard error already points (a redirection), else to
 // the console of the command prompt that started the program, else to
@@ -76,6 +88,7 @@ bool Startup(const StartupOptions& options) {
         return true;
 #if defined(_WIN32)
     OpenLog();
+    PreferParallelsRenderer();
 #endif
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         Log("SDL_Init failed: %s", SDL_GetError());
