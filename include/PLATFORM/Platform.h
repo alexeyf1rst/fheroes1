@@ -269,7 +269,9 @@ bool VoicePlaying(Voice voice);
 void SetVoiceVolume(Voice voice, float volume);
 
 // A compressed music file (Ogg Vorbis in the shipped game), streamed.
-bool PlayMusic(const char* hostPath, bool loop, double startSeconds, float volume);
+bool PlayMusic(const char* hostPath, bool loop, double startSeconds, float volume,
+               int tempo = 3, bool background = false);
+void PumpMusic();
 void StopMusic();
 bool MusicPlaying();
 double MusicPosition();

@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <PLATFORM/Platform.h>
 #include <BASE/goldButton.h>
 
 #include <BASE/audio.h>
@@ -181,11 +182,10 @@ void combatManager::SetupCombat(
 }
 
 i16 combatManager::Open(i16 priority) {
-    const bool fastIntro = !m_autoResolveAtStart && gConfig.combatAnimationSpeed == COMBAT_MAX_ANIMATION_SPEED;
-    const int introFadeStep = fastIntro ? WINDOW_FADE_SHORT * 2 : WINDOW_FADE_SHORT;
-    i32 song;
-    class sample* sample;
-    i32 musicList[4];
+    const bool trace = !platform::Environment("HOMM1_TRACE_DISPLAY").empty();
+    const u32 openedAt = trace ? platform::Ticks() : 0;
+    const int introTempo = m_autoResolveAtStart ? 3 : CombatAudioTempo();
+    const int introFadeStep = WINDOW_FADE_SHORT * introTempo / 3;
 
     m_messageTypeMask = MESSAGE_KEY_DOWN | MESSAGE_KEY_UP | MESSAGE_MOUSE_MOVE
                         | MESSAGE_LEFT_BUTTON_DOWN | MESSAGE_RIGHT_BUTTON_DOWN | 0x100
@@ -205,9 +205,8 @@ i16 combatManager::Open(i16 priority) {
     StopMusic();
     m_backgroundBuffer = new bitmap(BITMAP_TYPE_NONE, LOGICAL_SCREEN_WIDTH, COMBAT_VIEW_HEIGHT);
     m_backgroundDrawn = false;
-    sample = nullptr;
     if (!m_autoResolveAtStart)
-        sample = fastIntro ? LoadPlaySampleAtDoubleTempo("PREBATTL.82M") : LoadPlaySample("PREBATTL.82M");
+        m_introSample = LoadPlaySampleAtTempo("PREBATTL.82M", introTempo);
     gNextAction = ACTION_NONE;
     m_replayRequested = false;
     m_autoCombatSides[COMBAT_DEFENDER_SIDE] = m_autoCombatSides[COMBAT_ATTACKER_SIDE] = false;
@@ -224,6 +223,7 @@ i16 combatManager::Open(i16 priority) {
                    m_autoResolveBackground, 0, 0);
     }
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, introFadeStep, NULL);
+    platform::BeginDisplayUpdate();
     m_sideRetreated[COMBAT_DEFENDER_SIDE] = false;
     m_sideRetreated[COMBAT_ATTACKER_SIDE] = false;
     m_combatResult = COMBAT_RESULT_PENDING;
@@ -273,21 +273,22 @@ i16 combatManager::Open(i16 priority) {
     m_combatPalette = gResourceManager->GetPalette("kb.pal");
     KBChangeMenu(gCombatMenu);
     CombatMessage("", true);
+    platform::EndDisplayUpdate();
     if (!m_autoResolveAtStart)
         gWindowManager->FadeScreen(WINDOW_FADE_IN, introFadeStep, m_combatPalette);
     gLimitedCombatUpdatePalette = true;
     gMouseManager->NewUpdate(true);
     gMouseManager->WarpPointer(m_hexCells[m_selectorHex].m_x, m_hexCells[m_selectorHex].m_y - 50);
     gMouseManager->ReallyShowPointer();
-    if (sample)
-        WaitSample(sample);
-    musicList[0] = MUSIC_TRACK_BATTLE_2;
-    musicList[1] = MUSIC_TRACK_BATTLE_3;
-    musicList[2] = MUSIC_TRACK_BATTLE_1;
-    musicList[3] = MUSIC_TRACK_BATTLE_4;
-    song = musicList[SRandom(0, 3)];
+    constexpr i32 musicList[] = {
+        MUSIC_TRACK_BATTLE_2, MUSIC_TRACK_BATTLE_3, MUSIC_TRACK_BATTLE_1, MUSIC_TRACK_BATTLE_4
+    };
+    const i32 song = musicList[SRandom(0, 3)];
     if (!m_autoResolveAtStart)
-        PlayMusic(song);
+        m_introMusicTrack = song;
+    if (trace)
+        platform::Log("battle opening (tempo %d/3): %u ms to visible, no wait for intro sound",
+                      introTempo, platform::Ticks() - openedAt);
     gInputManager->Flush();
     ResetMouse();
     m_messageMask = BASE_MANAGER_ACCEPT_WIDGET;
@@ -297,11 +298,21 @@ i16 combatManager::Open(i16 priority) {
     return BASE_MANAGER_SUCCESS;
 }
 
+void combatManager::StopIntroSound() {
+    if (m_introSample) {
+        StopSample(m_introSample);
+        gResourceManager->Dispose(m_introSample);
+        m_introSample = nullptr;
+    }
+    m_introMusicTrack = MUSIC_TRACK_NONE;
+}
+
 void combatManager::Close(void) {
     i32 i;
     i32 monsterSide;
 
     StopQuickCombat();
+    StopIntroSound();
     StopMusic();
     if (m_restoreSampleSuspension) {
         m_restoreSampleSuspension = false;

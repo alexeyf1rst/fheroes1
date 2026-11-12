@@ -413,6 +413,7 @@ void AppExit(void) {
 
 void Process1WindowsMessage(void) {
     static u32 gLastCall = 0;
+    platform::PumpMusic();
     platform::Event event;
     bool handled = false;
     while (platform::PollEvent(event)) {
@@ -489,6 +490,7 @@ i32 AppMenuCommand(i32 command) {
         case KBWIN_MENU_BATTLE_SPEED_FIRST + 2:
         case KBWIN_MENU_BATTLE_SPEED_FIRST + 3:
             gConfig.combatAnimationSpeed = command - KBWIN_MENU_BATTLE_SPEED_FIRST + 1;
+            RefreshBattleMusicTempo();
             UpdateDfltMenu(gAppMenu);
             WritePrefs();
             break;

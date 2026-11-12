@@ -167,6 +167,9 @@ public:
     bool IsTurnOrderHovered(const army* unit) const;
     bool m_quickCombat = false;
     bool m_autoResolveAtStart = false;
+    class sample* m_introSample = nullptr;
+    i32 m_introMusicTrack = MUSIC_TRACK_NONE;
+    void StopIntroSound();
     i8 m_autoCombatStopRequested = COMBAT_SIDE_NONE;
     bool m_replayRequested = false;
     i16 m_spellPreviewHex = ARMY_HEX_INVALID;

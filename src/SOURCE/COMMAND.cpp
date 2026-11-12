@@ -50,6 +50,11 @@ i16 combatManager::Main(struct tag_message& message) {
     CheckCastleAttack();
     if (CheckWin(&message))
         return MESSAGE_DISPATCH_FORWARD;
+    if (m_introMusicTrack != MUSIC_TRACK_NONE && !SamplePlaying(m_introSample)) {
+        const i32 track = m_introMusicTrack;
+        StopIntroSound();
+        PlayMusic(track);
+    }
     packet = GetRemoteData(true);
     if (packet && packet->type == REMOTE_MESSAGE_RELIABLE) {
         switch (packet->command) {
@@ -753,7 +758,11 @@ i16 BattleOptionsHandler(tag_message& message) {
         || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
         return MESSAGE_DISPATCH_CONTINUE;
     switch (message.id) {
-        case OptionSpeed: gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED) % COMBAT_MAX_ANIMATION_SPEED + 1; break;
+        case OptionSpeed:
+            gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED)
+                                          % COMBAT_MAX_ANIMATION_SPEED + 1;
+            RefreshBattleMusicTempo();
+            break;
         case OptionOrder: gConfig.showCombatOrder = !gConfig.showCombatOrder; break;
         case OptionGrid: gConfig.showCombatGrid = !gConfig.showCombatGrid; break;
         case OptionDamage: gConfig.hideCombatDamage = !gConfig.hideCombatDamage; break;
@@ -843,6 +852,7 @@ b32 combatManager::CheckWin(struct tag_message* message) {
                              : static_cast<i8>(COMBAT_RESULT_ATTACKER);
     }
     if (combatEnded) {
+        StopIntroSound();
         if (m_quickCombat) {
             StopQuickCombat();
             gInputManager->Flush();

@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <PLATFORM/Platform.h>
 
 #include <BASE/audio.h>
 #include <BASE/baseManager.h>
@@ -145,8 +146,12 @@ i16 townManager::Open(i16 priority) {
     i16 i;
     i8 buildId;
 
+    const bool trace = !platform::Environment("HOMM1_TRACE_DISPLAY").empty();
+    const u32 openedAt = trace ? platform::Ticks() : 0;
+    if (trace)
+        platform::Log("town opening: initializing");
+    platform::BeginDisplayUpdate();
     gGame->CheckHeroConsistency();
-    PlayMusic(gTownTheme[m_town->m_type] + MUSIC_TRACK_TOWN_FIRST);
     PollSound();
     m_townWindow = new heroWindow(0, 0, "townwind.bin");
     if (m_townWindow == NULL)
@@ -256,7 +261,16 @@ i16 townManager::Open(i16 priority) {
     gMouseManager->ReallyShowPointer();
     gMouseManager->NewUpdate(true);
     KBChangeMenu(gTownMenu);
+    if (trace)
+        platform::Log("town opening: prepared in %u ms", platform::Ticks() - openedAt);
+    platform::EndDisplayUpdate();
     gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, NULL);
+    const u32 visibleAt = trace ? platform::Ticks() : 0;
+    if (trace)
+        platform::Log("town opening: visible in %u ms", visibleAt - openedAt);
+    PlayMusic(gTownTheme[m_town->m_type] + MUSIC_TRACK_TOWN_FIRST);
+    if (trace)
+        platform::Log("town opening: music requested in %u ms", platform::Ticks() - visibleAt);
     m_castleDialogActive = false;
     m_heroRecruited = false;
     m_lastHoverId = WINDOW_MANAGER_NO_HOVER_WIDGET;

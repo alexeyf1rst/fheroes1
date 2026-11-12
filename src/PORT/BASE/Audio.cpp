@@ -30,6 +30,7 @@ std::map<sample*, platform::Voice> gVoices;
 int gSampleSuspensions = 0;
 int gMusicSuspensions = 0;
 int gCurrentTrack = -1;
+int gCurrentMusicTempo = 3;
 int gMusicSource = 0;
 double gMusicPositions[100];
 bool gAudioReady = false;
@@ -74,6 +75,11 @@ std::string TrackPath(int track) {
             return resolved;
     }
     return {};
+}
+
+bool IsBattleMusic(int track) {
+    return (track >= MUSIC_TRACK_BATTLE_FIRST && track <= MUSIC_TRACK_BATTLE_LAST)
+        || track == MUSIC_TRACK_BATTLE_4;
 }
 
 void RememberPosition() {
@@ -139,8 +145,7 @@ void SetVolumes(int effects, int music) {
 
 bool ShouldRepeatMusic(int track) {
     if (track < MUSIC_TRACK_TERRAIN_END
-        || (track >= MUSIC_TRACK_BATTLE_FIRST && track <= MUSIC_TRACK_BATTLE_LAST)
-        || track == MUSIC_TRACK_BATTLE_4 || track == MUSIC_TRACK_CONGRATULATIONS
+        || IsBattleMusic(track) || track == MUSIC_TRACK_CONGRATULATIONS
         || track == MUSIC_TRACK_TAVERN || track == MUSIC_TRACK_MAIN_MENU
         || track == MUSIC_TRACK_AI_TURN
         || (track >= MUSIC_TRACK_TOWN_FIRST && track <= MUSIC_TRACK_TOWN_LAST))
@@ -151,10 +156,13 @@ bool ShouldRepeatMusic(int track) {
 void PlayMusic(int track) {
     if (!gAudioReady || MusicSuspended())
         return;
-    if (track == gCurrentTrack) {
+    const int tempo = IsBattleMusic(track) ? CombatAudioTempo() : 3;
+    const bool background = IsBattleMusic(track)
+                            || (track >= MUSIC_TRACK_TOWN_FIRST && track <= MUSIC_TRACK_TOWN_LAST);
+    if (track == gCurrentTrack && tempo == gCurrentMusicTempo) {
         if (!platform::MusicPlaying() && ValidTrack(track))
             platform::PlayMusic(TrackPath(track).c_str(), ShouldRepeatMusic(track),
-                                gMusicPositions[track], GetMusicVolume());
+                                gMusicPositions[track], GetMusicVolume(), tempo, background);
         return;
     }
     if (!ValidTrack(track)) {
@@ -165,7 +173,7 @@ void PlayMusic(int track) {
     RememberPosition();
     if (path.empty()
         || !platform::PlayMusic(path.c_str(), ShouldRepeatMusic(track), gMusicPositions[track],
-                                GetMusicVolume())) {
+                                GetMusicVolume(), tempo, background)) {
         platform::Log("cannot play music track %d (%s)", track,
                       path.empty() ? "no file" : path.c_str());
         platform::StopMusic();
@@ -173,6 +181,12 @@ void PlayMusic(int track) {
         return;
     }
     gCurrentTrack = track;
+    gCurrentMusicTempo = tempo;
+}
+
+void RefreshBattleMusicTempo() {
+    if (IsBattleMusic(gCurrentTrack))
+        PlayMusic(gCurrentTrack);
 }
 
 int GetCurrentTrack() {
@@ -225,17 +239,17 @@ bool MusicSuspended() {
 
 // Waveform similarity overlap-add for the original unsigned 8-bit mono intro.
 // Keep the original sample rate and align overlapping chunks before blending.
-static std::vector<u8> DoubleTempoMono(const u8* input, int length, int rate) {
+static std::vector<u8> CompressMonoTempo(const u8* input, int length, int rate, int tempo) {
     const int overlap = rate * 15 / 1000;
     const int search = rate * 8 / 1000;
-    const int outputLength = length / 2;
+    const int outputLength = static_cast<int>(static_cast<i64>(length) * 3 / tempo);
     if (overlap < 2 || outputLength < overlap * 2)
         return {};
     std::vector<u8> output(input, input + outputLength);
     for (int out = overlap; out < outputLength; out += overlap) {
         const int blend = std::min(overlap, outputLength - out);
         const int chunk = std::min(overlap * 2, outputLength - out);
-        const int expected = std::min(out * 2, length - chunk);
+        const int expected = std::min(static_cast<int>(static_cast<i64>(out) * tempo / 3), length - chunk);
         int best = expected;
         double bestScore = -1.0;
         for (int in = std::max(0, expected - search); in <= std::min(length - chunk, expected + search); ++in) {
@@ -263,7 +277,7 @@ static std::vector<u8> DoubleTempoMono(const u8* input, int length, int rate) {
     return output;
 }
 
-static void PlaySampleWithTempo(sample* resource, bool doubleTempo) {
+static void PlaySampleWithTempo(sample* resource, int tempo) {
     if (!gAudioReady || SamplesSuspended() || resource == NULL)
         return;
     auto found = gVoices.find(resource);
@@ -277,8 +291,8 @@ static void PlaySampleWithTempo(sample* resource, bool doubleTempo) {
     if (data.data == NULL || data.size <= 0)
         return;
     std::vector<u8> shortened;
-    if (doubleTempo && !data.stereo && !data.sampleFormat)
-        shortened = DoubleTempoMono(reinterpret_cast<const u8*>(data.data), data.size, data.sampleRate);
+    if (tempo > 3 && !data.stereo && !data.sampleFormat)
+        shortened = CompressMonoTempo(reinterpret_cast<const u8*>(data.data), data.size, data.sampleRate, tempo);
     const void* frames = shortened.empty() ? static_cast<const void*>(data.data) : shortened.data();
     const size_t bytes = shortened.empty() ? static_cast<size_t>(data.size) : shortened.size();
     platform::Voice voice = platform::PlaySample(
@@ -290,7 +304,7 @@ static void PlaySampleWithTempo(sample* resource, bool doubleTempo) {
 }
 
 void PlaySample(sample* resource) {
-    PlaySampleWithTempo(resource, false);
+    PlaySampleWithTempo(resource, 3);
 }
 
 sample* LoadPlaySample(char* name) {
@@ -299,9 +313,9 @@ sample* LoadPlaySample(char* name) {
     return resource;
 }
 
-sample* LoadPlaySampleAtDoubleTempo(char* name) {
+sample* LoadPlaySampleAtTempo(char* name, int tempo) {
     sample* resource = gResourceManager->GetSample(name);
-    PlaySampleWithTempo(resource, true);
+    PlaySampleWithTempo(resource, tempo);
     return resource;
 }
 
@@ -323,13 +337,15 @@ void UpdateSampleVolume(sample* resource) {
         platform::SetVoiceVolume(found->second, ScaleSampleVolume(resource->m_playbackData.volume));
 }
 
+bool SamplePlaying(sample* resource) {
+    const auto found = gVoices.find(resource);
+    return found != gVoices.end() && platform::VoicePlaying(found->second);
+}
+
 void WaitSample(sample* resource) {
     if (SamplesSuspended())
         return;
-    auto found = gVoices.find(resource);
-    if (found == gVoices.end())
-        return;
-    while (platform::VoicePlaying(found->second))
+    while (SamplePlaying(resource))
         DelayMilli(10);
     StopSample(resource);
 }
