@@ -247,8 +247,7 @@ public:
     void
     CastSpell(i8 spell, i8 targetHex, b8 castByCreature, i8 teleportDest);
     void DefaultSpell(i8 targetHex);
-    void CastMassSpell(i8 castSide, b8 cureOnly);
-    void CancelSideSpells(i8 side, b8 cureOnly);
+    int CastMassSpell(i8 castSide, b8 cureOnly);
     void Fireball(i8 targetHex);
     void MeteorShower(i8 targetHex);
     void ElementalStorm(void);

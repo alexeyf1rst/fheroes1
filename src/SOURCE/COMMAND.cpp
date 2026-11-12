@@ -761,7 +761,6 @@ i16 BattleOptionsHandler(tag_message& message) {
         case OptionSpeed:
             gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED)
                                           % COMBAT_MAX_ANIMATION_SPEED + 1;
-            RefreshBattleMusicTempo();
             break;
         case OptionOrder: gConfig.showCombatOrder = !gConfig.showCombatOrder; break;
         case OptionGrid: gConfig.showCombatGrid = !gConfig.showCombatGrid; break;

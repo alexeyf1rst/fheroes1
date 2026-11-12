@@ -30,7 +30,6 @@ std::map<sample*, platform::Voice> gVoices;
 int gSampleSuspensions = 0;
 int gMusicSuspensions = 0;
 int gCurrentTrack = -1;
-int gCurrentMusicTempo = 3;
 int gMusicSource = 0;
 double gMusicPositions[100];
 bool gAudioReady = false;
@@ -156,13 +155,12 @@ bool ShouldRepeatMusic(int track) {
 void PlayMusic(int track) {
     if (!gAudioReady || MusicSuspended())
         return;
-    const int tempo = IsBattleMusic(track) ? CombatAudioTempo() : 3;
     const bool background = IsBattleMusic(track)
                             || (track >= MUSIC_TRACK_TOWN_FIRST && track <= MUSIC_TRACK_TOWN_LAST);
-    if (track == gCurrentTrack && tempo == gCurrentMusicTempo) {
+    if (track == gCurrentTrack) {
         if (!platform::MusicPlaying() && ValidTrack(track))
             platform::PlayMusic(TrackPath(track).c_str(), ShouldRepeatMusic(track),
-                                gMusicPositions[track], GetMusicVolume(), tempo, background);
+                                gMusicPositions[track], GetMusicVolume(), background);
         return;
     }
     if (!ValidTrack(track)) {
@@ -173,7 +171,7 @@ void PlayMusic(int track) {
     RememberPosition();
     if (path.empty()
         || !platform::PlayMusic(path.c_str(), ShouldRepeatMusic(track), gMusicPositions[track],
-                                GetMusicVolume(), tempo, background)) {
+                                GetMusicVolume(), background)) {
         platform::Log("cannot play music track %d (%s)", track,
                       path.empty() ? "no file" : path.c_str());
         platform::StopMusic();
@@ -181,12 +179,6 @@ void PlayMusic(int track) {
         return;
     }
     gCurrentTrack = track;
-    gCurrentMusicTempo = tempo;
-}
-
-void RefreshBattleMusicTempo() {
-    if (IsBattleMusic(gCurrentTrack))
-        PlayMusic(gCurrentTrack);
 }
 
 int GetCurrentTrack() {

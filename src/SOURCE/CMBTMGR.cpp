@@ -184,7 +184,7 @@ void combatManager::SetupCombat(
 i16 combatManager::Open(i16 priority) {
     const bool trace = !platform::Environment("HOMM1_TRACE_DISPLAY").empty();
     const u32 openedAt = trace ? platform::Ticks() : 0;
-    const int introTempo = m_autoResolveAtStart ? 3 : CombatAudioTempo();
+    const int introTempo = m_autoResolveAtStart ? 3 : CombatIntroTempo();
     const int introFadeStep = WINDOW_FADE_SHORT * introTempo / 3;
 
     m_messageTypeMask = MESSAGE_KEY_DOWN | MESSAGE_KEY_UP | MESSAGE_MOUSE_MOVE

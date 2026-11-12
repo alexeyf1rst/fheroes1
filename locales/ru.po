@@ -414,6 +414,15 @@ msgstr "Вы уже направили заклинание в этом раун
 msgid "combat.spell.cast_target"
 msgstr "Направить %s на %s"
 
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.cure_effect"
+msgstr "Исцеление сняло отрицательные эффекты. Отрядов: %d."
+
+#: src/SOURCE/SPELLS.cpp
+msgid "combat.spell.cure_no_effect"
+msgstr "Исцеление: снимать отрицательные эффекты было не с кого."
+
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.no_hero"
 msgstr "У вас нет героя, чтобы направлять заклинания."

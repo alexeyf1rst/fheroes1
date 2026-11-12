@@ -20,7 +20,6 @@ i32 GetCurrentTrack();
 void StopMusic();
 void UpdateMusicVolume();
 void SetMusicSource(i32 source);
-void RefreshBattleMusicTempo();
 bool MusicPlaying();
 void SuspendMusic();
 void ResumeMusic();

@@ -414,6 +414,15 @@ msgstr "You have already cast a spell this round."
 msgid "combat.spell.cast_target"
 msgstr "Cast %s on %s"
 
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.cure_effect"
+msgstr "Cure cleared negative effects from %d friendly stacks."
+
+#: src/SOURCE/SPELLS.cpp
+msgid "combat.spell.cure_no_effect"
+msgstr "Cure: no friendly stack had a negative effect to remove."
+
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.no_hero"
 msgstr "You have no hero to cast a spell."

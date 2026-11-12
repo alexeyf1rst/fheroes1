@@ -415,6 +415,15 @@ msgstr ""
 msgid "combat.spell.cast_target"
 msgstr ""
 
+#: src/SOURCE/SPELLS.cpp
+#, c-format
+msgid "combat.spell.cure_effect"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
+msgid "combat.spell.cure_no_effect"
+msgstr ""
+
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.spell.no_hero"
 msgstr ""

@@ -318,8 +318,8 @@ struct configStruct {
 
 inline constexpr i32 COMBAT_MAX_ANIMATION_SPEED = 4;
 
-// The highest animation setting doubles the audio tempo.
-inline i32 CombatAudioTempo() {
+// The highest animation setting doubles the intro tempo.
+inline i32 CombatIntroTempo() {
     const i32 speed = gConfig.combatAnimationSpeed;
     return speed >= 1 && speed <= COMBAT_MAX_ANIMATION_SPEED ? speed + 2 : 3;
 }

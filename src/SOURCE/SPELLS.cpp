@@ -40,6 +40,26 @@ void SpellArea(i16 center, i16 (&hexes)[kSpellAreaSize]) {
         hexes[direction + 1] = GetAdjacentCellIndexNoArmy(center, direction);
 }
 
+bool CanClearSpell(const army& target, bool cureOnly) {
+    if (target.m_quantity <= 0 || (target.m_stats.attributes & MONSTER_FLAGS_DEAD)
+        || target.m_creatureType == CREATURE_DRAGON)
+        return false;
+    switch (target.m_spellEffect) {
+        case SPELL_NONE:
+        case SPELL_ANTI_MAGIC:
+        case SPELL_DISPEL_MAGIC:
+            return false;
+        case SPELL_SLOW:
+        case SPELL_BLIND:
+        case SPELL_CURSE:
+        case SPELL_BERZERKER:
+        case SPELL_PARALYZE:
+            return true;
+        default:
+            return !cureOnly;
+    }
+}
+
 i32 ResurrectionCount(const army& target, i32 power) {
     const i32 restored = power * 50 / target.m_stats.hitPoints;
     const i32 missing = target.m_initialQuantity - target.m_quantity;
@@ -548,9 +568,17 @@ void combatManager::CastSpell(
             if (!(target->m_stats.attributes & MONSTER_FLAGS_DEAD))
                 target->Stand(true);
             break;
-        case SPELL_CURE:
-            CastMassSpell(m_currentSide, true);
+        case SPELL_CURE: {
+            const int cleared = CastMassSpell(m_currentSide, true);
+            if (cleared == 0) {
+                CombatEvent(localization::Tr("combat.spell.cure_no_effect"));
+            } else {
+                char message[128];
+                snprintf(message, sizeof(message), localization::Tr("combat.spell.cure_effect"), cleared);
+                CombatEvent(message);
+            }
             break;
+        }
         case SPELL_RESURRECT:
             target->SpellEffect(COMBAT_EFFECT_RESURRECT, 0);
             target->SpellEffect(COMBAT_EFFECT_RESURRECT, 0);
@@ -716,91 +744,45 @@ void combatManager::DefaultSpell(i8 targetHex) {
     target->Stand(true);
 }
 
-void combatManager::CastMassSpell(i8 castSide, b8 cureOnly) {
-    i16 effectFile;
-    i32 spare;
-    i32 lastSide;
-    i16 armyIndex;
-    i16 side;
-    i32 firstSide;
+int combatManager::CastMassSpell(i8 castSide, b8 cureOnly) {
+    const i8 firstSide = castSide == COMBAT_SIDE_ANY ? COMBAT_SIDE_FIRST : castSide;
+    const i8 sideEnd = castSide == COMBAT_SIDE_ANY ? COMBAT_SIDE_COUNT : castSide + 1;
+    army* affected[COMBAT_SIDE_COUNT * COMBAT_SIDE_ARMY_COUNT];
+    int count = 0;
+    for (i8 side = firstSide; side < sideEnd; ++side) {
+        for (i16 slot = 0; slot < m_numArmies[side]; ++slot) {
+            army& target = m_armies[side][slot];
+            if (CanClearSpell(target, cureOnly))
+                affected[count++] = &target;
+        }
+    }
+    if (count == 0)
+        return 0;
 
     m_computeExtent = m_redrawExtent = false;
-    effectFile = MAKEFILEID(gCombatFxNames[COMBAT_EFFECT_DISPEL_MAGIC]);
+    const i16 effectFile = MAKEFILEID(gCombatFxNames[COMBAT_EFFECT_DISPEL_MAGIC]);
     if (gCurLoadedSpellFileId != effectFile) {
         gResourceManager->Dispose(gCurLoadedSpellIcon);
         gCurLoadedSpellIcon = gResourceManager->GetIcon(effectFile);
         gCurLoadedSpellFileId = effectFile;
     }
-    if (castSide == COMBAT_SIDE_ANY) {
-        firstSide = COMBAT_DEFENDER_SIDE;
-        lastSide = COMBAT_ATTACKER_SIDE;
-    } else {
-        firstSide = m_currentSide;
-        lastSide = m_currentSide;
-    }
-    for (side = firstSide; side <= lastSide; side++) {
-        for (armyIndex = 0; armyIndex < m_numArmies[side]; armyIndex++) {
-            if (m_armies[side][armyIndex].m_spellEffect != SPELL_ANTI_MAGIC
-                && m_armies[side][armyIndex].m_spellEffect != SPELL_DISPEL_MAGIC
-                && m_armies[side][armyIndex].m_creatureType != CREATURE_DRAGON) {
-                if (!cureOnly) {
-                    if (m_armies[side][armyIndex].m_spellEffect != SPELL_NONE)
-                        m_armies[side][armyIndex].m_animationSequence = ARMY_ANIMATION_EFFECT;
-                } else if (cureOnly == true) {
-                    if (m_armies[side][armyIndex].m_spellEffect == SPELL_SLOW
-                        || m_armies[side][armyIndex].m_spellEffect == SPELL_BLIND
-                        || m_armies[side][armyIndex].m_spellEffect == SPELL_CURSE
-                        || m_armies[side][armyIndex].m_spellEffect == SPELL_BERZERKER
-                        || m_armies[side][armyIndex].m_spellEffect == SPELL_PARALYZE)
-                        m_armies[side][armyIndex].m_animationSequence = ARMY_ANIMATION_EFFECT;
-                }
-            }
+    for (int index = 0; index < count; ++index)
+        affected[index]->m_animationSequence = ARMY_ANIMATION_EFFECT;
+    for (int pass = 0; pass < 2; ++pass) {
+        for (i16 frame = 0; frame < 10; ++frame) {
+            m_gridUpdateRow = 0;
+            gSpellEffectFrame = frame;
+            DrawFrame(true);
         }
     }
-    for (armyIndex = 0; armyIndex < 10; armyIndex++) {
-        m_gridUpdateRow = 0;
-        gSpellEffectFrame = armyIndex;
-        DrawFrame(true);
+    for (int index = 0; index < count; ++index) {
+        army& target = *affected[index];
+        target.m_animationSequence = ARMY_ANIMATION_STAND;
+        target.m_animationFrame = 1;
+        target.CancelSpell();
     }
-    for (armyIndex = 0; armyIndex < 10; armyIndex++) {
-        m_gridUpdateRow = 0;
-        gSpellEffectFrame = armyIndex;
-        DrawFrame(true);
-    }
-    if (castSide == COMBAT_SIDE_ANY) {
-        CancelSideSpells(COMBAT_DEFENDER_SIDE, cureOnly);
-        CancelSideSpells(COMBAT_ATTACKER_SIDE, cureOnly);
-    } else
-        CancelSideSpells(castSide, cureOnly);
     DrawFrame(true);
-}
-
-void combatManager::CancelSideSpells(i8 side, b8 cureOnly) {
-    army* target;
-    i16 armyIndex;
-
-    for (armyIndex = 0; armyIndex < m_numArmies[side]; armyIndex++) {
-        target = &m_armies[side][armyIndex];
-        target->m_animationSequence = ARMY_ANIMATION_STAND;
-        target->m_animationFrame = 1;
-        if (target->m_spellEffect != SPELL_ANTI_MAGIC && target->m_spellEffect != SPELL_DISPEL_MAGIC
-            && target->m_creatureType != CREATURE_DRAGON) {
-            if (cureOnly == true) {
-                switch (target->m_spellEffect) {
-                    case SPELL_SLOW:
-                    case SPELL_BLIND:
-                    case SPELL_CURSE:
-                    case SPELL_BERZERKER:
-                    case SPELL_PARALYZE:
-                        target->CancelSpell();
-                        break;
-                    default:
-                        break;
-                }
-            } else
-                target->CancelSpell();
-        }
-    }
+    return count;
 }
 
 void combatManager::Fireball(i8 targetHex) {
