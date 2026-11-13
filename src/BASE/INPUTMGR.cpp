@@ -147,9 +147,13 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
         case INPUT_MESSAGE_MOUSE_MOVE:
             event->type = MESSAGE_MOUSE_MOVE;
             goto mouseCoordinates;
-        case INPUT_MESSAGE_LEFT_DOUBLE:
-            event->type = MESSAGE_LEFT_BUTTON_DOWN;
+        case INPUT_MESSAGE_MOUSE_WHEEL:
+            event->type = MESSAGE_MOUSE_WHEEL;
+            event->value = static_cast<i32>(keyFlags);
             goto mouseCoordinates;
+        case INPUT_MESSAGE_LEFT_DOUBLE:
+            event->modifiers = MESSAGE_MODIFIER_DOUBLE_CLICK;
+            [[fallthrough]];
         case INPUT_MESSAGE_LEFT_DOWN:
             event->type = MESSAGE_LEFT_BUTTON_DOWN;
             KBCaptureMouse();
@@ -181,7 +185,6 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
             gMouseManager->SetPointer(MOUSE_KEEP_CURRENT_FRAME);
     }
 
-    event->modifiers = MESSAGE_MODIFIER_NONE;
 #ifndef HOMM1_EDITOR
     if ((event->type == MESSAGE_LEFT_BUTTON_DOWN || event->type == MESSAGE_RIGHT_BUTTON_DOWN)
         && gCombatManager && gCombatManager->RequestAutoCombatStop()) {
@@ -192,7 +195,7 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
     if (event->type != MESSAGE_NONE) {
         if (event->type != MESSAGE_MOUSE_MOVE)
             gInputManager->m_tapKey = INPUT_SCAN_NONE;
-        event->modifiers = gInputManager->m_modifiers;
+        event->modifiers |= gInputManager->m_modifiers;
         gInputManager->m_writeIndex++;
         gInputManager->m_writeIndex %= INPUT_EVENT_RING_CAPACITY;
         if (gInputManager->m_readIndex == gInputManager->m_writeIndex) {

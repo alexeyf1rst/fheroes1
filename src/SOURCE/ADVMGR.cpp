@@ -69,6 +69,17 @@ i32 s_drawStoneTile;
 namespace {
 constexpr int kAdventureIndicators = 3000;
 
+bool ReorderLocator(i8* ids, i8& page, i32 index, i16 modifiers) {
+    if (gRemoteOn || !(modifiers & (MESSAGE_MODIFIER_SHIFT_KEYS | MESSAGE_MODIFIER_ALT)))
+        return false;
+    if (modifiers & MESSAGE_MODIFIER_DOUBLE_CLICK)
+        return true;
+    const i32 target = modifiers & MESSAGE_MODIFIER_SHIFT_KEYS ? 0 : std::max(0, index - 1);
+    std::rotate(ids + target, ids + index, ids + index + 1);
+    page = std::min<i32>(page, target);
+    return true;
+}
+
 class AdventureIndicators : public textWidget {
 public:
     AdventureIndicators() : textWidget(0, 0, 640, 480, strdup(""), "smalfont.fnt",
@@ -194,6 +205,8 @@ i16 advManager::Open(i16 id) {
     platform::BeginDisplayUpdate();
     firstTime = true;
     m_previewCost = -1;
+    m_heroWheelDelta = 0;
+    m_townWheelDelta = 0;
     gCurBottomView = BOTTOM_VIEW_NONE;
     m_heroesLogoShown = false;
     gShowIt = false;
@@ -369,7 +382,7 @@ i16 advManager::Open(i16 id) {
     gTimers[ADVENTURE_FRAME_TIMER_SLOT] = KBTickCount() + TIMER_DELAY;
     m_messageTypeMask = MESSAGE_KEY_DOWN | MESSAGE_KEY_UP | MESSAGE_MOUSE_MOVE
                         | MESSAGE_LEFT_BUTTON_DOWN | MESSAGE_RIGHT_BUTTON_DOWN | 0x100
-                        | MESSAGE_WIDGET;
+                        | MESSAGE_WIDGET | MESSAGE_MOUSE_WHEEL;
     gMouseManager->NewUpdate(true);
     oldVolume = gConfig.soundVolume;
     if (gConfig.soundVolume != SOUND_VOLUME_OFF)
@@ -679,6 +692,9 @@ i16 advManager::Main(struct tag_message& message) {
     location = NULL;
     if (message.type) {
         switch (message.type) {
+            case MESSAGE_MOUSE_WHEEL:
+                ScrollLocators(message);
+                break;
             case MESSAGE_WIDGET:
                 switch (message.command) {
                     case WIDGET_COMMAND_HOVER:
@@ -1049,7 +1065,7 @@ void advManager::Reseed(i32, i32) {
 
 i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** eventCell) {
     i32 locatorIndex;
-    i32 heroListIndex;
+    i32 listIndex;
     i16 mouseX;
     i16 pickedObject;
     i16 mouseY;
@@ -1060,6 +1076,7 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
     tag_message inputMessage;
     b8 mobileResult;
     hero* currentHero;
+    const bool doubleClick = message->modifiers & MESSAGE_MODIFIER_DOUBLE_CLICK;
 
     visible = true;
     switch (message->id) {
@@ -1069,10 +1086,10 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
         case ADVENTURE_CONTROL_HERO_LOCATOR_4:
             locatorIndex = (message->id - ADVENTURE_CONTROL_HERO_LOCATOR_1)
                            / (ADVENTURE_CONTROL_HERO_LOCATOR_2 - ADVENTURE_CONTROL_HERO_LOCATOR_1);
-            heroListIndex = gCurPlayerData->m_heroLocatorPage + locatorIndex;
-            if (heroListIndex >= gCurPlayerData->m_heroCount)
+            listIndex = gCurPlayerData->m_heroLocatorPage + locatorIndex;
+            if (listIndex < 0 || listIndex >= gCurPlayerData->m_heroCount)
                 break;
-            pickedObject = gCurPlayerData->m_heroIds[heroListIndex];
+            pickedObject = gCurPlayerData->m_heroIds[listIndex];
             if (message->modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) {
                 HeroQuickView(
                     pickedObject,
@@ -1080,40 +1097,47 @@ i32 advManager::ProcessSelect(struct tag_message* message, class mapCell** event
                     QUICK_VIEW_AT_LOCATOR,
                     QUICK_VIEW_AT_LOCATOR
                 );
-            } else if (!gRemoteOn && (message->modifiers & MESSAGE_MODIFIER_SHIFT_KEYS)) {
-                i8* heroes = gCurPlayerData->m_heroIds;
-                std::rotate(heroes, heroes + heroListIndex, heroes + heroListIndex + 1);
-                gCurPlayerData->m_heroLocatorPage = 0;
+            } else if (ReorderLocator(gCurPlayerData->m_heroIds, gCurPlayerData->m_heroLocatorPage,
+                                      listIndex, message->modifiers)) {
                 UpdateHeroLocators(true, true);
-            } else if (pickedObject == gCurPlayerData->CurrentHero()) {
-                m_pendingCommand = ADVMGR_COMMAND_HERO_VIEW;
-                DoAdvCommand();
             } else {
-                HideRoute(true, false, true);
-                SetHeroContext(pickedObject, false);
+                if (pickedObject != gCurPlayerData->CurrentHero()) {
+                    HideRoute(true, false, true);
+                    SetHeroContext(pickedObject, false);
+                }
+                if (doubleClick) {
+                    m_pendingCommand = ADVMGR_COMMAND_HERO_VIEW;
+                    DoAdvCommand();
+                }
             }
             break;
         case ADVENTURE_CONTROL_TOWN_LOCATOR_1:
         case ADVENTURE_CONTROL_TOWN_LOCATOR_2:
         case ADVENTURE_CONTROL_TOWN_LOCATOR_3:
         case ADVENTURE_CONTROL_TOWN_LOCATOR_4:
-            pickedObject = gCurPlayerData->m_townIds
-                               [gCurPlayerData->m_townLocatorPage + message->id
-                                - ADVENTURE_CONTROL_TOWN_LOCATOR_1];
+            locatorIndex = message->id - ADVENTURE_CONTROL_TOWN_LOCATOR_1;
+            listIndex = gCurPlayerData->m_townLocatorPage + locatorIndex;
+            if (listIndex < 0 || listIndex >= gCurPlayerData->m_townCount)
+                break;
+            pickedObject = gCurPlayerData->m_townIds[listIndex];
             if (message->modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) {
                 TownQuickView(
                     pickedObject,
-                    message->id - ADVENTURE_CONTROL_TOWN_LOCATOR_1,
+                    locatorIndex,
                     QUICK_VIEW_AT_LOCATOR,
                     QUICK_VIEW_AT_LOCATOR
                 );
+            } else if (ReorderLocator(gCurPlayerData->m_townIds, gCurPlayerData->m_townLocatorPage,
+                                      listIndex, message->modifiers)) {
+                UpdateTownLocators(true, true);
             } else {
-                HideRoute(true, false, true);
-                if (pickedObject == gCurPlayerData->CurrentTown()) {
+                if (pickedObject != gCurPlayerData->CurrentTown()) {
+                    HideRoute(true, false, true);
+                    SetTownContext(pickedObject);
+                }
+                if (doubleClick) {
                     m_pendingCommand = ADVMGR_COMMAND_TOWN_VIEW;
                     *eventCell = DoAdvCommand();
-                } else {
-                    SetTownContext(pickedObject);
                 }
             }
             break;
@@ -2934,6 +2958,36 @@ void advManager::UpdateHeroLocators(b8 drawWindow, b8 updateScreen) {
         m_adventureWindow->DrawWindow(updateScreen);
 }
 
+void advManager::ScrollLocators(const tag_message& message) {
+    if (gAllBlack)
+        return;
+
+    for (int column = 0; column < 2; ++column) {
+        const auto& portraits = *m_panelBackdrops[column];
+        const auto& scrollbar = *m_panelBackdrops[column + 2];
+        if (message.x < portraits.m_x || message.x >= scrollbar.m_x + scrollbar.m_width
+            || message.y < portraits.m_y || message.y >= portraits.m_y + portraits.m_height)
+            continue;
+
+        const bool town = column == 1;
+        i8& page = town ? gCurPlayerData->m_townLocatorPage : gCurPlayerData->m_heroLocatorPage;
+        const i32 count = town ? gCurPlayerData->m_townCount : gCurPlayerData->m_heroCount;
+        i32& wheelDelta = town ? m_townWheelDelta : m_heroWheelDelta;
+        wheelDelta += message.value;
+        const i32 lastPage = std::max(0, count - LOCATOR_VISIBLE_COUNT);
+        const i32 nextPage = std::clamp(page - wheelDelta / INPUT_WHEEL_STEP, 0, lastPage);
+        wheelDelta %= INPUT_WHEEL_STEP;
+        if (nextPage == page)
+            return;
+        page = nextPage;
+        if (town)
+            UpdateTownLocators(true, true);
+        else
+            UpdateHeroLocators(true, true);
+        return;
+    }
+}
+
 void advManager::UpdateTownLocators(b8 drawWindow, b8 updateScreen) {
     i16 i;
     i8 whichTown;
@@ -4526,12 +4580,11 @@ void advManager::DoTownKnob(void) {
 void advManager::ViewPuzzle(void) {
     i32 puzzleX;
     i32 puzzleY;
-    i8 visibleCount;
     icon* puzzleIcn;
     heroWindow* puzzleWindow;
     i16 j;
 
-    visibleCount = 0;
+    const bool hasRevealedPieces = gCurPlayerData->CountPuzzlePiecesRemoved() > 0;
     PlayMusic(MUSIC_TRACK_PUZZLE);
     gMouseManager->SetPointer("advmice.mse", ADVENTURE_POINTER_DEFAULT);
     puzzleIcn = gResourceManager->GetIcon("puzzle.icn");
@@ -4543,49 +4596,47 @@ void advManager::ViewPuzzle(void) {
         ADVENTURE_VIEWPORT_INNER_SIZE,
         ADVENTURE_VIEWPORT_INNER_SIZE
     );
-    gWindowManager->SaveFizzleSource(
-        BORDER_EDGE_SIZE,
-        BORDER_EDGE_SIZE,
-        ADVENTURE_VIEWPORT_INNER_SIZE,
-        ADVENTURE_VIEWPORT_INNER_SIZE
-    );
     puzzleWindow = new heroWindow(RADAR_LEFT, RADAR_TOP, "viewpuzl.bin");
     if (!puzzleWindow)
         MemError();
     gWindowManager->AddWindow(puzzleWindow, WINDOW_Z_ORDER_APPEND, true);
 
-    puzzleX = gGame->m_ultimateArtifactX - ADVMGR_VIEW_CENTER;
-    puzzleY = gGame->m_ultimateArtifactY - ADVMGR_VIEW_CENTER;
-    i32 xOff = 0;
-    i32 yOff = 0;
-    xOff = (gGame->m_ultimateArtifactX + gGame->m_ultimateArtifactY) % PUZZLE_ALIGNMENT_DIVISOR - 1;
-    yOff = (gGame->m_ultimateArtifactX * PUZZLE_Y_ADJUST_X_FACTOR
-            + gGame->m_ultimateArtifactY * PUZZLE_Y_ADJUST_Y_FACTOR)
-               % PUZZLE_ALIGNMENT_DIVISOR
-           - 1;
-    if ((gGame->m_ultimateArtifactX + gGame->m_ultimateArtifactY) % PUZZLE_ALIGNMENT_DIVISOR == 1) {
-        if (xOff > 0)
-            xOff++;
-        else if (xOff < 0)
-            xOff--;
-    } else if ((gGame->m_ultimateArtifactX + gGame->m_ultimateArtifactY) % PUZZLE_PARITY_DIVISOR
-               == 1) {
-        if (yOff > 0)
-            yOff++;
-        else if (yOff < 0)
-            yOff--;
-    }
-    puzzleX += xOff;
-    puzzleY += yOff;
-    PuzzleDraw(puzzleX, puzzleY, gGame->m_ultimateArtifactX, gGame->m_ultimateArtifactY);
-
-    for (j = 0; j < PUZZLE_PIECE_COUNT; j++) {
-        if (!BitTest(gCurPlayerData->m_puzzlePiecesRemoved, j)) {
-            puzzleIcn->DrawToBuffer(0, 0, j, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
-            visibleCount++;
+    if (hasRevealedPieces) {
+        gWindowManager->SaveFizzleSource(
+            BORDER_EDGE_SIZE,
+            BORDER_EDGE_SIZE,
+            ADVENTURE_VIEWPORT_INNER_SIZE,
+            ADVENTURE_VIEWPORT_INNER_SIZE
+        );
+        puzzleX = gGame->m_ultimateArtifactX - ADVMGR_VIEW_CENTER;
+        puzzleY = gGame->m_ultimateArtifactY - ADVMGR_VIEW_CENTER;
+        i32 xOff = 0;
+        i32 yOff = 0;
+        xOff = (gGame->m_ultimateArtifactX + gGame->m_ultimateArtifactY) % PUZZLE_ALIGNMENT_DIVISOR - 1;
+        yOff = (gGame->m_ultimateArtifactX * PUZZLE_Y_ADJUST_X_FACTOR
+                + gGame->m_ultimateArtifactY * PUZZLE_Y_ADJUST_Y_FACTOR)
+                   % PUZZLE_ALIGNMENT_DIVISOR
+               - 1;
+        if ((gGame->m_ultimateArtifactX + gGame->m_ultimateArtifactY) % PUZZLE_ALIGNMENT_DIVISOR == 1) {
+            if (xOff > 0)
+                xOff++;
+            else if (xOff < 0)
+                xOff--;
+        } else if ((gGame->m_ultimateArtifactX + gGame->m_ultimateArtifactY) % PUZZLE_PARITY_DIVISOR
+                   == 1) {
+            if (yOff > 0)
+                yOff++;
+            else if (yOff < 0)
+                yOff--;
         }
-    }
-    if (visibleCount != PUZZLE_PIECE_COUNT) {
+        puzzleX += xOff;
+        puzzleY += yOff;
+        PuzzleDraw(puzzleX, puzzleY, gGame->m_ultimateArtifactX, gGame->m_ultimateArtifactY);
+
+        for (j = 0; j < PUZZLE_PIECE_COUNT; j++) {
+            if (!BitTest(gCurPlayerData->m_puzzlePiecesRemoved, j))
+                puzzleIcn->DrawToBuffer(0, 0, j, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
+        }
         gMouseManager->ReallyHidePointer();
         gWindowManager->FizzleForward(
             BORDER_EDGE_SIZE,
@@ -4595,8 +4646,6 @@ void advManager::ViewPuzzle(void) {
             PUZZLE_FIZZLE_TIME
         );
         gMouseManager->ReallyShowPointer();
-    } else {
-        gWindowManager->ReleaseFizzleSource();
     }
 
     puzzleWindow->SetConfirmButton(DIALOG_BUTTON_0, true);

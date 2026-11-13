@@ -178,13 +178,14 @@ int NamedScanCode(const std::string& name, bool& arrowKey) {
     return static_cast<int>(std::strtol(name.c_str(), nullptr, 0));
 }
 
-void QueueMouse(Event::Type type, Event::Button button, int x, int y) {
+void QueueMouse(Event::Type type, Event::Button button, int x, int y, bool doubleClick = false) {
     gReplayX = std::clamp(x, 0, DISPLAY_WIDTH - 1);
     gReplayY = std::clamp(y, -ChromeBar(), DISPLAY_HEIGHT - 1);
     sdl::SetPointer(gReplayX, gReplayY, true);
     Event event;
     event.type = type;
     event.button = button;
+    event.doubleClick = doubleClick;
     event.x = gReplayX;
     event.y = gReplayY;
     gPending.push_back(event);
@@ -217,10 +218,14 @@ void RunReplayAction(const ReplayAction& action) {
         QueueMouse(Event::MOUSE_DOWN, Event::BUTTON_RIGHT, x, y);
     } else if (action.verb == "right-up") {
         QueueMouse(Event::MOUSE_UP, Event::BUTTON_RIGHT, x, y);
-    } else if (action.verb == "click") {
+    } else if (action.verb == "click" || action.verb == "double-click") {
         QueueMouse(Event::MOUSE_MOVE, Event::BUTTON_LEFT, x, y);
         QueueMouse(Event::MOUSE_DOWN, Event::BUTTON_LEFT, x, y);
         QueueMouse(Event::MOUSE_UP, Event::BUTTON_LEFT, x, y);
+        if (action.verb == "double-click") {
+            QueueMouse(Event::MOUSE_DOWN, Event::BUTTON_LEFT, x, y, true);
+            QueueMouse(Event::MOUSE_UP, Event::BUTTON_LEFT, x, y);
+        }
     } else if (action.verb == "key-down" || action.verb == "key-up" || action.verb == "key") {
         bool arrowKey = false;
         int code = action.arguments.empty() ? 0 : NamedScanCode(action.arguments[0], arrowKey);
@@ -231,6 +236,8 @@ void RunReplayAction(const ReplayAction& action) {
     } else if (action.verb == "wheel") {
         Event event;
         event.type = Event::MOUSE_WHEEL;
+        event.x = gReplayX;
+        event.y = gReplayY;
         event.wheelY = static_cast<float>(x);
         gPending.push_back(event);
     } else if (action.verb == "shot") {
@@ -322,12 +329,17 @@ bool Translate(const SDL_Event& source, Event& event) {
                              || source.key.scancode == SDL_SCANCODE_LEFT || source.key.scancode == SDL_SCANCODE_RIGHT;
             return true;
         }
-        case SDL_EVENT_MOUSE_WHEEL:
+        case SDL_EVENT_MOUSE_WHEEL: {
             if (gReplayActive)
+                return false;
+            bool inside;
+            sdl::WindowToDisplay(source.wheel.mouse_x, source.wheel.mouse_y, event.x, event.y, inside);
+            if (!inside)
                 return false;
             event.type = Event::MOUSE_WHEEL;
             event.wheelY = source.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -source.wheel.y : source.wheel.y;
             return true;
+        }
         case SDL_EVENT_MOUSE_MOTION: {
             if (gReplayActive)
                 return false;

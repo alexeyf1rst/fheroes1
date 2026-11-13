@@ -1,6 +1,9 @@
 #include <H1/Ints.h>
 
 #include <BASE/baseManager.h>
+#include <BASE/bitmap.h>
+#include <BASE/bmap2.h>
+#include <BASE/border.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -35,6 +38,32 @@ enum MeetingControl {
 bool CanTradeArtifact(i8 artifact) {
     return artifact != ARTIFACT_MAGIC_BOOK && artifact != ARTIFACT_FIZBIN_OF_MISFORTUNE;
 }
+
+void RemoveMeetingBackgroundArrows(heroWindow& window) {
+    for (widget* item = window.m_widgetListHead; item; item = item->m_next) {
+        auto* backdrop = dynamic_cast<border*>(item);
+        if (!backdrop || !backdrop->m_background)
+            continue;
+        bitmap* original = backdrop->m_background;
+        constexpr i16 left = 196;
+        constexpr i16 width = 56;
+        constexpr i16 rightArrowTop = 261;
+        constexpr i16 leftArrowTop = 307;
+        constexpr i16 height = 27;
+        constexpr i16 woodTop = 347;
+        if (original->m_width < left + width || original->m_height < woodTop + height)
+            return;
+        // Both arrows are baked into the bitmap. Patch them with neighboring
+        // wood grain on a private copy of the meeting backdrop.
+        auto* background = new bitmap(BITMAP_TYPE_MEMORY, original->m_width, original->m_height);
+        background->GrabBitmap(original, 0, 0);
+        BlitBitmap(original, left, rightArrowTop - 32, width, height, background, left, rightArrowTop);
+        BlitBitmap(original, left, woodTop, width, height, background, left, leftArrowTop);
+        backdrop->m_background = background;
+        gResourceManager->Dispose(original);
+        return;
+    }
+}
 }
 
 swapManager::swapManager(void) {
@@ -66,11 +95,12 @@ i16 swapManager::Open(i16 id) {
     m_window = new heroWindow(16, 16, "swapwin.bin");
     if (!m_window)
         MemError();
+    RemoveMeetingBackgroundArrows(*m_window);
     SetWinText(m_window, WINDOW_TEXT_SWAP);
     const goldButton::Mark arrows[] = {goldButton::Left, goldButton::Right, goldButton::Exchange};
     constexpr i16 columns[] = {2, 0, 1};
     for (i16 index = 0; index < 6; ++index) {
-        const i16 y = index < 3 ? 192 : 335;
+        const i16 y = index < 3 ? 192 : 218;
         auto* button = new goldButton(176 + columns[index % 3] * 36, y, 32, 22,
                                       TROOPS_LEFT + index, "", arrows[index % 3]);
         m_window->AddWidget(button, WINDOW_Z_ORDER_APPEND);

@@ -180,10 +180,10 @@ void PostKey(u32 message, const platform::Event& event) {
     KeyboardMessageHandler(NULL, message, virtualKey, messageData);
 }
 
-void PostMouse(u32 message, const platform::Event& event) {
+void PostMouse(u32 message, const platform::Event& event, u32 keyFlags = 0) {
     i32 messageData =
         static_cast<i32>((static_cast<u32>(event.y) << 16) | static_cast<u32>(event.x));
-    MouseMessageHandler(NULL, message, 0, messageData);
+    MouseMessageHandler(NULL, message, keyFlags, messageData);
 }
 
 // The original's WM_CLOSE: confirm leaving an unsaved game, then end.
@@ -258,7 +258,13 @@ void Dispatch(const platform::Event& event) {
             break;
         case platform::Event::MOUSE_WHEEL:
 #ifndef HOMM1_EDITOR
-            combatManager::ScrollCombatHistory(event.wheelY);
+            if (onAdventure && event.y >= 0) {
+                const i32 wheelDelta = static_cast<i32>(event.wheelY * INPUT_WHEEL_STEP);
+                if (wheelDelta != 0)
+                    PostMouse(INPUT_MESSAGE_MOUSE_WHEEL, event, static_cast<u32>(wheelDelta));
+            } else {
+                combatManager::ScrollCombatHistory(event.wheelY);
+            }
 #endif
             break;
         case platform::Event::MOUSE_MOVE:

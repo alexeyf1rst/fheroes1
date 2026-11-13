@@ -193,6 +193,8 @@ public:
     class mapCell (*m_mapData)[MAP_CELL_GRID_SIZE];
     class iconWidget* m_heroScrollKnob;
     class iconWidget* m_townScrollKnob;
+    i32 m_heroWheelDelta = 0;
+    i32 m_townWheelDelta = 0;
     class backdropWidget* m_panelBackdrops[ADVMGR_PANEL_ICON_COUNT];
     u8* m_adventureBorder;
     char m_unusedc3[4];
@@ -280,6 +282,7 @@ public:
     }
     void Reseed(i32, i32);
     i32 ProcessSelect(struct tag_message* message, class mapCell** eventCell);
+    void ScrollLocators(const struct tag_message& message);
     i32 ProcessDeSelect(i16 control, i32* result, class mapCell** eventCell);
     b32 ProcessSearch(i32 x, i32 y);
     i32 ProcessHover(struct tag_message* message);
@@ -767,7 +770,7 @@ enum AdventurePuzzleViewConstant {
     PUZZLE_Y_ADJUST_X_FACTOR = 2,
     PUZZLE_Y_ADJUST_Y_FACTOR = 5,
     PUZZLE_PARITY_DIVISOR = 2,
-    PUZZLE_FIZZLE_TIME = 220
+    PUZZLE_FIZZLE_TIME = 40
 };
 
 enum AdventureStateConstant {

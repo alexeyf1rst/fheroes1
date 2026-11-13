@@ -155,7 +155,7 @@ bool ShouldRepeatMusic(int track) {
 void PlayMusic(int track) {
     if (!gAudioReady || MusicSuspended())
         return;
-    const bool background = IsBattleMusic(track)
+    const bool background = IsBattleMusic(track) || track == MUSIC_TRACK_PUZZLE
                             || (track >= MUSIC_TRACK_TOWN_FIRST && track <= MUSIC_TRACK_TOWN_LAST);
     if (track == gCurrentTrack) {
         if (!platform::MusicPlaying() && ValidTrack(track))
