@@ -1232,16 +1232,6 @@ msgid "help.index"
 msgstr "Указатель"
 
 #: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.adventure_stats"
-msgstr "У%d, %d ОХ"
-
-#: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.adventure_stats.compact"
-msgstr "У%d %d"
-
-#: src/SOURCE/HERO.cpp
 msgid "hero.dismiss.confirm"
 msgstr "Вы действительно хотите уволить героя?"
 
@@ -1250,10 +1240,25 @@ msgstr "Вы действительно хотите уволить героя?"
 msgid "hero.experience.details"
 msgstr "%d уровень\n\n%d оч. опыта\nСледующий уровень: %d"
 
+#: src/SOURCE/ADVMGR.cpp src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.level.short"
+msgstr "У%d"
+
 #: src/SOURCE/SWAPMGR.cpp
 #, c-format
 msgid "hero.meeting.title"
 msgstr "Встречаются %s и %s"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.move_points"
+msgstr "Ход %d/%d"
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "hero.quick.name_with_level"
+msgstr "%s (Ур. %d)"
 
 #: src/SOURCE/VIEW.cpp
 #, c-format
@@ -1264,11 +1269,6 @@ msgstr "%s %s"
 #, c-format
 msgid "hero.title.with_level"
 msgstr "%s - %s   (Уровень %d)"
-
-#: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.title.with_stats"
-msgstr "%s - %s  (%s)"
 
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"

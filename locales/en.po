@@ -1232,16 +1232,6 @@ msgid "help.index"
 msgstr "Index"
 
 #: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.adventure_stats"
-msgstr "L%d, %d MP"
-
-#: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.adventure_stats.compact"
-msgstr "L%d %d"
-
-#: src/SOURCE/HERO.cpp
 msgid "hero.dismiss.confirm"
 msgstr "Are you sure you want to dismiss this Hero?"
 
@@ -1250,10 +1240,25 @@ msgstr "Are you sure you want to dismiss this Hero?"
 msgid "hero.experience.details"
 msgstr "Level %d\n\nCurrent experience %d\nNext level %d"
 
+#: src/SOURCE/ADVMGR.cpp src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.level.short"
+msgstr "L%d"
+
 #: src/SOURCE/SWAPMGR.cpp
 #, c-format
 msgid "hero.meeting.title"
 msgstr "%s meets %s"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.move_points"
+msgstr "MP %d/%d"
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "hero.quick.name_with_level"
+msgstr "%s (Level %d)"
 
 #: src/SOURCE/VIEW.cpp
 #, c-format
@@ -1264,11 +1269,6 @@ msgstr "%s the %s"
 #, c-format
 msgid "hero.title.with_level"
 msgstr "%s the %s   (Level %d)"
-
-#: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.title.with_stats"
-msgstr "%s the %s  (%s)"
 
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"

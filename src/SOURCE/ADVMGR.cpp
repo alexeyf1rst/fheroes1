@@ -69,7 +69,6 @@ i32 s_drawStoneTile;
 namespace {
 constexpr int kAdventureIndicators = 3000;
 constexpr int kLocatorStatsId = 3010;
-constexpr int kMapHeroStatsWidth = 42;
 constexpr int kRadarHeroHitRadius = 3;
 
 bool OwnHeroVisible(const hero& subject) {
@@ -80,7 +79,7 @@ bool OwnHeroVisible(const hero& subject) {
 class HeroLocatorStats : public textWidget {
 public:
     explicit HeroLocatorStats(i16 slot)
-        : textWidget(492, 191 + slot * 32, 42, 11, strdup(""), "smalfont.fnt",
+        : textWidget(493, 178 + slot * 32, 39, 24, strdup(""), "smalfont.fnt",
                      TEXT_WIDGET_PLAIN_COLOR, kLocatorStatsId + slot, WIDGET_KIND_TEXT),
           m_slot(slot) {
         m_flags &= ~WIDGET_FLAG_ENABLED;
@@ -91,10 +90,23 @@ public:
         if (gAllBlack || !gThisNetHumanPlayer[gCurPlayer]
             || index < 0 || index >= gCurPlayerData->m_heroCount)
             return;
-        gGame->GetHero(gCurPlayerData->m_heroIds[index])->DrawAdventureStats(*m_font, m_x, m_y, m_width, true);
+        hero* subject = gGame->GetHero(gCurPlayerData->m_heroIds[index]);
+        char text[24];
+        snprintf(text, sizeof(text), localization::Tr("hero.level.short"), subject->GetLevel(subject->m_experience));
+        DrawRightAligned(text, m_y);
+        snprintf(text, sizeof(text), "%d", subject->GetMovementPoints());
+        DrawRightAligned(text, m_y + 13);
     }
 
 private:
+    void DrawRightAligned(char* text, i16 y) {
+        const i16 x = m_x + m_width - m_font->LineWidth(text);
+        m_font->DrawString(text, x - 1, y, 0);
+        m_font->DrawString(text, x + 1, y, 0);
+        m_font->DrawString(text, x + 1, y + 1, 0);
+        m_font->DrawString(text, x, y, m_color);
+    }
+
     i16 m_slot;
 };
 
@@ -174,8 +186,13 @@ public:
 
     void Draw() override {
         const i8 id = gCurPlayerData->CurrentHero();
-        if (id != HERO_ID_NONE && !gAllBlack)
-            gGame->GetHero(id)->DrawAdventureStats(*m_font, m_x, m_y, m_width, true);
+        if (id == HERO_ID_NONE || gAllBlack)
+            return;
+        hero* subject = gGame->GetHero(id);
+        char text[24];
+        snprintf(text, sizeof(text), localization::Tr("hero.level.short"), subject->GetLevel(subject->m_experience));
+        m_font->DrawBoundedString(text, m_x, m_y, m_width, m_font->m_height,
+                                  m_color, FONT_ALIGN_CENTER);
     }
 };
 }
@@ -1892,8 +1909,6 @@ void advManager::UpdateScreen(b8 cursorUpdate, b8 forceUpdate) {
         return;
     }
     m_adventureWindow->DrawWindow(0, kAdventureIndicators, kAdventureIndicators);
-    if (!gHeroMoving && !m_scrollOffsetX && !m_scrollOffsetY)
-        DrawMapHeroStats(m_mapOriginX, m_mapOriginY);
     gMouseManager
         ->SaveAndDraw(gWindowManager->m_screen, m_scrollOffsetX, m_scrollOffsetY, cursorUpdate);
     PollSound();
@@ -1943,44 +1958,6 @@ void advManager::UpdateScreen(b8 cursorUpdate, b8 forceUpdate) {
     gLimitUpdMinX = UPDATE_NONE;
     gMouseManager->RestoreUnderlying();
     Process1WindowsMessage();
-}
-
-void advManager::DrawMapHeroStats(i16 originX, i16 originY) {
-    if (gAllBlack || !gThisNetHumanPlayer[gCurPlayer] || !gCurPlayerData->m_heroCount)
-        return;
-    font* labelFont = gResourceManager->GetFont("smalfont.fnt");
-    const i16 height = labelFont->m_height + 2;
-    for (i32 i = 0; i < gCurPlayerData->m_heroCount; ++i) {
-        hero* subject = gGame->GetHero(gCurPlayerData->m_heroIds[i]);
-        if (!OwnHeroVisible(*subject))
-            continue;
-        const int centerX = (subject->m_x - originX) * CELL_PIXELS + CELL_PIXELS / 2;
-        const int centerY = (subject->m_y - originY) * CELL_PIXELS + CELL_PIXELS / 2;
-        if (centerX < BORDER_EDGE_SIZE || centerX >= BORDER_MIDDLE_END
-            || centerY < BORDER_EDGE_SIZE || centerY >= BORDER_MIDDLE_END)
-            continue;
-        int y = centerY + CELL_PIXELS / 2;
-        // Stagger nearby labels so both sets of numbers stay readable.
-        for (i32 other = 0; other < gCurPlayerData->m_heroCount; ++other) {
-            const hero& neighbor = *gGame->GetHero(gCurPlayerData->m_heroIds[other]);
-            if ((subject->m_x & 1) && subject->m_y == neighbor.m_y
-                && abs(subject->m_x - neighbor.m_x) == 1 && OwnHeroVisible(neighbor)) {
-                y += height;
-                break;
-            }
-        }
-        const i16 left = std::clamp(centerX - kMapHeroStatsWidth / 2,
-                                    int(BORDER_EDGE_SIZE), BORDER_MIDDLE_END - kMapHeroStatsWidth);
-        const i16 top = std::min(y, BORDER_MIDDLE_END - height);
-        subject->DrawAdventureStats(*labelFont, left, top, kMapHeroStatsWidth, true);
-        if (gLimitUpdMinX != UPDATE_NONE) {
-            gLimitUpdMinX = std::min<i32>(gLimitUpdMinX, left);
-            gLimitUpdMinY = std::min<i32>(gLimitUpdMinY, top);
-            gLimitUpdMaxX = std::max<i32>(gLimitUpdMaxX, left + kMapHeroStatsWidth);
-            gLimitUpdMaxY = std::max<i32>(gLimitUpdMaxY, top + height);
-        }
-    }
-    gResourceManager->Dispose(labelFont);
 }
 
 void advManager::CompleteDraw(i16 originX, i16 originY, b32 forceDraw) {
@@ -3004,15 +2981,9 @@ void advManager::UpdateHeroLocator(i32 locatorSlot, b8 drawWindow, b8 updateScre
             message.id = widgetBase + i;
             m_adventureWindow->BroadcastMessage(message);
         }
-        moveFrm = heroPtr->m_remainingMobility * 22 / 60;
-        if (moveFrm < 0)
-            moveFrm = 0;
-        if (moveFrm > 30)
-            moveFrm = 25;
-        else if (moveFrm > 26)
-            moveFrm = 24;
-        else if (moveFrm > 23)
-            moveFrm = 23;
+        moveFrm = gGame->IsMobile(whichHero)
+                      ? std::clamp((heroPtr->GetMovementPoints() + 50) / 100, 0, 25)
+                      : 0;
         message.id = widgetBase + HERO_LOCATOR_MOBILITY;
         message.command = WIDGET_COMMAND_SET_FRAME;
         message.value = moveFrm;
@@ -3913,13 +3884,19 @@ void advManager::HeroQuickView(i8 heroId, i8 locatorSlot, i16 windowX, i16 windo
     msg.id++;
     msg.value++;
     win->BroadcastMessage(msg);
-    sprintf(gText, "%s", targetHero->m_name);
+    const bool showDetails = targetHero->m_owner == gCurPlayer || m_identifyHeroActive;
+    if (showDetails) {
+        snprintf(gText, 200, localization::Tr("hero.quick.name_with_level"),
+                 targetHero->m_name, targetHero->GetLevel(targetHero->m_experience));
+    } else {
+        snprintf(gText, 200, "%s", targetHero->m_name);
+    }
     msg.command = WIDGET_COMMAND_SET_TEXT;
     msg.id = QUICK_VIEW_NAME;
     msg.text = gText;
     win->BroadcastMessage(msg);
     if (targetHero->m_owner == gCurPlayer)
-        targetHero->AddAdventureStats(*win, 109, 39, 61);
+        targetHero->AddAdventureStats(*win, 42, 103, 96, false);
 
     creatureCount = 0;
     for (ii = 0; ii < ARMY_GROUP_SLOT_COUNT; ii++) {
@@ -3949,7 +3926,7 @@ void advManager::HeroQuickView(i8 heroId, i8 locatorSlot, i16 windowX, i16 windo
                 if (monster != CREATURE_NONE) {
                     stackIcons[ii] = new iconWidget(
                         armyStart + ii * ARMY_QUICK_ICON_SIZE,
-                        HERO_QUICK_DETAILED_CREATURE_Y,
+                        HERO_QUICK_DETAILED_CREATURE_Y + (targetHero->m_owner == gCurPlayer ? 6 : 0),
                         ARMY_QUICK_ICON_SIZE,
                         ARMY_QUICK_ICON_SIZE,
                         "mons32.icn",
@@ -5952,22 +5929,6 @@ b8 advManager::ComboDraw(i16 originX, i16 originY, b8 animate) {
         for (drawY = ADVMGR_VIEW_CENTER - 1; drawY <= ADVMGR_VIEW_CENTER + 1; drawY++)
             for (drawX = ADVMGR_VIEW_CENTER - 1; drawX <= ADVMGR_VIEW_CENTER + 1; drawX++)
                 ++gComboDraw[drawX][drawY];
-    }
-    if (!gAllBlack && gThisNetHumanPlayer[gCurPlayer]) {
-        for (i32 i = 0; i < gCurPlayerData->m_heroCount; ++i) {
-            const hero& subject = *gGame->GetHero(gCurPlayerData->m_heroIds[i]);
-            if (!OwnHeroVisible(subject))
-                continue;
-            const i32 x = subject.m_x - originX;
-            const i32 y = subject.m_y - originY;
-            if (x < 0 || x >= ADVMGR_VIEW_CELL_COUNT || y < 0 || y >= ADVMGR_VIEW_CELL_COUNT)
-                continue;
-            for (i32 column = std::max(0, x - 1); column <= std::min(ADVMGR_VIEW_CELL_COUNT - 1, x + 1); ++column) {
-                ++gComboDraw[column][y];
-                if (y + 1 < ADVMGR_VIEW_CELL_COUNT)
-                    ++gComboDraw[column][y + 1];
-            }
-        }
     }
     if (m_cursorType == ADVMGR_HERO_ICON_BOAT) {
         ++gComboDraw[ADVMGR_VIEW_CENTER - 1][ADVMGR_VIEW_CENTER - 2];

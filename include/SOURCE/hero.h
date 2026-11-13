@@ -117,9 +117,10 @@ public:
     void Deallocate(void);
     i32 GetExperience(i32 level);
     i32 GetLevel(i32 experienceValue);
-    void FormatAdventureStats(char* text, size_t capacity);
-    void DrawAdventureStats(class font& labelFont, i16 x, i16 y, i16 width, bool compact = false);
-    void AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width);
+    i32 GetMovementPoints() const;
+    void FormatMovementPoints(char* text, size_t capacity);
+    void DrawMovementPoints(class font& labelFont, i16 x, i16 y, i16 width);
+    void AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width, bool includeLevel = true);
     void ApplyBattleWinTemps(void);
     void ApplyBattleLossTemps(void);
     void CheckLevel(void);

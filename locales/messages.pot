@@ -1233,16 +1233,6 @@ msgid "help.index"
 msgstr ""
 
 #: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.adventure_stats"
-msgstr ""
-
-#: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.adventure_stats.compact"
-msgstr ""
-
-#: src/SOURCE/HERO.cpp
 msgid "hero.dismiss.confirm"
 msgstr ""
 
@@ -1251,9 +1241,24 @@ msgstr ""
 msgid "hero.experience.details"
 msgstr ""
 
+#: src/SOURCE/ADVMGR.cpp src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.level.short"
+msgstr ""
+
 #: src/SOURCE/SWAPMGR.cpp
 #, c-format
 msgid "hero.meeting.title"
+msgstr ""
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.move_points"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "hero.quick.name_with_level"
 msgstr ""
 
 #: src/SOURCE/VIEW.cpp
@@ -1264,11 +1269,6 @@ msgstr ""
 #: src/SOURCE/HERO.cpp
 #, c-format
 msgid "hero.title.with_level"
-msgstr ""
-
-#: src/SOURCE/HERO.cpp
-#, c-format
-msgid "hero.title.with_stats"
 msgstr ""
 
 #: src/PORT/SOURCE/Menu.cpp
