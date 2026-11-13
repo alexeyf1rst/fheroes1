@@ -125,6 +125,8 @@ i16 swapManager::Open(i16 id) {
     message.id = CONTROL_TITLE;
     m_window->BroadcastMessage(message);
     SET_ADVENTURE_BUTTON_FLAGS(message, gAdvManager->m_adventureWindow, WIDGET_COMMAND_CLEAR_FLAGS);
+    m_heroes[SWAP_SIDE_LEFT]->AddAdventureStats(*m_window, 28, 127, 101);
+    m_heroes[SWAP_SIDE_RIGHT]->AddAdventureStats(*m_window, 319, 127, 101);
     Update();
     gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
     KBChangeMenu(gAdventureMenu);

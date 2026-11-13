@@ -232,6 +232,8 @@ i16 townManager::Open(i16 priority) {
         );
         if (m_heroStrip == NULL)
             MemError();
+        gGame->GetHero(m_town->m_occupyingHeroId)->AddAdventureStats(
+            *m_heroStrip->m_window, 7, 86, 94);
         if (m_town->m_buildings & (1 << BUILDING_SLOT_MAGE_GUILD))
             m_town->GiveSpells();
     } else {
@@ -2446,6 +2448,7 @@ b8 townManager::RecruitHero(b8 quickView) {
         );
         if (m_heroStrip == NULL)
             MemError();
+        m_recruitHeroes[m_recruitSlot]->AddAdventureStats(*m_heroStrip->m_window, 7, 86, 94);
         if (m_town->m_buildings & (1 << BUILDING_SLOT_MAGE_GUILD))
             m_town->GiveSpells();
         newHeroClass = gCurPlayerData->m_availableHeroIds[1 - m_recruitSlot] / HERO_PER_CLASS_COUNT;

@@ -1,6 +1,8 @@
 #ifndef HOMM1_SOURCE_HERO_H
 #define HOMM1_SOURCE_HERO_H
 
+#include <stddef.h>
+
 #include <BASE/dialog.h>
 #include <BASE/message.h>
 #include <SOURCE/armyGroup.h>
@@ -9,6 +11,7 @@
 #include <SOURCE/spellTypes.h>
 
 class town;
+class heroWindow;
 
 #define HERO_EVENT_NONE 0x0u
 #define HERO_EVENT_EMBARKED 0x80u
@@ -21,6 +24,7 @@ class town;
 #define HERO_EVENT_STATUE 0x100u
 
 enum HeroConstant {
+    HERO_MOVEMENT_POINT_SCALE = 25,
     HERO_PRIMARY_STAT_COUNT = 4,
     HERO_STARTING_STAT_COUNT = 5,
     HERO_COMBAT_SPELL_SLOT_COUNT = 19,
@@ -113,6 +117,9 @@ public:
     void Deallocate(void);
     i32 GetExperience(i32 level);
     i32 GetLevel(i32 experienceValue);
+    void FormatAdventureStats(char* text, size_t capacity);
+    void DrawAdventureStats(class font& labelFont, i16 x, i16 y, i16 width, bool compact = false);
+    void AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width);
     void ApplyBattleWinTemps(void);
     void ApplyBattleLossTemps(void);
     void CheckLevel(void);

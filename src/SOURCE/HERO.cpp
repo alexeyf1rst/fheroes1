@@ -1,6 +1,8 @@
 #include <H1/Ints.h>
 
 #include <BASE/audio.h>
+#include <BASE/bmap2.h>
+#include <BASE/font.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/inputManager.h>
@@ -8,6 +10,7 @@
 #include <BASE/Misc.h>
 #include <BASE/miscwin.h>
 #include <BASE/resourceManager.h>
+#include <BASE/textWidget.h>
 #include <BASE/widget.h>
 #include <SOURCE/advManager.h>
 #include <SOURCE/armyGroup.h>
@@ -30,6 +33,47 @@
 #include <string.h>
 
 static b8 s_heroArmyReadOnly = false;
+
+namespace {
+class HeroAdventureStats : public textWidget {
+public:
+    HeroAdventureStats(hero& subject, i16 x, i16 y, i16 width)
+        : textWidget(x, y, width, 11, strdup(""), "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
+                     WIDGET_ID_NONE, WIDGET_KIND_TEXT), m_hero(subject) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+
+    void Draw() override {
+        m_hero.DrawAdventureStats(*m_font, m_owner->m_posX + m_x, m_owner->m_posY + m_y, m_width);
+    }
+
+private:
+    hero& m_hero;
+};
+}
+
+void hero::FormatAdventureStats(char* text, size_t capacity) {
+    snprintf(text, capacity, localization::Tr("hero.adventure_stats"),
+             GetLevel(m_experience), m_remainingMobility * HERO_MOVEMENT_POINT_SCALE);
+}
+
+void hero::DrawAdventureStats(font& labelFont, i16 x, i16 y, i16 width, bool compact) {
+    char stats[40];
+    if (compact) {
+        snprintf(stats, sizeof(stats), localization::Tr("hero.adventure_stats.compact"),
+                 GetLevel(m_experience), m_remainingMobility * HERO_MOVEMENT_POINT_SCALE);
+    } else {
+        FormatAdventureStats(stats, sizeof(stats));
+    }
+    const i16 height = labelFont.m_height + 2;
+    FillBitmapArea(gWindowManager->m_screen, x, y, width, height, 0);
+    labelFont.DrawBoundedString(stats, x + 1, y + 1, width - 2, labelFont.m_height,
+                                TEXT_WIDGET_PLAIN_COLOR, FONT_ALIGN_CENTER);
+}
+
+void hero::AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width) {
+    window.AddWidget(new HeroAdventureStats(*this, x, y, width), WINDOW_Z_ORDER_APPEND);
+}
 
 hero::hero(void) {
     m_id = 0;
@@ -233,8 +277,15 @@ b8 hero::HeroView(b8 viewOnly) {
     gHeroWin = gHeroScreenWindow;
     SetWinText(gHeroScreenWindow, WINDOW_TEXT_HERO);
     message.type = MESSAGE_WIDGET;
-    snprintf(gText, 200, localization::Tr("hero.title.with_level"), m_name,
-             gClassNames[m_heroClass], GetLevel(m_experience));
+    if (m_owner == gCurPlayer) {
+        char stats[40];
+        FormatAdventureStats(stats, sizeof(stats));
+        snprintf(gText, 200, localization::Tr("hero.title.with_stats"), m_name,
+                 gClassNames[m_heroClass], stats);
+    } else {
+        snprintf(gText, 200, localization::Tr("hero.title.with_level"), m_name,
+                 gClassNames[m_heroClass], GetLevel(m_experience));
+    }
     message.command = WIDGET_COMMAND_SET_TEXT;
     message.id = HERO_SCREEN_TITLE;
     message.text = gText;

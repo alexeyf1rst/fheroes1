@@ -72,7 +72,8 @@ struct tag_message {
         i16 y;
     };
     i16 modifiers;
-    char unused8[4];
+    i16 mouseX;
+    i16 mouseY;
     union {
         i32 value;
         char* text;

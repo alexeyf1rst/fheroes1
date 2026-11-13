@@ -1232,6 +1232,16 @@ msgid "help.index"
 msgstr "Указатель"
 
 #: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.adventure_stats"
+msgstr "У%d, %d ОХ"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.adventure_stats.compact"
+msgstr "У%d %d"
+
+#: src/SOURCE/HERO.cpp
 msgid "hero.dismiss.confirm"
 msgstr "Вы действительно хотите уволить героя?"
 
@@ -1254,6 +1264,11 @@ msgstr "%s %s"
 #, c-format
 msgid "hero.title.with_level"
 msgstr "%s - %s   (Уровень %d)"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.title.with_stats"
+msgstr "%s - %s  (%s)"
 
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"

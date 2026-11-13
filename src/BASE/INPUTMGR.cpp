@@ -177,6 +177,8 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
             H1_ASSERT(gMainWinScreenHeight > 0 && gMainWinScreenWidth > 0);
             event->x = CLIENT_TO_GAME_X(INPUT_MESSAGE_X(messageData));
             event->y = CLIENT_TO_GAME_Y(INPUT_MESSAGE_Y(messageData));
+            event->mouseX = event->x;
+            event->mouseY = event->y;
     }
 
     if (message == INPUT_MESSAGE_MOUSE_MOVE && gMouseManager != NULL) {

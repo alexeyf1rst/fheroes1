@@ -301,6 +301,8 @@ public:
     );
     class mapCell* GetCell(i16 x, i16 y);
     void UpdateRadar(b8 updateScreen, b32 partial);
+    i8 HeroAtRadarPoint(i16 x, i16 y);
+    void DrawMapHeroStats(i16 originX, i16 originY);
     void QuickInfo(i16 cellX, i16 cellY);
     void UpdateHeroLocator(i32 locatorSlot, b8 drawWindow, b8 updateScreen);
     void UpdateHeroLocators(b8 drawWindow, b8 updateScreen);
