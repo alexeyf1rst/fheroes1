@@ -3,6 +3,7 @@
 
 #include <BASE/audioTypes.h>
 #include <BASE/baseManager.h>
+#include <BASE/display.h>
 #include <BASE/message.h>
 #include <SOURCE/armySizeNames.h>
 #include <SOURCE/artifactTypes.h>
@@ -18,6 +19,7 @@
 #include <SOURCE/terrainTypes.h>
 
 class armyGroup;
+class bitmap;
 class backdropWidget;
 class hero;
 class heroWindow;
@@ -187,14 +189,31 @@ public:
     class widget* m_movementPreview = nullptr;
     int m_previewCost = -1;
     int m_previewAvailable = 0;
+    int m_previewRemaining = 0;
+    int m_previewDays = -1;
+    bool m_previewMeeting = false;
+    struct RouteForecast {
+        i32 cost = 0;
+        i32 remaining = 0;
+        i32 days = 0;
+    };
+    RouteForecast ForecastRoute(class hero& subject, i16 targetX, i16 targetY);
+    void ToggleHeroWaiting(i8 heroId);
     void UpdateMovementPreview();
     i8 m_currentTerrain;
     char m_unused9b[4];
     class mapCell (*m_mapData)[MAP_CELL_GRID_SIZE];
     class iconWidget* m_heroScrollKnob;
     class iconWidget* m_townScrollKnob;
-    i32 m_heroWheelDelta = 0;
-    i32 m_townWheelDelta = 0;
+    struct LocatorWheel {
+        i32 total = 0;
+        i32 applied = 0;
+        u32 timestamp = 0;
+    };
+    LocatorWheel m_locatorWheels[2];
+    i16 m_lastLocatorControl = 0;
+    i16 m_lastLocatorObject = -1;
+    u32 m_lastLocatorClick = 0;
     class backdropWidget* m_panelBackdrops[ADVMGR_PANEL_ICON_COUNT];
     u8* m_adventureBorder;
     char m_unusedc3[4];
@@ -283,6 +302,8 @@ public:
     void Reseed(i32, i32);
     i32 ProcessSelect(struct tag_message* message, class mapCell** eventCell);
     void ScrollLocators(const struct tag_message& message);
+    void ResetLocatorInput();
+    bool LocatorDoubleClick(i16 control, i16 object, const struct tag_message& message);
     i32 ProcessDeSelect(i16 control, i32* result, class mapCell** eventCell);
     b32 ProcessSearch(i32 x, i32 y);
     i32 ProcessHover(struct tag_message* message);
@@ -302,9 +323,11 @@ public:
     class mapCell* GetCell(i16 x, i16 y);
     void UpdateRadar(b8 updateScreen, b32 partial);
     i8 HeroAtRadarPoint(i16 x, i16 y);
+    i8 TownAtRadarPoint(i16 x, i16 y);
     void QuickInfo(i16 cellX, i16 cellY);
     void UpdateHeroLocator(i32 locatorSlot, b8 drawWindow, b8 updateScreen);
     void UpdateHeroLocators(b8 drawWindow, b8 updateScreen);
+    void DrawLocators(bool updateScreen);
     void UpdateTownLocators(b8 drawWindow, b8 updateScreen);
     void UpdBottomView(b8 forceUpdate, b8 drawWindow, b8 updateScreen);
     void ClearBottomView(void);
@@ -328,8 +351,7 @@ public:
     void DemobilizeCurrHero(bool redraw = true);
     void SetTownContext(i8 townId);
     void SetHeroContext(i8 heroId, b8 update);
-    void DoHeroKnob(void);
-    void DoTownKnob(void);
+    void DragLocatorKnob(bool town, i16 pressY);
     void CastSpell(i8 spell);
     void GrabScreen(void);
     void CheckCastSpell(void);
@@ -353,11 +375,19 @@ public:
     bool BeginMapDrag(i16 x, i16 y);
     bool DragMap(i16 x, i16 y);
     void EndMapDrag();
+    bool MapCellAtScreenPoint(i16 x, i16 y, i16& cellX, i16& cellY) const;
+    bool HasCameraOffset() const { return m_cameraOffsetX != 0 || m_cameraOffsetY != 0; }
+    void DrawCameraFrame();
     void PanMap(i16 xOrigin, i16 yOrigin);
     bool m_resumeEdgeScrollOnExit = false;
     bool m_mapDragging = false;
     i16 m_dragX = -1;
     i16 m_dragY = -1;
+    i32 m_dragStartPixelX = 0;
+    i32 m_dragStartPixelY = 0;
+    i16 m_cameraOffsetX = 0;
+    i16 m_cameraOffsetY = 0;
+    bitmap* m_cameraFrame = nullptr;
     b32 MouseInScrollZone(void);
     void SetInitialMapOrigin(void);
     void LoadRemote(void);
@@ -376,7 +406,7 @@ public:
         i32 excludedX,
         i32 excludedY
     );
-    void ViewPuzzle(void);
+    void ViewPuzzle(const u8* previouslyRevealed = nullptr);
     void PuzzleDraw(i32 left, i32 top, i32 markX, i32 markY);
     void AdvPanel(void);
     i16 ControlPanel(void);
@@ -531,7 +561,7 @@ extern i32 gLimitUpdMaxY;
 extern class heroWindow* gAdventurePanel;
 extern b8 gPrefsChanged;
 extern b8 gFreshSave;
-extern i8 gComboDraw[][17];
+extern i8 gComboDraw[64][64];
 extern i32 gTriggerX;
 extern i32 gTriggerY;
 extern b8 gMoveSoundMade;
@@ -555,14 +585,22 @@ enum AdventureScreenConstant {
 };
 
 enum AdventureBorderConstant {
-    ADVENTURE_VIEWPORT_EXTENT = 480,
     BORDER_EDGE_SIZE = 16,
     BORDER_SIDE_BYTES = 16,
-    BORDER_SAVED_SIDE_BYTES = 32,
-    BORDER_MIDDLE_END = ADVENTURE_VIEWPORT_EXTENT - BORDER_EDGE_SIZE,
-    ADVENTURE_VIEWPORT_INNER_SIZE = BORDER_MIDDLE_END - BORDER_EDGE_SIZE,
-    BORDER_BUFFER_SIZE = 0x7400
+    BORDER_SAVED_SIDE_BYTES = 32
 };
+
+#define ADVENTURE_VIEWPORT_WIDTH (LOGICAL_SCREEN_WIDTH - 160)
+#define ADVENTURE_VIEWPORT_HEIGHT LOGICAL_SCREEN_HEIGHT
+#define ADVENTURE_VIEWPORT_CELLS_X ((ADVENTURE_VIEWPORT_WIDTH + CELL_LAST_PIXEL) / CELL_PIXELS)
+#define ADVENTURE_VIEWPORT_CELLS_Y ((ADVENTURE_VIEWPORT_HEIGHT + CELL_LAST_PIXEL) / CELL_PIXELS)
+#define ADVENTURE_VIEW_CENTER_X (ADVENTURE_VIEWPORT_CELLS_X / 2)
+#define ADVENTURE_VIEW_CENTER_Y (ADVENTURE_VIEWPORT_CELLS_Y / 2)
+#define BORDER_MIDDLE_END_X (ADVENTURE_VIEWPORT_WIDTH - BORDER_EDGE_SIZE)
+#define BORDER_MIDDLE_END_Y (ADVENTURE_VIEWPORT_HEIGHT - BORDER_EDGE_SIZE)
+#define ADVENTURE_VIEWPORT_INNER_WIDTH (BORDER_MIDDLE_END_X - BORDER_EDGE_SIZE)
+#define ADVENTURE_VIEWPORT_INNER_HEIGHT (BORDER_MIDDLE_END_Y - BORDER_EDGE_SIZE)
+#define BORDER_BUFFER_SIZE (BORDER_EDGE_SIZE * 2 * (ADVENTURE_VIEWPORT_WIDTH + ADVENTURE_VIEWPORT_HEIGHT - BORDER_EDGE_SIZE * 2))
 
 enum AdventureLocatorWidget {
     HERO_LOCATOR_WIDGET_BASE = 100,
@@ -595,7 +633,6 @@ enum AdventureLocatorFrame {
 enum BottomViewPanelConstant {
     BOTTOM_VIEW_DRAW_FIRST_WIDGET = 2000,
     BOTTOM_VIEW_DRAW_LAST_WIDGET = 2200,
-    BOTTOM_VIEW_PANEL_X = 480,
     BOTTOM_VIEW_PANEL_Y = 392,
     BOTTOM_VIEW_PANEL_WIDTH = 143,
     BOTTOM_VIEW_PANEL_HEIGHT = 71,
@@ -609,6 +646,7 @@ enum BottomViewPanelConstant {
     BOTTOM_VIEW_NO_ENEMY = -1,
     BOTTOM_VIEW_NO_ANIMATION = -1
 };
+#define BOTTOM_VIEW_PANEL_X (LOGICAL_SCREEN_WIDTH - 160)
 
 enum AdventureArmyQuickViewConstant {
     ARMY_QUICK_ICON_SIZE = 32,
@@ -660,21 +698,21 @@ enum AdventureQuickViewPlacementConstant {
     HERO_QUICK_VIEW_Y_OFFSET = 65,
     HERO_QUICK_VIEW_WIDTH = 178,
     HERO_QUICK_VIEW_HEIGHT = 162,
-    HERO_QUICK_VIEW_RIGHT_X = BORDER_MIDDLE_END - HERO_QUICK_VIEW_WIDTH,
-    HERO_QUICK_VIEW_BOTTOM_Y = BORDER_MIDDLE_END - HERO_QUICK_VIEW_HEIGHT,
     TOWN_QUICK_VIEW_X_OFFSET = 89,
     TOWN_QUICK_VIEW_Y_OFFSET = 70,
     TOWN_QUICK_VIEW_WIDTH = 210,
     TOWN_QUICK_VIEW_HEIGHT = 172,
-    TOWN_QUICK_VIEW_RIGHT_X = BORDER_MIDDLE_END - TOWN_QUICK_VIEW_WIDTH,
-    TOWN_QUICK_VIEW_BOTTOM_Y = BORDER_MIDDLE_END - TOWN_QUICK_VIEW_HEIGHT,
     QUICK_INFO_X_OFFSET = 57,
     QUICK_INFO_Y_OFFSET = 25,
     QUICK_INFO_WIDTH = 146,
-    QUICK_INFO_HEIGHT = 82,
-    QUICK_INFO_RIGHT_X = BORDER_MIDDLE_END - QUICK_INFO_WIDTH,
-    QUICK_INFO_BOTTOM_Y = BORDER_MIDDLE_END - QUICK_INFO_HEIGHT
+    QUICK_INFO_HEIGHT = 82
 };
+#define HERO_QUICK_VIEW_RIGHT_X (BORDER_MIDDLE_END_X - HERO_QUICK_VIEW_WIDTH)
+#define HERO_QUICK_VIEW_BOTTOM_Y (BORDER_MIDDLE_END_Y - HERO_QUICK_VIEW_HEIGHT)
+#define TOWN_QUICK_VIEW_RIGHT_X (BORDER_MIDDLE_END_X - TOWN_QUICK_VIEW_WIDTH)
+#define TOWN_QUICK_VIEW_BOTTOM_Y (BORDER_MIDDLE_END_Y - TOWN_QUICK_VIEW_HEIGHT)
+#define QUICK_INFO_RIGHT_X (BORDER_MIDDLE_END_X - QUICK_INFO_WIDTH)
+#define QUICK_INFO_BOTTOM_Y (BORDER_MIDDLE_END_Y - QUICK_INFO_HEIGHT)
 
 enum AdventureDrawConstant {
     CELL_PIXELS = 32,
@@ -737,16 +775,16 @@ enum ViewWorldConstant {
 };
 
 enum AdventureRadarConstant {
-    RADAR_LEFT = 480,
-    RADAR_RIGHT = 624,
     RADAR_TOP = 16,
     RADAR_BOTTOM = 160,
-    RADAR_SIZE = RADAR_RIGHT - RADAR_LEFT,
     RADAR_CELL_PIXELS = 2,
     RADAR_TERRAIN_SHADE = 3,
     RADAR_VIEWPORT_COLOR = 0xbe,
     RADAR_UNEXPLORED_COLOR = 0
 };
+#define RADAR_LEFT BOTTOM_VIEW_PANEL_X
+#define RADAR_RIGHT (RADAR_LEFT + 144)
+#define RADAR_SIZE (RADAR_RIGHT - RADAR_LEFT)
 
 enum AdventureTeleportConstant {
     TELEPORT_FIZZLE_TIME = 128,
@@ -771,7 +809,7 @@ enum AdventurePuzzleViewConstant {
     PUZZLE_Y_ADJUST_X_FACTOR = 2,
     PUZZLE_Y_ADJUST_Y_FACTOR = 5,
     PUZZLE_PARITY_DIVISOR = 2,
-    PUZZLE_FIZZLE_TIME = 40
+    PUZZLE_FIZZLE_TIME = 24
 };
 
 enum AdventureStateConstant {
@@ -779,12 +817,12 @@ enum AdventureStateConstant {
     CURSOR_SAMPLE_FAST_SET = 2,
     HIGH_MEMORY_BUFFER_DIVISOR = 100,
     LOCATOR_KNOB_Y = 195,
-    HERO_LOCATOR_KNOB_X = 540,
-    TOWN_LOCATOR_KNOB_X = 612,
     LOCATOR_KNOB_WIDTH = 8,
     LOCATOR_KNOB_HEIGHT = 17,
     LOCATOR_KNOB_FRAME = 4
 };
+#define HERO_LOCATOR_KNOB_X (LOGICAL_SCREEN_WIDTH - 100)
+#define TOWN_LOCATOR_KNOB_X (LOGICAL_SCREEN_WIDTH - 28)
 
 enum AdventureEnvironmentSoundConstant {
     ENVIRONMENT_SOUND_FAR_DISTANCE = 127,
@@ -817,12 +855,9 @@ enum AdventureCheatConstant {
 };
 
 enum AdventureEnemyTurnViewConstant {
-    ENEMY_TURN_HOURGLASS_X = 493,
     ENEMY_TURN_HOURGLASS_Y = 403,
     ENEMY_TURN_HOURGLASS_WIDTH = 118,
     ENEMY_TURN_HOURGLASS_HEIGHT = 51,
-    ENEMY_TURN_CREST_X = 495,
-    ENEMY_TURN_ANIMATION_X = 559,
     ENEMY_TURN_ANIMATION_Y = 405,
     ENEMY_TURN_ANIMATION_WIDTH = 50,
     ENEMY_TURN_ANIMATION_HEIGHT = 47,
@@ -844,15 +879,18 @@ enum AdventureEnemyTurnViewConstant {
     ENEMY_TURN_ANIMATION_DELAY = 300,
     ENEMY_TURN_PHASE_DELAY = 700
 };
+#define ENEMY_TURN_HOURGLASS_X (BOTTOM_VIEW_PANEL_X + 13)
+#define ENEMY_TURN_CREST_X (BOTTOM_VIEW_PANEL_X + 15)
+#define ENEMY_TURN_ANIMATION_X (BOTTOM_VIEW_PANEL_X + 79)
 
 enum AdventureNewTurnViewConstant {
-    NEW_TURN_DATE_TEXT_X = 479,
     NEW_TURN_WEEK_TEXT_Y = 421,
     NEW_TURN_DAY_TEXT_Y = 438,
     NEW_TURN_DATE_TEXT_WIDTH = 145,
     NEW_TURN_WEEK_TEXT_HEIGHT = 12,
     NEW_TURN_DAY_TEXT_HEIGHT = 25
 };
+#define NEW_TURN_DATE_TEXT_X (BOTTOM_VIEW_PANEL_X - 1)
 
 enum AdventureResourceViewConstant {
     RESOURCE_VIEW_TEXT_BASE_Y = 395,
@@ -865,19 +903,17 @@ enum AdventureResourceViewConstant {
     RESOURCE_VIEW_ICON_HEIGHT = 32,
     RESOURCE_VIEW_ICON_BOTTOM = 463,
     RESOURCE_VIEW_ICON_BOTTOM_PADDING = 14,
-    RESOURCE_VIEW_COUNT_X = 511,
     RESOURCE_VIEW_COUNT_Y = 450,
     RESOURCE_VIEW_COUNT_WIDTH = 80,
     RESOURCE_VIEW_COUNT_HEIGHT = 12
 };
+#define RESOURCE_VIEW_COUNT_X (BOTTOM_VIEW_PANEL_X + 31)
 
 enum AdventureKingdomViewConstant {
     KINGDOM_VIEW_ENTRY_COUNT = 9,
     KINGDOM_VIEW_CASTLE_ENTRY = 7,
     KINGDOM_VIEW_VILLAGE_ENTRY = 8,
-    KINGDOM_VIEW_ICON_X = 481,
     KINGDOM_VIEW_ICON_Y = 393,
-    KINGDOM_VIEW_TEXT_X_BASE = 464,
     KINGDOM_VIEW_TEXT_Y_BASE = 392,
     KINGDOM_VIEW_TEXT_WIDTH = 32,
     KINGDOM_VIEW_TEXT_HEIGHT = 12,
@@ -894,6 +930,8 @@ enum AdventureKingdomViewConstant {
     KINGDOM_VIEW_CASTLE_TEXT_X = 27,
     KINGDOM_VIEW_VILLAGE_TEXT_X = 80
 };
+#define KINGDOM_VIEW_ICON_X (BOTTOM_VIEW_PANEL_X + 1)
+#define KINGDOM_VIEW_TEXT_X_BASE (BOTTOM_VIEW_PANEL_X - 16)
 
 enum AdventureBottomHeroViewConstant {
     BOTTOM_HERO_LABEL_BYTES = 6,
@@ -910,14 +948,14 @@ enum AdventureBottomHeroViewConstant {
 };
 
 enum AdventureScrollConstant {
-    ADVMGR_VIEW_CELL_COUNT = 15,
-    ADVMGR_VIEW_CENTER = 7,
-    SCROLL_MIN_ORIGIN = -ADVMGR_VIEW_CENTER,
-    SCROLL_MAX_ORIGIN = MAP_CELL_GRID_SIZE - ADVMGR_VIEW_CENTER - 1,
     SCROLL_TICK_INTERVAL = 70,
     HOVER_SCROLL_FRAME_FIRST = 32,
     HOVER_SCROLL_FRAME_END = 40
 };
+#define SCROLL_MIN_ORIGIN_X (-ADVENTURE_VIEW_CENTER_X)
+#define SCROLL_MAX_ORIGIN_X (MAP_CELL_GRID_SIZE - ADVENTURE_VIEW_CENTER_X - 1)
+#define SCROLL_MIN_ORIGIN_Y (-ADVENTURE_VIEW_CENTER_Y)
+#define SCROLL_MAX_ORIGIN_Y (MAP_CELL_GRID_SIZE - ADVENTURE_VIEW_CENTER_Y - 1)
 
 enum AdventurePanelDialogConstant {
     PANEL_CLOSE_WIDGET = DIALOG_BUTTON_0,
@@ -1035,8 +1073,6 @@ enum AdventureTravelSpellConstant {
 };
 
 enum CursorConstant {
-    CURSOR_DRAW_X = 0xe0,
-    CURSOR_DRAW_Y = 0xff,
     CURSOR_BOAT_DRAW_Y_ADJUST = 10,
     CURSOR_SHADOW_FLIP_X_ADJUST = 0x20,
     CURSOR_FLAG_FRAME_BASE = 0x38,
@@ -1056,5 +1092,8 @@ enum CursorConstant {
     TURN_FRAME_MULTIPLIER = 2,
     MOVE_TILE_HALF_COUNT = 2
 };
+
+void DrawAdventureIcon(class icon* source, class bitmap* destination, i32 x, i32 y, i32 frame,
+                       i32 offsetMode, bool flipped, bool dim);
 
 #endif

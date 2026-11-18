@@ -238,10 +238,10 @@ i32 TextWidth(const std::string& text) {
 // --------------------------------------------------------------- drawing
 
 void Fill(const Rect& rect, u8 color) {
-    for (i32 y = std::max(rect.y, -gBar); y < std::min(rect.y + rect.height, static_cast<i32>(LOGICAL_SCREEN_HEIGHT)); y++) {
-        for (i32 x = std::max(rect.x, 0); x < std::min(rect.x + rect.width, static_cast<i32>(LOGICAL_SCREEN_WIDTH));
+    for (i32 y = std::max(rect.y, -gBar); y < std::min(rect.y + rect.height, static_cast<i32>(platform::gLogicalHeight)); y++) {
+        for (i32 x = std::max(rect.x, 0); x < std::min(rect.x + rect.width, static_cast<i32>(platform::gLogicalWidth));
              x++) {
-            size_t offset = static_cast<size_t>((y + gBar) * LOGICAL_SCREEN_WIDTH + x);
+            size_t offset = static_cast<size_t>((y + gBar) * platform::gLogicalWidth + x);
             gPixels[offset] = color;
             gMask[offset] = 1;
         }
@@ -308,8 +308,8 @@ void LayoutPopup(std::vector<MenuItem>& items, i32 x, i32 y, Rect& rect) {
     }
     height += MENU_POPUP_BORDER;
     // Keep the pop-up on the display.
-    i32 shiftX = std::max(0, x + width - LOGICAL_SCREEN_WIDTH);
-    i32 shiftY = std::max(0, y + height - LOGICAL_SCREEN_HEIGHT);
+    i32 shiftX = std::max(0, x + width - platform::gLogicalWidth);
+    i32 shiftY = std::max(0, y + height - platform::gLogicalHeight);
     for (MenuItem& item : items) {
         item.rect.x -= shiftX;
         item.rect.y -= shiftY;
@@ -368,18 +368,18 @@ void Redraw() {
         gTracking = false;
         return;
     }
-    size_t size = static_cast<size_t>(LOGICAL_SCREEN_WIDTH * (gBar + LOGICAL_SCREEN_HEIGHT));
+    size_t size = static_cast<size_t>(platform::gLogicalWidth * (gBar + platform::gLogicalHeight));
     gPixels.assign(size, 0);
     gMask.assign(size, 0);
     if (gCanvas == NULL)
         gCanvas = new bitmap();
-    gCanvas->m_width = LOGICAL_SCREEN_WIDTH;
-    gCanvas->m_height = static_cast<i16>(gBar + LOGICAL_SCREEN_HEIGHT);
+    gCanvas->m_width = platform::gLogicalWidth;
+    gCanvas->m_height = static_cast<i16>(gBar + platform::gLogicalHeight);
     gCanvas->m_pixels = gPixels.data();
 
     // The bar.
-    Fill({0, -gBar, LOGICAL_SCREEN_WIDTH, gBar}, MENU_COLOR_FACE);
-    Fill({0, -1, LOGICAL_SCREEN_WIDTH, 1}, MENU_COLOR_SHADOW);
+    Fill({0, -gBar, platform::gLogicalWidth, gBar}, MENU_COLOR_FACE);
+    Fill({0, -1, platform::gLogicalWidth, 1}, MENU_COLOR_SHADOW);
     i32 x = MENU_BAR_PADDING / 2;
     std::vector<MenuItem>& top = gAppMenu->items;
     for (size_t index = 0; index < top.size(); index++) {
@@ -512,7 +512,15 @@ void RunMenuLoop() {
 
 // ---------------------------------------------------------------- input
 
-bool MenuHandleEvent(const platform::Event& event) {
+bool MenuHandleEvent(const platform::Event& input) {
+    // Menu tracking can poll events directly, bypassing the game dispatcher.
+    // Always hit-test chrome in native coordinates, including over a legacy screen.
+    platform::Event event = input;
+    if (event.type == platform::Event::MOUSE_MOVE || event.type == platform::Event::MOUSE_DOWN
+        || event.type == platform::Event::MOUSE_UP || event.type == platform::Event::MOUSE_WHEEL) {
+        event.x = event.nativeX;
+        event.y = event.nativeY;
+    }
     if (gAppMenu != NULL && CURRENT_GRAPHICS_CONFIG.fullScreen && event.scanCode == INPUT_SCAN_F10) {
         if (event.type == platform::Event::KEY_DOWN) {
             gShowFullscreenMenu = !gShowFullscreenMenu;
@@ -629,6 +637,18 @@ KBMenu KBLoadMenu(const char* name) {
         for (MenuItem& top : menu->items) {
             if (!FindCommand(top.children, KBWIN_MENU_FULLSCREEN))
                 continue;
+            MenuItem displaySettings;
+            displaySettings.command = KBWIN_MENU_DISPLAY_SETTINGS;
+            displaySettings.text = localization::Tr("menu.display.settings");
+            top.children.insert(top.children.begin(), std::move(displaySettings));
+            if (platform::gLogicalWidth != 640 || platform::gLogicalHeight != 480) {
+                top.children.erase(std::remove_if(top.children.begin(), top.children.end(), [](const MenuItem& item) {
+                    return item.command == KBWIN_MENU_SIZE_640_480 || item.command == KBWIN_MENU_SIZE_800_600
+                        || item.command == KBWIN_MENU_SIZE_1024_768 || item.command == KBWIN_MENU_SIZE_1280_960
+                        || item.command == KBWIN_MENU_SIZE_1280_1024;
+                }), top.children.end());
+                break;
+            }
             MenuItem pixelSize;
             pixelSize.command = KBWIN_MENU_SIZE_1280_960;
             pixelSize.text = "1280 x 960 (2x)";

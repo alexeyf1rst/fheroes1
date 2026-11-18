@@ -243,6 +243,7 @@ public:
     void SpellMessage(i8 spell, i8 hex);
     void SetSpellAreaPreview(i16 hex);
     void DrawSpellAreaPreview();
+    void DrawMovementRange();
     i32 SpellDamage(i8 spell) const;
     void
     CastSpell(i8 spell, i8 targetHex, b8 castByCreature, i8 teleportDest);

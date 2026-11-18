@@ -46,10 +46,16 @@ resourceManager::resourceManager(void) : baseManager() {
 void resourceManager::GetBackdrop(char* name, class bitmap* backdrop) {
     PointToFile(MakeId(name));
     ReadWord();
-    ReadWord();
-    ReadWord();
-    ReadBlock(backdrop->m_pixels, backdrop->m_width * backdrop->m_height);
-    PostprocessBitmap(backdrop->m_pixels, backdrop->m_width, backdrop->m_height);
+    const i16 width = ReadWord();
+    const i16 height = ReadWord();
+    if (width <= 0 || height <= 0 || width > 4096 || height > 4096)
+        InvalidResource(MakeId(name));
+    bitmap source(BITMAP_TYPE_MEMORY, width, height);
+    ReadBlock(source.m_pixels, width * height);
+    PostprocessBitmap(source.m_pixels, width, height);
+    memset(backdrop->m_pixels, 0, backdrop->m_width * backdrop->m_height);
+    source.CopyTo(backdrop, 0, 0, 0, 0,
+                  std::min<i32>(width, backdrop->m_width), std::min<i32>(height, backdrop->m_height));
 }
 
 void resourceManager::GetBackdropAtLoc(
@@ -72,7 +78,7 @@ void resourceManager::GetBackdropAtLoc(
         || destinationY + imageHeight > destination->m_height)
         InvalidResource(fileId);
     for (curRow = destinationY; curRow < destinationY + imageHeight; curRow++) {
-        ReadBlock(destination->m_pixels + curRow * LOGICAL_SCREEN_WIDTH + destinationX, width);
+        ReadBlock(destination->m_pixels + curRow * destination->m_width + destinationX, width);
     }
 }
 

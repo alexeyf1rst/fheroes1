@@ -18,6 +18,7 @@ enum FindPathTerrainConstant {
 };
 
 i32 CalcTerrainCost(i32 terrain, i32 diagonal, i32 mobility, i32 heroClass);
+i32 MobilityAfterStep(i32 mobility, i32 stepCost, i32 terrain, i32 heroClass);
 i16 TerrainStepCost(i8 terrain, i8 diagonal);
 extern i16 gCurTempMobility;
 

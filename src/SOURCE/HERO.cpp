@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <BASE/legacyCanvas.h>
 
 #include <BASE/audio.h>
 #include <BASE/font.h>
@@ -37,9 +38,9 @@ static b8 s_heroArmyReadOnly = false;
 namespace {
 class HeroAdventureStats : public textWidget {
 public:
-    HeroAdventureStats(hero& subject, i16 x, i16 y, i16 width, bool includeLevel)
+    HeroAdventureStats(hero& subject, i16 x, i16 y, i16 width, bool includeLevel, bool meeting)
         : textWidget(x, y, width, 11, strdup(""), "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
-                     WIDGET_ID_NONE, WIDGET_KIND_TEXT), m_hero(subject), m_includeLevel(includeLevel) {
+                     WIDGET_ID_NONE, WIDGET_KIND_TEXT), m_hero(subject), m_includeLevel(includeLevel), m_meeting(meeting) {
         m_flags &= ~WIDGET_FLAG_ENABLED;
     }
 
@@ -52,13 +53,23 @@ public:
                      m_hero.GetLevel(m_hero.m_experience));
             m_font->DrawBoundedString(level, x, y, m_width, m_font->m_height, m_color, FONT_ALIGN_LEFT);
         }
-        m_hero.DrawMovementPoints(*m_font, x + (m_includeLevel ? 21 : 0), y,
-                                  m_width - (m_includeLevel ? 21 : 0));
+        if (m_meeting) {
+            char points[64];
+            snprintf(points, sizeof(points), localization::Tr("hero.meeting.today"), m_hero.GetMovementPoints());
+            m_font->DrawBoundedString(points, x + 23, y, m_width - 23, m_font->m_height, m_color, FONT_ALIGN_CENTER);
+            snprintf(points, sizeof(points), localization::Tr("hero.meeting.tomorrow"),
+                     m_hero.CalcMobility() * HERO_MOVEMENT_POINT_SCALE);
+            m_font->DrawBoundedString(points, x, y + 11, m_width, m_font->m_height, m_color, FONT_ALIGN_CENTER);
+        } else {
+            m_hero.DrawMovementPoints(*m_font, x + (m_includeLevel ? 21 : 0), y,
+                                      m_width - (m_includeLevel ? 21 : 0));
+        }
     }
 
 private:
     hero& m_hero;
     bool m_includeLevel;
+    bool m_meeting;
 };
 }
 
@@ -79,8 +90,8 @@ void hero::DrawMovementPoints(font& labelFont, i16 x, i16 y, i16 width) {
                                 TEXT_WIDGET_PLAIN_COLOR, FONT_ALIGN_CENTER);
 }
 
-void hero::AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width, bool includeLevel) {
-    window.AddWidget(new HeroAdventureStats(*this, x, y, width, includeLevel), WINDOW_Z_ORDER_APPEND);
+void hero::AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width, bool includeLevel, bool meeting) {
+    window.AddWidget(new HeroAdventureStats(*this, x, y, width, includeLevel, meeting), WINDOW_Z_ORDER_APPEND);
 }
 
 hero::hero(void) {
@@ -270,6 +281,7 @@ void hero::RedrawHeroScreen(void) {
 }
 
 b8 hero::HeroView(b8 viewOnly) {
+    LegacyCanvas canvas;
     i32 heroLuck;
     i32 moraleValue;
     tag_message message;
@@ -541,6 +553,7 @@ void hero::Deallocate(void) {
     town* curTown;
     i32 availSlot;
 
+    m_eventFlags &= ~HERO_EVENT_WAITING;
     oldOwner = m_owner;
     playerPtr = &gGame->m_players[m_owner];
     gAdvManager->MobilizeCurrHero(false);

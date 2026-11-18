@@ -299,13 +299,16 @@ void army::DrawToBuffer(i16 x, i16 y) {
                 sprintf(countText, "%d", m_quantity);
                 gCombatManager->m_smallFont
                     ->DrawBoundedString(countText, countX, y - 12, 20, 12, 1, FONT_ALIGN_CENTER);
-                if (m_hitPointsLost > 0 && m_stats.hitPoints > 0
-                    && countX >= 0 && countX + 20 <= LOGICAL_SCREEN_WIDTH && y >= 3 && y <= COMBAT_PANEL_TOP) {
+                const int healthMode = gConfig.combatHealthBars;
+                if (healthMode != 2 && (m_hitPointsLost > 0 || healthMode == 1)
+                    && m_stats.hitPoints > 0 && countX >= 0 && countX + 20 <= LOGICAL_SCREEN_WIDTH
+                    && y >= 3 && y <= COMBAT_PANEL_TOP) {
                     const int remaining = std::max(1, m_stats.hitPoints - m_hitPointsLost);
-                    const int length = std::max(1, 20 * remaining / m_stats.hitPoints);
+                    const int length = std::clamp(18 * remaining / m_stats.hitPoints, 1, 18);
                     auto* screen = gWindowManager->m_screen;
-                    FillBitmapArea(screen, countX, y - 3, 20, 2, ARMY_BAD_SPELL_OUTLINE_COLOR);
-                    FillBitmapArea(screen, countX, y - 3, length, 2, ARMY_GOOD_SPELL_OUTLINE_COLOR);
+                    FillBitmapArea(screen, countX, y - 3, 20, 4, 0);
+                    FillBitmapArea(screen, countX + 1, y - 2, 18, 2, ARMY_BAD_SPELL_OUTLINE_COLOR);
+                    FillBitmapArea(screen, countX + 1, y - 2, length, 2, ARMY_GOOD_SPELL_OUTLINE_COLOR);
                 }
             }
             break;

@@ -178,16 +178,44 @@ int NamedScanCode(const std::string& name, bool& arrowKey) {
     return static_cast<int>(std::strtol(name.c_str(), nullptr, 0));
 }
 
+// SDL pointer state always uses native output coordinates. Convert only the
+// event delivered to the game; chrome and the centered canvas stay distinct.
+void SetMouseCoordinates(Event& event, int nativeX, int nativeY) {
+    event.nativeX = nativeX;
+    event.nativeY = nativeY;
+    event.onChrome = nativeY < 0;
+    event.x = nativeX;
+    event.y = nativeY;
+    if (LegacyCanvas() && !event.onChrome) {
+        event.x -= (gLogicalWidth - DISPLAY_WIDTH) / 2;
+        event.y -= (gLogicalHeight - DISPLAY_HEIGHT) / 2;
+    }
+}
+
+bool InGameCanvas(const Event& event) {
+    const int width = LegacyCanvas() ? DISPLAY_WIDTH : gLogicalWidth;
+    const int height = LegacyCanvas() ? DISPLAY_HEIGHT : gLogicalHeight;
+    return event.x >= 0 && event.y >= 0 && event.x < width && event.y < height;
+}
+
 void QueueMouse(Event::Type type, Event::Button button, int x, int y, bool doubleClick = false) {
-    gReplayX = std::clamp(x, 0, DISPLAY_WIDTH - 1);
-    gReplayY = std::clamp(y, -ChromeBar(), DISPLAY_HEIGHT - 1);
-    sdl::SetPointer(gReplayX, gReplayY, true);
+    const int width = LegacyCanvas() ? DISPLAY_WIDTH : gLogicalWidth;
+    const int height = LegacyCanvas() ? DISPLAY_HEIGHT : gLogicalHeight;
+    gReplayX = std::clamp(x, 0, width - 1);
+    gReplayY = std::clamp(y, -ChromeBar(), height - 1);
+    int nativeX = gReplayX;
+    int nativeY = gReplayY;
+    if (LegacyCanvas() && nativeY >= 0) {
+        nativeX += (gLogicalWidth - DISPLAY_WIDTH) / 2;
+        nativeY += (gLogicalHeight - DISPLAY_HEIGHT) / 2;
+    }
+    sdl::SetPointer(nativeX, nativeY, true);
     Event event;
     event.type = type;
     event.button = button;
     event.doubleClick = doubleClick;
-    event.x = gReplayX;
-    event.y = gReplayY;
+    event.timestamp = Ticks();
+    SetMouseCoordinates(event, nativeX, nativeY);
     gPending.push_back(event);
 }
 
@@ -236,9 +264,14 @@ void RunReplayAction(const ReplayAction& action) {
     } else if (action.verb == "wheel") {
         Event event;
         event.type = Event::MOUSE_WHEEL;
-        event.x = gReplayX;
-        event.y = gReplayY;
-        event.wheelY = static_cast<float>(x);
+        bool inside;
+        int nativeX;
+        int nativeY;
+        sdl::PointerPosition(nativeX, nativeY, inside);
+        SetMouseCoordinates(event, nativeX, nativeY);
+        if (!action.arguments.empty())
+            event.wheelY = std::strtof(action.arguments[0].c_str(), nullptr);
+        event.timestamp = Ticks();
         gPending.push_back(event);
     } else if (action.verb == "shot") {
         Present(true);
@@ -293,6 +326,7 @@ void PumpReplay() {
 }
 
 bool Translate(const SDL_Event& source, Event& event) {
+    event.timestamp = static_cast<u32>(source.common.timestamp / SDL_NS_PER_MS);
     switch (source.type) {
         case SDL_EVENT_QUIT:
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -334,7 +368,8 @@ bool Translate(const SDL_Event& source, Event& event) {
                 return false;
             bool inside;
             sdl::WindowToDisplay(source.wheel.mouse_x, source.wheel.mouse_y, event.x, event.y, inside);
-            if (!inside)
+            SetMouseCoordinates(event, event.x, event.y);
+            if (!inside || (!event.onChrome && !InGameCanvas(event)))
                 return false;
             event.type = Event::MOUSE_WHEEL;
             event.wheelY = source.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -source.wheel.y : source.wheel.y;
@@ -346,6 +381,7 @@ bool Translate(const SDL_Event& source, Event& event) {
             bool inside;
             sdl::WindowToDisplay(source.motion.x, source.motion.y, event.x, event.y, inside);
             sdl::SetPointer(event.x, event.y, inside);
+            SetMouseCoordinates(event, event.x, event.y);
             event.type = Event::MOUSE_MOVE;
             return true;
         }
@@ -358,6 +394,12 @@ bool Translate(const SDL_Event& source, Event& event) {
             bool inside;
             sdl::WindowToDisplay(source.button.x, source.button.y, event.x, event.y, inside);
             sdl::SetPointer(event.x, event.y, inside);
+            SetMouseCoordinates(event, event.x, event.y);
+            // Ignore presses in the margins, but keep releases so a gesture
+            // started inside the canvas cannot leave a game button held.
+            if (source.type == SDL_EVENT_MOUSE_BUTTON_DOWN
+                && (!inside || (!event.onChrome && !InGameCanvas(event))))
+                return false;
             event.type =
                 source.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? Event::MOUSE_DOWN : Event::MOUSE_UP;
             event.button =
@@ -408,12 +450,11 @@ bool PollEvent(Event& event, u32 timeoutMilliseconds) {
 
 void MousePosition(int& x, int& y) {
     bool inside;
-    if (gReplayActive) {
-        x = gReplayX;
-        y = gReplayY;
-        return;
-    }
     sdl::PointerPosition(x, y, inside);
+    Event event;
+    SetMouseCoordinates(event, x, y);
+    x = event.x;
+    y = event.y;
 }
 
 void CaptureMouse(bool capture) {

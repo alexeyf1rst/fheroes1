@@ -62,7 +62,6 @@ i16 AutoInitSVGA(void);
 void PostprocessIcon(class icon* loadedIcon);
 
 enum ScreenBlitConstant {
-    SCREEN_BLIT_ENLARGE_END = LOGICAL_SCREEN_WIDTH - 3,
     SCREEN_BLIT_ENLARGE_PIXELS = 4
 };
 
@@ -71,5 +70,7 @@ struct PaletteColor {
     u8 green;
     u8 blue;
 };
+
+#define SCREEN_BLIT_ENLARGE_END (LOGICAL_SCREEN_WIDTH - 3)
 
 #endif

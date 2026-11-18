@@ -182,6 +182,6 @@ public:
     }
 };
 b32 KeyboardMessageHandler(void* window, u32 message, u32 virtualKey, i32 messageData);
-b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData);
+b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData, u32 timestamp = 0);
 
 #endif

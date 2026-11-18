@@ -46,7 +46,20 @@ msgstr "Неизученная земля"
 #: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
-msgstr "Очки хода: %d\nДо цели: %d\nОстаток: %d"
+msgstr "%s\nСейчас: %d\nУ цели: %d"
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.later"
+msgstr "Через %d дн.\nСейчас: %d\nПуть: %d"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.meet_today"
+msgstr "Встреча сегодня"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.today"
+msgstr "Сегодня"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
@@ -353,6 +366,10 @@ msgstr "Ошибка получения информации. Продолжат
 msgid "combat.network.town"
 msgstr "Город"
 
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.all"
+msgstr "Все"
+
 #: src/SOURCE/CMBTMGR.cpp
 msgid "combat.options.button"
 msgstr "Опции"
@@ -364,6 +381,10 @@ msgstr "Урон"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.grid"
 msgstr "Сетка"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.health"
+msgstr "Полоски ОЗ"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.off"
@@ -382,6 +403,10 @@ msgid "combat.options.order"
 msgstr "Очередь"
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.options.range"
+msgstr "Дальность хода"
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.options.speed"
 msgstr "Темп"
 
@@ -392,6 +417,10 @@ msgstr "Автомагия"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.title"
 msgstr "Настройки боя"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.wounded"
+msgstr "Раненые"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.quick.confirm"
@@ -1252,6 +1281,16 @@ msgstr "Встречаются %s и %s"
 
 #: src/SOURCE/HERO.cpp
 #, c-format
+msgid "hero.meeting.today"
+msgstr "Сегодня %d"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.meeting.tomorrow"
+msgstr "Завтра %d"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
 msgid "hero.move_points"
 msgstr "Ход %d/%d"
 
@@ -1270,11 +1309,55 @@ msgstr "%s %s"
 msgid "hero.title.with_level"
 msgstr "%s - %s   (Уровень %d)"
 
+#: src/SOURCE/ADVMGR.cpp
+msgid "hero.waiting.badge"
+msgstr "Z"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.close"
+msgstr "Закрыть"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.fullscreen"
+msgstr "Полный экран"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.mac13"
+msgstr "MacBook 13 дюймов / 16:10"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.mode"
+msgstr "Режим экрана"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.native_crisp"
+msgstr "Чёткие пиксели / исходные пропорции"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.native_selected"
+msgstr "Разрешение игры"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.resolution"
+msgstr "Разрешение"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.scaling"
+msgstr "Масштаб"
+
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.settings"
+msgstr "Параметры экрана..."
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.windowed"
+msgstr "В окне"
+
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"
 msgstr "Разрешение полного экрана"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.fullscreen_resolution.desktop"
 msgstr "Как у рабочего стола"
 
@@ -1290,19 +1373,19 @@ msgstr "Оригинальные карты"
 msgid "menu.scaling"
 msgstr "Масштаб"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.fill"
 msgstr "На весь экран (пиксели)"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.fit"
 msgstr "По окну, чётко"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.integer"
 msgstr "Целые пиксели"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.smooth"
 msgstr "По окну, сглаженно"
 
@@ -1391,6 +1474,49 @@ msgstr "Пересылка данных"
 #: src/SOURCE/KB.cpp
 msgid "network.setup.wait"
 msgstr "Ожидаю других игроков для установки игры."
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.built"
+msgstr "Уже строили"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.can_build"
+msgstr "Можно строить"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.cannot_afford"
+msgstr "Не хватает ресурсов"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.exit"
+msgstr "Выход"
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.hero_status"
+msgstr "%s     Ур. %d     Ход %d     До уровня %d%s"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.heroes"
+msgstr "Герои"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.no_building"
+msgstr "Нет доступных построек"
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.page"
+msgstr "Страница %d / %d"
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.town_status"
+msgstr "Доступно для найма: %d     Гость: %s"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.towns"
+msgstr "Города"
 
 #: src/SOURCE/KB.cpp
 #, c-format

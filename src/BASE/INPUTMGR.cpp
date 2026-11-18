@@ -128,7 +128,7 @@ b32 KeyboardMessageHandler(void* window, u32 message, u32 virtualKey, i32 messag
     return event->type == MESSAGE_NONE;
 }
 
-b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData) {
+b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData, u32 timestamp) {
     if (gInputManager == NULL)
         return true;
     if (gInputManager->m_active != 1)
@@ -179,6 +179,7 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
             event->y = CLIENT_TO_GAME_Y(INPUT_MESSAGE_Y(messageData));
             event->mouseX = event->x;
             event->mouseY = event->y;
+            event->mouseTimestamp = timestamp;
     }
 
     if (message == INPUT_MESSAGE_MOUSE_MOVE && gMouseManager != NULL) {
@@ -194,6 +195,32 @@ b32 MouseMessageHandler(void* window, u32 message, u32 keyFlags, i32 messageData
         event->type = MESSAGE_NONE;
     }
 #endif
+    // Motion can arrive much faster than the game renders (especially through
+    // Parallels). Keep its latest position without evicting button events from
+    // the small legacy ring. Never coalesce across a press or release.
+    event->modifiers |= gInputManager->m_modifiers;
+    if (event->type == MESSAGE_MOUSE_MOVE && gInputManager->m_readIndex != gInputManager->m_writeIndex) {
+        const int previousIndex = (gInputManager->m_writeIndex + INPUT_EVENT_RING_CAPACITY - 1) % INPUT_EVENT_RING_CAPACITY;
+        tag_message& previous = gInputManager->m_eventRing[previousIndex];
+        if (previous.type == MESSAGE_MOUSE_MOVE && previous.modifiers == event->modifiers) {
+            previous = *event;
+            gInputManager->m_mouseMessageActive = 0;
+            return false;
+        }
+    }
+    if (event->type == MESSAGE_MOUSE_WHEEL && gInputManager->m_readIndex != gInputManager->m_writeIndex) {
+        gInputManager->m_tapKey = INPUT_SCAN_NONE;
+        const int previousIndex = (gInputManager->m_writeIndex + INPUT_EVENT_RING_CAPACITY - 1) % INPUT_EVENT_RING_CAPACITY;
+        tag_message& previous = gInputManager->m_eventRing[previousIndex];
+        if (previous.type == MESSAGE_MOUSE_WHEEL && previous.modifiers == event->modifiers
+            && previous.x == event->x && previous.y == event->y
+            && (previous.value > 0) == (event->value > 0)) {
+            previous.value += event->value;
+            previous.mouseTimestamp = event->mouseTimestamp;
+            gInputManager->m_mouseMessageActive = 0;
+            return false;
+        }
+    }
     if (event->type != MESSAGE_NONE) {
         if (event->type != MESSAGE_MOUSE_MOVE)
             gInputManager->m_tapKey = INPUT_SCAN_NONE;
@@ -258,7 +285,7 @@ void inputManager::Flush(void) {
 }
 
 tag_message inputManager::GetEvent(void) {
-    tag_message event;
+    tag_message event{};
     PollSound();
     if (gInputManager->m_active != 1 || m_readIndex == m_writeIndex) {
         event.type = MESSAGE_NONE;

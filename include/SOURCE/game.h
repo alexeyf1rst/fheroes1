@@ -258,6 +258,8 @@ public:
     class heroWindow* m_viewArmyWindow;
     i16 m_dialogAnimationCounter;
     class heroWindow* m_viewSpellsWindow;
+    i32 m_viewSpellsWheel = 0;
+    void PageSpellBook(i32 pages);
     class hero* m_viewSpellsHero;
     i16 m_viewSpellCount;
     i8 m_viewSpellSlots[HERO_SPELL_SLOT_COUNT];
@@ -278,7 +280,8 @@ public:
     town* GetPlayerTown(i32 player, i32 index) {
         return &m_castleRecs[m_players[player].m_townIds[index]];
     }
-    void Overview(void);
+    enum OverviewTarget { OVERVIEW_NO_TARGET = -1, OVERVIEW_TOWN_TARGET = 100 };
+    i16 Overview(void);
     b8 SetupCampaignGame(void);
     b8 SetupBaud(void);
     b8 SetupComPort(void);

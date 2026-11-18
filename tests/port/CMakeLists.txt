@@ -87,6 +87,10 @@ target_link_libraries(game_regressions_test PRIVATE homm1_units)
 add_test(NAME game_regressions_test COMMAND game_regressions_test)
 set_tests_properties(game_regressions_test PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 
+add_executable(ui_input_test ui_input_test.cpp)
+target_link_libraries(ui_input_test PRIVATE homm1_units)
+add_test(NAME ui_input_test COMMAND ui_input_test)
+
 # The retail defects fixed in the scenario editor (needs HOMM1_DATA).
 add_executable(editor_regressions_test editor_regressions_test.cpp)
 target_link_libraries(editor_regressions_test PRIVATE homm1_editor_units)

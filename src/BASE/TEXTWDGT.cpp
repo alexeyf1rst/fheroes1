@@ -92,9 +92,9 @@ i16 textWidget::Main(tag_message& message) {
             y = message.y - m_owner->m_posY;
             if (WIDGET_CONTAINS_LOCAL_POINT(*this, x, y)) {
                 m_flags |= WIDGET_FLAG_SELECTED;
-                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, m_id);
                 if (message.type == MESSAGE_RIGHT_BUTTON_DOWN)
                     message.modifiers = MESSAGE_MODIFIER_RIGHT_BUTTON;
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, m_id);
                 return MESSAGE_DISPATCH_FORWARD;
             }
             return MESSAGE_DISPATCH_CONTINUE;
@@ -103,9 +103,9 @@ i16 textWidget::Main(tag_message& message) {
         case MESSAGE_RIGHT_BUTTON_UP:
             if (m_flags & WIDGET_FLAG_SELECTED) {
                 m_flags &= ~WIDGET_FLAG_SELECTED;
-                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, m_id);
                 if (message.type == MESSAGE_RIGHT_BUTTON_UP)
                     message.modifiers = MESSAGE_MODIFIER_RIGHT_BUTTON;
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, m_id);
                 return MESSAGE_DISPATCH_FORWARD;
             }
             return MESSAGE_DISPATCH_CONTINUE;

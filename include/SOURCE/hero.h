@@ -22,6 +22,7 @@ class heroWindow;
 #define HERO_EVENT_GRAVEYARD 0x20u
 #define HERO_EVENT_SHIPWRECK 0x40u
 #define HERO_EVENT_STATUE 0x100u
+#define HERO_EVENT_WAITING 0x200u
 
 enum HeroConstant {
     HERO_MOVEMENT_POINT_SCALE = 25,
@@ -120,7 +121,7 @@ public:
     i32 GetMovementPoints() const;
     void FormatMovementPoints(char* text, size_t capacity);
     void DrawMovementPoints(class font& labelFont, i16 x, i16 y, i16 width);
-    void AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width, bool includeLevel = true);
+    void AddAdventureStats(heroWindow& window, i16 x, i16 y, i16 width, bool includeLevel = true, bool meeting = false);
     void ApplyBattleWinTemps(void);
     void ApplyBattleLossTemps(void);
     void CheckLevel(void);

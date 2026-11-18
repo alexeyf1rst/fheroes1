@@ -309,6 +309,8 @@ struct configStruct {
     i32 combatAnimationSpeed;
     i32 showCombatOrder;
     i32 showCombatGrid;
+    i32 combatHealthBars;
+    i32 showCombatRange;
     i32 hideCombatDamage;
     i32 displayScaling;
     i32 fullscreenWidth;

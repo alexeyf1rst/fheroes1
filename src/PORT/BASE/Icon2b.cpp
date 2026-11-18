@@ -35,9 +35,6 @@ extern "C" u8 gDimPalette[256];
 
 namespace {
 
-// The dim blitters step rows by a fixed 640 bytes (the screen pitch), not by
-// the destination bitmap's width, exactly as the asm does.
-const ptrdiff_t kDimRowPitch = 0x280;
 
 // value + delta (or value - delta), forced to 0 when the 32-bit result is
 // negative.
@@ -204,7 +201,7 @@ void FlipMonoIconToBitmap(
 }
 
 // Darkens the destination under the frame's runs through gDimPalette; the
-// command stream has no pixel bytes. Rows advance by 640 bytes.
+// command stream has no pixel bytes. Rows follow the destination pitch.
 void DimIconToBitmap(icon* ic, bitmap* bmp, i32 x, i32 y, i32 frame, i32 offsetMode) {
     IconFrame f = LoadIconFrame(ic, frame, offsetMode);
     x = AddClamped(x, f.xAdjust);
@@ -226,7 +223,7 @@ void DimIconToBitmap(icon* ic, bitmap* bmp, i32 x, i32 y, i32 frame, i32 offsetM
                 return;
             to += skip;
         } else if (code == 0) {
-            rowStart += kDimRowPitch;
+            rowStart += stride;
             to = rowStart;
         } else {
             for (u32 i = 0; i < code; ++i, ++to)
@@ -235,7 +232,7 @@ void DimIconToBitmap(icon* ic, bitmap* bmp, i32 x, i32 y, i32 frame, i32 offsetM
     }
 }
 
-// Mirrored DimIconToBitmap (left rejection x - width < 0, rows advance by 640).
+// Mirrored DimIconToBitmap (left rejection x - width < 0).
 void FlipDimIconToBitmap(icon* ic, bitmap* bmp, i32 x, i32 y, i32 frame, i32 offsetMode) {
     IconFrame f = LoadIconFrame(ic, frame, offsetMode);
     x = SubClamped(x, f.xAdjust);
@@ -259,7 +256,7 @@ void FlipDimIconToBitmap(icon* ic, bitmap* bmp, i32 x, i32 y, i32 frame, i32 off
                 return;
             to -= skip;
         } else if (code == 0) {
-            rowStart += kDimRowPitch;
+            rowStart += stride;
             to = rowStart;
         } else {
             for (u32 i = 0; i < code; ++i, --to)

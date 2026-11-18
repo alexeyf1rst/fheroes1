@@ -306,8 +306,8 @@ i16 heroWindowManager::DoDialog(
             RemoveWindow(window);
         gInputManager->Flush();
     }
-    gInDialog = false;
     gDialogNestCount--;
+    gInDialog = gDialogNestCount != 0;
     if (gDialogNestCount == 0)
         SetNoDialogMenus(1);
     return 0;
@@ -486,7 +486,7 @@ void CreateFizzleTables(void) {
     free(blend);
 }
 
-void heroWindowManager::FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 delay) {
+bool heroWindowManager::FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 delay, bool (*cancel)()) {
     u8* workPixel;
     u8* screenPixel;
     u8* savePixel;
@@ -497,7 +497,8 @@ void heroWindowManager::FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 d
     i8* cycleTable;
     i32 savedColorCycling;
     if (!gShowIt)
-        return;
+        return false;
+    bool cancelled = false;
     gEnlargeScreenBlit = false;
     tickStart = 0;
     savedColorCycling = gWindowManager->m_colorCycling;
@@ -527,11 +528,17 @@ void heroWindowManager::FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 d
         }
         PollSound();
         DelayTilMilli(tickStart + delay);
+        if (cancel && cancel()) {
+            cancelled = true;
+            break;
+        }
         tickStart = KBTickCount();
         BlitBitmapToScreen(m_screen, x, y, width, height, x, y);
         PollSound();
     }
-    DelayTilMilli(tickStart + delay);
+    if (!cancelled)
+        DelayTilMilli(tickStart + delay);
+    BlitBitmap(m_fizzleWork, 0, 0, width, height, m_screen, x, y);
     BlitBitmapToScreen(m_fizzleWork, 0, 0, width, height, x, y);
     gEnlargeScreenBlit = true;
     gWindowManager->m_colorCycling = savedColorCycling;
@@ -540,6 +547,7 @@ void heroWindowManager::FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 d
     delete m_fizzleWork;
     m_fizzleWork = NULL;
     free(cycleTable);
+    return cancelled;
 }
 
 void heroWindowManager::ReleaseFizzleSource(void) {

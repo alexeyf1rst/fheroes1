@@ -17,6 +17,7 @@
 #include <BASE/audio.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
+#include <BASE/goldButton.h>
 #include <BASE/inputManager.h>
 #include <BASE/message.h>
 #include <BASE/miscwin.h>
@@ -25,6 +26,7 @@
 #include <SOURCE/KB.h>
 #include <SOURCE/cursorTypes.h>
 #include <SOURCE/dialogTypes.h>
+#include <BASE/textWidget.h>
 #include <SOURCE/wingraph.h>
 #ifdef HOMM1_EDITOR
 #include <EDITOR/EDITOR.h>
@@ -38,10 +40,13 @@
 
 #include "../PortHost.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <filesystem>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -67,6 +72,178 @@ i32 gTempValue;
 char gCommandLine[KBWIN_COMMAND_LINE_CLEAR_SIZE];
 
 namespace {
+
+bool NativeDisplayMode() { return platform::gLogicalWidth != 640 || platform::gLogicalHeight != 480; }
+
+struct NativePreset { int width; int height; };
+const NativePreset kNativePresets[] = {{960, 600}, {1280, 800}, {1440, 900}};
+int gSelectedNativePreset = 1;
+std::filesystem::path NativeResolutionPath() {
+    return std::filesystem::u8path(platform::ConfigDirectory()) / "native-resolution.txt";
+}
+
+enum DisplaySettingsWidgetId {
+    DISPLAY_SETTINGS_MODE = 17001,
+    DISPLAY_SETTINGS_PREVIOUS = 17002,
+    DISPLAY_SETTINGS_RESOLUTION = 17003,
+    DISPLAY_SETTINGS_NEXT = 17004,
+    DISPLAY_SETTINGS_SCALING = 17005,
+    DISPLAY_SETTINGS_CLOSE = 17006
+};
+
+struct DisplaySettingsState {
+    heroWindow* window = nullptr;
+    goldButton* mode = nullptr;
+    goldButton* resolution = nullptr;
+    goldButton* scaling = nullptr;
+    textWidget* nativeStatus = nullptr;
+};
+
+DisplaySettingsState* gDisplaySettings = nullptr;
+
+class DisplaySettingsBackdrop : public widget {
+public:
+    DisplaySettingsBackdrop() : widget(0, 0, 532, 328, WIDGET_ID_NONE, WIDGET_KIND_NONE) {}
+
+    void Draw() override {
+        const i32 x = m_owner->m_posX + m_x;
+        const i32 y = m_owner->m_posY + m_y;
+        const i32 frame = goldButton::MatchGold(47, 31, 8, true);
+        const i32 dark = goldButton::MatchGold(10, 8, 6, true);
+        const i32 inset = goldButton::MatchGold(31, 21, 10, true);
+        bitmap* screen = gWindowManager->m_screen;
+        FillBitmapArea(screen, x, y, m_width, m_height, frame);
+        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, dark);
+        FillBitmapArea(screen, x + 6, y + 6, m_width - 12, m_height - 12, inset);
+        FillBitmapArea(screen, x + 12, y + 43, m_width - 24, 1, frame);
+        FillBitmapArea(screen, x + 20, y + 224, m_width - 40, 1, frame);
+    }
+
+    i16 Main(tag_message& message) override { return widget::Main(message); }
+};
+
+std::string DisplayResolutionLabel() {
+    if (gConfig.fullscreenWidth == 0 || gConfig.fullscreenHeight == 0)
+        return localization::Tr("menu.fullscreen_resolution.desktop");
+    return std::to_string(gConfig.fullscreenWidth) + " x " + std::to_string(gConfig.fullscreenHeight);
+}
+
+void RefreshDisplaySettings() {
+    if (gDisplaySettings == nullptr)
+        return;
+    const char* mode = CURRENT_GRAPHICS_CONFIG.fullScreen
+        ? localization::Tr("menu.display.fullscreen") : localization::Tr("menu.display.windowed");
+    std::string modeLabel = std::string(localization::Tr("menu.display.mode")) + ": " + mode;
+    gDisplaySettings->mode->SetText(const_cast<char*>(modeLabel.c_str()));
+    if (NativeDisplayMode()) {
+        const auto& preset = kNativePresets[gSelectedNativePreset];
+        std::string label = std::string(localization::Tr("menu.display.native_selected")) + ": "
+            + std::to_string(preset.width) + " x " + std::to_string(preset.height);
+        gDisplaySettings->nativeStatus->SetText(const_cast<char*>(label.c_str()));
+        return;
+    }
+    std::string resolutionLabel = std::string(localization::Tr("menu.display.resolution")) + ": "
+        + DisplayResolutionLabel();
+    gDisplaySettings->resolution->SetText(const_cast<char*>(resolutionLabel.c_str()));
+    const i32 selected = std::clamp(gConfig.displayScaling, 0, 3);
+    const char* scaleLabel = selected == platform::DISPLAY_SCALING_INTEGER
+        ? localization::Tr("menu.scaling.integer")
+        : selected == platform::DISPLAY_SCALING_SMOOTH ? localization::Tr("menu.scaling.smooth")
+        : selected == platform::DISPLAY_SCALING_FILL ? localization::Tr("menu.scaling.fill")
+                                                      : localization::Tr("menu.scaling.fit");
+    std::string scalingLabel = std::string(localization::Tr("menu.display.scaling")) + ": "
+        + scaleLabel;
+    gDisplaySettings->scaling->SetText(const_cast<char*>(scalingLabel.c_str()));
+}
+
+i16 DisplaySettingsDialogHandler(tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN
+        && (message.keyCode == INPUT_SCAN_ESCAPE || message.keyCode == INPUT_SCAN_ENTER)) {
+        message.type = MESSAGE_WIDGET;
+        message.id = DISPLAY_SETTINGS_CLOSE;
+        FINISH_DIALOG_MESSAGE(message);
+        return MESSAGE_DISPATCH_FORWARD;
+    }
+    if (message.type != MESSAGE_WIDGET || message.command != WIDGET_NOTIFY_DESELECT
+        || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
+        return MESSAGE_DISPATCH_CONTINUE;
+    switch (message.id) {
+        case DISPLAY_SETTINGS_MODE:
+            AppMenuCommand(KBWIN_MENU_FULLSCREEN);
+            break;
+        case DISPLAY_SETTINGS_PREVIOUS:
+        case DISPLAY_SETTINGS_NEXT: {
+            const auto& modes = platform::FullscreenResolutions();
+            i32 selected = 0;
+            for (size_t i = 0; i < modes.size(); ++i) {
+                if (modes[i].width == gConfig.fullscreenWidth && modes[i].height == gConfig.fullscreenHeight) {
+                    selected = static_cast<i32>(i) + 1;
+                    break;
+                }
+            }
+            const i32 count = static_cast<i32>(std::min<size_t>(modes.size(), KBWIN_MENU_RESOLUTION_CHOICES)) + 1;
+            selected = (selected + (message.id == DISPLAY_SETTINGS_NEXT ? 1 : count - 1)) % count;
+            AppMenuCommand(KBWIN_MENU_RESOLUTION_FIRST + selected);
+            break;
+        }
+        case DISPLAY_SETTINGS_SCALING: {
+            static const i32 commands[] = {
+                KBWIN_MENU_SCALE_FIT, KBWIN_MENU_SCALE_INTEGER, KBWIN_MENU_SCALE_SMOOTH, KBWIN_MENU_SCALE_FILL
+            };
+            const i32 next = (std::clamp(gConfig.displayScaling, 0, 3) + 1) % 4;
+            AppMenuCommand(commands[next]);
+            break;
+        }
+        case DISPLAY_SETTINGS_CLOSE:
+            FINISH_DIALOG_MESSAGE(message);
+            return MESSAGE_DISPATCH_FORWARD;
+        default:
+            return MESSAGE_DISPATCH_CONTINUE;
+    }
+    RefreshDisplaySettings();
+    gDisplaySettings->window->DrawWindow();
+    return MESSAGE_DISPATCH_CONSUME;
+}
+
+void ShowDisplaySettings() {
+    heroWindow window((LOGICAL_SCREEN_WIDTH - 532) / 2, (LOGICAL_SCREEN_HEIGHT - 328) / 2,
+                      532, 328, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
+    window.AddWidget(new DisplaySettingsBackdrop(), WINDOW_Z_ORDER_BOTTOM);
+    auto* title = new textWidget(16, 14, 500, 24, strdup(localization::Tr("menu.display.settings")),
+                                 "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR, 17000, WIDGET_KIND_TEXT);
+    title->m_color = goldButton::MatchGold(57, 43, 8, true);
+    window.AddWidget(title, WINDOW_Z_ORDER_BOTTOM);
+    auto* mode = new goldButton(28, 58, 476, 34, DISPLAY_SETTINGS_MODE, "");
+    window.AddWidget(mode, WINDOW_Z_ORDER_APPEND);
+    DisplaySettingsState state;
+    state.window = &window;
+    state.mode = mode;
+    if (NativeDisplayMode()) {
+        state.nativeStatus = new textWidget(28, 110, 476, 24, strdup(""),
+            "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR, 17104, WIDGET_KIND_TEXT);
+        state.nativeStatus->m_color = goldButton::MatchGold(57, 43, 8, true);
+        window.AddWidget(state.nativeStatus, WINDOW_Z_ORDER_APPEND);
+        window.AddWidget(new textWidget(28, 150, 476, 24,
+            strdup(localization::Tr("menu.display.mac13")), "smalfont.fnt",
+            TEXT_WIDGET_PLAIN_COLOR, 17105, WIDGET_KIND_TEXT), WINDOW_Z_ORDER_APPEND);
+        window.AddWidget(new textWidget(28, 184, 476, 24,
+            strdup(localization::Tr("menu.display.native_crisp")), "smalfont.fnt",
+            TEXT_WIDGET_PLAIN_COLOR, 17106, WIDGET_KIND_TEXT), WINDOW_Z_ORDER_APPEND);
+    } else {
+        window.AddWidget(new goldButton(28, 110, 36, 32, DISPLAY_SETTINGS_PREVIOUS, "", goldButton::Left), WINDOW_Z_ORDER_APPEND);
+        state.resolution = new goldButton(68, 110, 396, 32, DISPLAY_SETTINGS_RESOLUTION, "");
+        window.AddWidget(state.resolution, WINDOW_Z_ORDER_APPEND);
+        window.AddWidget(new goldButton(468, 110, 36, 32, DISPLAY_SETTINGS_NEXT, "", goldButton::Right), WINDOW_Z_ORDER_APPEND);
+        state.scaling = new goldButton(28, 162, 476, 34, DISPLAY_SETTINGS_SCALING, "");
+        window.AddWidget(state.scaling, WINDOW_Z_ORDER_APPEND);
+    }
+    window.AddWidget(new goldButton(198, 264, 136, 34, DISPLAY_SETTINGS_CLOSE,
+                                   localization::Tr("menu.display.close")), WINDOW_Z_ORDER_APPEND);
+    gDisplaySettings = &state;
+    RefreshDisplaySettings();
+    gWindowManager->DoDialog(&window, DisplaySettingsDialogHandler, false);
+    gDisplaySettings = nullptr;
+}
 
 // ---------------------------------------------------------------- settings
 
@@ -142,6 +319,8 @@ std::vector<SettingField> IntegerSettings() {
         {"HMM1 CombatAnimationSpeed", &gConfig.combatAnimationSpeed},
         {"HMM1 AutoResolveBattles", &gConfig.autoResolveBattles},
         {"HMM1 ShowCombatGrid", &gConfig.showCombatGrid},
+        {"HMM1 CombatHealthBars", &gConfig.combatHealthBars},
+        {"HMM1 ShowCombatRange", &gConfig.showCombatRange},
         {"HMM1 HideCombatDamage", &gConfig.hideCombatDamage},
         {"HMM1 ShowCombatOrder", &gConfig.showCombatOrder},
         {"HMM1 DisplayScaling", &gConfig.displayScaling},
@@ -182,8 +361,8 @@ void PostKey(u32 message, const platform::Event& event) {
 
 void PostMouse(u32 message, const platform::Event& event, u32 keyFlags = 0) {
     i32 messageData =
-        static_cast<i32>((static_cast<u32>(event.y) << 16) | static_cast<u32>(event.x));
-    MouseMessageHandler(NULL, message, keyFlags, messageData);
+        static_cast<i32>((static_cast<u32>(event.y) << 16) | (static_cast<u32>(event.x) & 0xffff));
+    MouseMessageHandler(NULL, message, keyFlags, messageData, event.timestamp);
 }
 
 // The original's WM_CLOSE: confirm leaving an unsaved game, then end.
@@ -209,7 +388,10 @@ void Dispatch(const platform::Event& event) {
     static platform::Event mapPress;
     const bool onAdventure = gAdvManager && gExec && gExec->m_managerListTail == gAdvManager && !gInDialog;
     if (pendingMapPress) {
-        if (!onAdventure || event.type == platform::Event::FOCUS_LOST) {
+        if (!onAdventure || event.type == platform::Event::FOCUS_LOST
+            || event.type == platform::Event::KEY_DOWN || event.type == platform::Event::QUIT
+            || event.type == platform::Event::MOUSE_WHEEL
+            || (event.type == platform::Event::MOUSE_DOWN && event.button != platform::Event::BUTTON_LEFT)) {
             gAdvManager->EndMapDrag();
             pendingMapPress = false;
             platform::CaptureMouse(false);
@@ -234,8 +416,8 @@ void Dispatch(const platform::Event& event) {
         return;
     // The game image ends at the menu bar.
     if ((event.type == platform::Event::MOUSE_MOVE || event.type == platform::Event::MOUSE_DOWN
-         || event.type == platform::Event::MOUSE_UP)
-        && event.y < 0)
+         || event.type == platform::Event::MOUSE_UP || event.type == platform::Event::MOUSE_WHEEL)
+        && event.onChrome)
         return;
 #ifndef HOMM1_EDITOR
     if (onAdventure && event.type == platform::Event::MOUSE_DOWN && event.button == platform::Event::BUTTON_LEFT
@@ -258,12 +440,10 @@ void Dispatch(const platform::Event& event) {
             break;
         case platform::Event::MOUSE_WHEEL:
 #ifndef HOMM1_EDITOR
-            if (onAdventure && event.y >= 0) {
-                const i32 wheelDelta = static_cast<i32>(event.wheelY * INPUT_WHEEL_STEP);
-                if (wheelDelta != 0)
-                    PostMouse(INPUT_MESSAGE_MOUSE_WHEEL, event, static_cast<u32>(wheelDelta));
-            } else {
-                combatManager::ScrollCombatHistory(event.wheelY);
+            if (event.y >= 0 && event.wheelY != 0.0f) {
+                const i32 delta = static_cast<i32>(std::lround(event.wheelY * INPUT_WHEEL_STEP));
+                const i32 wheelDelta = delta != 0 ? delta : (event.wheelY > 0.0f ? 1 : -1);
+                PostMouse(INPUT_MESSAGE_MOUSE_WHEEL, event, static_cast<u32>(wheelDelta));
             }
 #endif
             break;
@@ -291,6 +471,10 @@ void Dispatch(const platform::Event& event) {
             break;
         case platform::Event::FOCUS_LOST:
             gForegroundApp = 0;
+#ifndef HOMM1_EDITOR
+            if (gAdvManager)
+                gAdvManager->ResetLocatorInput();
+#endif
             if (gInputManager) {
                 gInputManager->m_tapKey = INPUT_SCAN_NONE;
                 gInputManager->m_modifiers = MESSAGE_MODIFIER_NONE;
@@ -325,6 +509,36 @@ void RunTimer() {
 // ---------------------------------------------------------------- entry
 
 bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen) {
+    const std::string nativeSize = platform::Environment("HOMM1_NATIVE_SIZE");
+    if (!nativeSize.empty()) {
+        int width = 0, height = 0;
+        if (nativeSize == "auto") {
+            width = 1280;
+            height = 800;
+            std::ifstream input(NativeResolutionPath());
+            std::string saved;
+            input >> saved;
+            for (int i = 0; i < 3; ++i) {
+                const auto& preset = kNativePresets[i];
+                if (saved == std::to_string(preset.width) + "x" + std::to_string(preset.height)) {
+                    width = preset.width;
+                    height = preset.height;
+                    gSelectedNativePreset = i;
+                }
+            }
+        } else if (std::sscanf(nativeSize.c_str(), "%dx%d", &width, &height) != 2) {
+            return false;
+        }
+        if (!platform::SetNativeResolution(width, height))
+            return false;
+        for (int i = 0; i < 3; ++i)
+            if (kNativePresets[i].width == width && kNativePresets[i].height == height)
+                gSelectedNativePreset = i;
+        platform::gCanvasWidth = width;
+        platform::gCanvasHeight = height;
+        gMainWinScreenWidth = width;
+        gMainWinScreenHeight = height;
+    }
     platform::StartupOptions options;
     if (!platform::Startup(options))
         return false;
@@ -353,6 +567,10 @@ bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen
         CURRENT_GRAPHICS_CONFIG.fullScreen = fullScreen;
     srand(static_cast<u32>(KBTickCount()));
     InitGraphics();
+    if (NativeDisplayMode()) {
+        gConfig.fullscreenWidth = 0;
+        gConfig.fullscreenHeight = 0;
+    }
     if (!platform::SetFullscreenResolution(gConfig.fullscreenWidth, gConfig.fullscreenHeight)) {
         gConfig.fullscreenWidth = 0;
         gConfig.fullscreenHeight = 0;
@@ -459,6 +677,10 @@ void ResizeWindow(i32 x, i32 y, i32 width, i32 height) {
 }
 
 i32 AppMenuCommand(i32 command) {
+    if (command == KBWIN_MENU_DISPLAY_SETTINGS) {
+        ShowDisplaySettings();
+        return 0;
+    }
     const auto& resolutions = platform::FullscreenResolutions();
     const i32 resolution = command - KBWIN_MENU_RESOLUTION_FIRST;
     if (resolution >= 0 && resolution <= KBWIN_MENU_RESOLUTION_CHOICES
@@ -677,7 +899,7 @@ void ReadPrefs(void) {
         // The port starts in a window; F4 switches to full screen.
         for (i32 i = 0; i < CONFIG_EXECUTABLE_COUNT; i++)
             gConfig.gfx[i].fullScreen = 0;
-        WritePrefs();
+            WritePrefs();
         return;
     }
     gConfig.autoResolveBattles = 1;
@@ -692,6 +914,11 @@ void ReadPrefs(void) {
     if (gConfig.displayScaling < platform::DISPLAY_SCALING_FIT
         || gConfig.displayScaling > platform::DISPLAY_SCALING_FILL)
         gConfig.displayScaling = platform::DISPLAY_SCALING_FIT;
+    if (NativeDisplayMode()) {
+        gConfig.displayScaling = platform::DISPLAY_SCALING_FIT;
+        gConfig.fullscreenWidth = 0;
+        gConfig.fullscreenHeight = 0;
+    }
     platform::SetDisplayScaling(static_cast<platform::DisplayScaling>(gConfig.displayScaling));
     ReadSetting(values, "HMM1 ModemInitString", gConfig.modemInitString,
                 sizeof(gConfig.modemInitString));

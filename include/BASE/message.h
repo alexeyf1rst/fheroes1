@@ -74,6 +74,7 @@ struct tag_message {
     i16 modifiers;
     i16 mouseX;
     i16 mouseY;
+    u32 mouseTimestamp;
     union {
         i32 value;
         char* text;

@@ -77,7 +77,7 @@ public:
     );
     void ScreenShot(void);
     void SaveFizzleSource(i16 x, i16 y, i16 width, i16 height);
-    void FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 delay);
+    bool FizzleForward(i16 x, i16 y, i16 width, i16 height, i32 delay, bool (*cancel)() = nullptr);
     void ReleaseFizzleSource(void);
 };
 

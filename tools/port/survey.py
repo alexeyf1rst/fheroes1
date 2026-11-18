@@ -26,6 +26,8 @@ Findings are grouped by the reporting source line; each group lists how
 often it was seen and the first run that showed it. The exit status is 1
 when anything was found.
 """
+from __future__ import annotations
+
 import argparse
 import concurrent.futures
 import os
@@ -36,9 +38,11 @@ import signal
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 SANITIZER_LINE = re.compile(r"^(?P<where>\S+?:\d+(?::\d+)?): runtime error: (?P<what>.*)$")
+PLAYTEST_LINE = re.compile(r"^PLAYTEST day=(\d+) winner=(-?\d+)$", re.MULTILINE)
 ASAN_LINE = re.compile(r"ERROR: AddressSanitizer: (?P<what>[\w-]+)")
 FRAME = re.compile(r"^\s+#(?P<n>\d+) 0x[0-9a-f]+ in (?P<function>.+?) (?P<where>\S+:\d+)")
 
@@ -189,6 +193,7 @@ def run(job: dict) -> dict:
             "SDL_AUDIO_DRIVER": "dummy",
             "SDL_NO_SIGNAL_HANDLERS": "1",
             "XDG_CONFIG_HOME": str(scratch / "config"),
+            "HOMM1_CONFIG": str(scratch / "config"),
             "ASAN_OPTIONS": "detect_leaks=0:abort_on_error=0:print_summary=1:handle_abort=1",
             "UBSAN_OPTIONS": "print_stacktrace=1",
         })
@@ -204,11 +209,14 @@ def run(job: dict) -> dict:
         log_path = scratch / "output.log"
         with open(log_path, "wb") as log:
             process = subprocess.Popen(command, env=environment, cwd=scratch, stdout=log,
-                                       stderr=subprocess.STDOUT, start_new_session=True)
+                                       stderr=subprocess.STDOUT, start_new_session=os.name != "nt")
             try:
                 status = process.wait(timeout=job["timeout"])
             except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
+                if os.name == "nt":
+                    process.kill()
+                else:
+                    os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
                 status = None
         output = log_path.read_text(errors="replace")
@@ -219,7 +227,9 @@ def run(job: dict) -> dict:
             findings.append(("exit", job["name"], f"exit status {status} after: {last_progress(output)}"))
         if job.get("keep_log"):
             (Path(job["scratch"]) / (job["name"].replace("/", "_") + ".log")).write_text(output)
-        return {"job": job, "findings": findings, "status": status}
+        playtest = PLAYTEST_LINE.search(output)
+        return {"job": job, "findings": findings, "status": status,
+                "playtest": tuple(map(int, playtest.groups())) if status == 0 and playtest else None}
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
 
@@ -232,6 +242,8 @@ def main() -> int:
     parser.add_argument("--maps", default="", help="comma-separated map names (default: every shipped map)")
     parser.add_argument("--seeds", type=int, default=2)
     parser.add_argument("--days", type=int, default=60)
+    parser.add_argument("--ai-players", type=int, choices=range(2, 5),
+                        help="number of computer players to request for each AI run")
     parser.add_argument("--battles", type=int, default=25)
     parser.add_argument("--random-maps", type=int, default=10, help="maps per editor generator run")
     parser.add_argument("--monkeys", type=int, default=8, help="random-input runs per program")
@@ -246,10 +258,11 @@ def main() -> int:
     if arguments.data is None:
         parser.error("--data or $HOMM1_DATA is required")
     build = arguments.build.resolve()
-    survey = build / "tests" / "port" / "homm1_survey"
-    editor_survey = build / "tests" / "port" / "homm1_editor_survey"
-    game = build / "heroes"
-    editor = build / "heroes-editor"
+    suffix = ".exe" if os.name == "nt" else ""
+    survey = build / "tests" / "port" / f"homm1_survey{suffix}"
+    editor_survey = build / "tests" / "port" / f"homm1_editor_survey{suffix}"
+    game = build / f"heroes{suffix}"
+    editor = build / f"heroes-editor{suffix}"
     scratch = Path(arguments.scratch or tempfile.mkdtemp(prefix="homm1-survey-")).resolve()
     scratch.mkdir(parents=True, exist_ok=True)
     data = arguments.data.resolve()
@@ -267,8 +280,8 @@ def main() -> int:
     if "ai" in parts:
         for name in maps:
             for seed in range(1, arguments.seeds + 1):
-                players = 2 + (seed % 3)
-                jobs.append(dict(base, name=f"ai {name} seed {seed}", command=[
+                players = arguments.ai_players or 2 + (seed % 3)
+                jobs.append(dict(base, name=f"ai {name} seed {seed}", playtest_map=name, command=[
                     str(survey), "ai", name, str(arguments.days), str(seed), str(players)]))
     if "campaign" in parts:
         for side in range(1, 5):
@@ -307,6 +320,7 @@ def main() -> int:
             for seed in range(1, arguments.seeds + 1)]
         phases.insert(0, editor_jobs)
     groups: dict[tuple[str, str], dict] = {}
+    playtest: dict[str, list[tuple[int, int]]] = {}
 
     def run_phase(phase: list[dict]) -> None:
         print(f"{len(phase)} runs, {arguments.jobs} at a time; scratch {scratch}", flush=True)
@@ -315,6 +329,8 @@ def main() -> int:
             for outcome in pool.map(run, phase):
                 done += 1
                 job = outcome["job"]
+                if job.get("playtest_map") and outcome["playtest"]:
+                    playtest.setdefault(job["playtest_map"], []).append(outcome["playtest"])
                 new = 0
                 for kind, where, text in outcome["findings"]:
                     key = (kind, where)
@@ -333,6 +349,15 @@ def main() -> int:
                                   command=[str(survey), "ai", map_file.name, str(arguments.days), "1", "4"]))
         run_phase(phase)
 
+    if playtest:
+        print("\nAI playtest results")
+        for name, runs in sorted(playtest.items()):
+            winners = Counter(winner for _, winner in runs if winner >= 0)
+            resolved = sum(winners.values())
+            wins = ", ".join(f"P{player + 1}: {count}" for player, count in sorted(winners.items()))
+            days = [day for day, _ in runs]
+            print(f"  {name}: {len(runs)} runs, day {min(days)}–{max(days)}, "
+                  f"{len(runs) - resolved} without a sole winner" + (f", wins {wins}" if wins else ""))
     print(f"\n{len(groups)} distinct findings")
     for (kind, where), group in sorted(groups.items(), key=lambda item: (item[0][0], item[0][1])):
         print(f"\n[{kind}] {where}  (seen {group['count']}x; first: {group['first']['name']})")

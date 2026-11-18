@@ -1,5 +1,7 @@
 #include <H1/Ints.h>
 #include <PLATFORM/Platform.h>
+#include <BASE/legacyCanvas.h>
+#include <optional>
 
 #include <BASE/BITS.h>
 #include <BASE/bmap2.h>
@@ -272,6 +274,10 @@ i32 oldmain(void) {
     initialScreen = true;
 
     while (!leave) {
+        // The menu's goto labels stay inside this lifetime. Campaign retries
+        // reacquire the same legacy canvas after returning from adventure.
+        std::optional<LegacyCanvas> menuCanvas(std::in_place);
+        backdropLoaded = false;
     mainMenu:
         PlayMusic(MUSIC_TRACK_MAIN_MENU);
         if (!backdropLoaded) {
@@ -461,6 +467,7 @@ i32 oldmain(void) {
             gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
             gMapX = 0;
             gMapY = 0;
+            menuCanvas->Restore();
             if ((gExec->AddManager(gAdvManager, BASE_MANAGER_PRIORITY_UNASSIGNED)))
                 ShutDown(localization::Tr("startup.manager.failed"));
             if (command == MAIN_MENU_NEW_GAME)
@@ -472,6 +479,7 @@ i32 oldmain(void) {
             gMapX = gAdvManager->m_mapOriginX;
             gMapY = gAdvManager->m_mapOriginY;
             gExec->RemoveManager(gAdvManager);
+            menuCanvas.emplace();
             gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, gPalette);
         }
 

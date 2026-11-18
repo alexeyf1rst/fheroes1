@@ -24,8 +24,11 @@
 #include <H1/Ints.h>
 
 #include <BASE/Misc.h>
+#include <BASE/bitmap.h>
 #include <BASE/executive.h>
 #include <BASE/heroWindowManager.h>
+#include <BASE/heroWindow.h>
+#include <BASE/inputManager.h>
 #include <BASE/miscwin.h>
 #include <BASE/mouseManager.h>
 #include <BASE/palette.h>
@@ -61,7 +64,9 @@
 #include <thread>
 #include <vector>
 
+#ifndef _WIN32
 #include <pthread.h>
+#endif
 
 bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen);
 
@@ -86,14 +91,22 @@ void StartWatchdog() {
     if (seconds <= 0)
         return;
     gLastProgress = Now();
+#ifndef _WIN32
     pthread_t mainThread = pthread_self();
     std::thread([mainThread, seconds] {
+#else
+    std::thread([seconds] {
+#endif
         for (;;) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
             if (Now() - gLastProgress > seconds) {
                 std::fprintf(stderr, "FINDING hang: no progress for %d s\n", seconds);
                 std::fflush(stderr);
+#ifdef _WIN32
+                std::abort();
+#else
                 pthread_kill(mainThread, SIGABRT);
+#endif
                 return;
             }
         }
@@ -293,6 +306,15 @@ void PlayDays(int days, bool roundTrips) {
         }
     }
     Progress("played %d days%s", played, gGameOver ? " (game over)" : "");
+    int winner = -1;
+    int living = 0;
+    for (int player = 0; player < gGame->m_playerCount; ++player) {
+        if (!gGame->m_playerDead[player]) {
+            winner = player;
+            ++living;
+        }
+    }
+    Progress("PLAYTEST day=%d winner=%d", GAME_DAY_NUMBER(*gGame), living == 1 && gGameOver ? winner : -1);
 }
 
 // ---------------------------------------------------------------- combat
@@ -406,25 +428,168 @@ void Battles(int count) {
     }
 }
 
+// Use the real adventure window with a full roster without modifying a save.
+void CheckLabLocators() {
+    auto& player = *gCurPlayerData;
+    player.m_heroCount = player.m_townCount = 8;
+    player.m_heroLocatorPage = player.m_townLocatorPage = 0;
+    for (int i = 0; i < 8; ++i) {
+        player.m_heroIds[i] = player.m_townIds[i] = static_cast<i8>(i);
+        auto* hero = gGame->GetHero(i);
+        hero->m_owner = gCurPlayer;
+        hero->m_x = 10 + 3 * i;
+        hero->m_y = 20;
+        gGame->m_mapExtra[hero->m_x][hero->m_y] |= gCurPlayerBit;
+        auto* town = gGame->GetTown(i);
+        town->m_owner = gCurPlayer;
+        town->m_x = 10 + 3 * i;
+        town->m_y = 30;
+        gGame->m_mapExtra[town->m_x][town->m_y] |= gCurPlayerBit;
+    }
+    gAllBlack = false;
+    gShowIt = true;
+    gAdvManager->RedrawAdvScreen(true);
+
+    const auto expect = [](bool passed, const char* label) {
+        Progress("%s %s", passed ? "ok" : "FAIL", label);
+        if (!passed)
+            Finish(1);
+    };
+    const auto wheel = [](int x, int delta, u32 time) {
+        tag_message message{};
+        message.x = x;
+        message.y = 380;
+        message.value = delta;
+        message.mouseTimestamp = time;
+        gAdvManager->ScrollLocators(message);
+    };
+    wheel(824, -15, 100);
+    expect(player.m_heroLocatorPage == 1 && player.m_townLocatorPage == 0,
+           "fractional input reaches eighth hero independently");
+    wheel(896, -15, 110);
+    expect(player.m_heroLocatorPage == 1 && player.m_townLocatorPage == 1,
+           "fractional input reaches eighth town independently");
+
+    const auto shiftLastRow = [&](int x, i16& id) {
+        tag_message click{};
+        click.type = MESSAGE_LEFT_BUTTON_DOWN;
+        click.x = click.mouseX = x;
+        click.y = click.mouseY = 382;
+        click.modifiers = MESSAGE_MODIFIER_SHIFT_KEYS;
+        gAdvManager->m_adventureWindow->BroadcastMessage(click);
+        id = click.id;
+        if (click.type != MESSAGE_WIDGET || click.command != WIDGET_NOTIFY_SELECT)
+            return false;
+        mapCell* cell = nullptr;
+        gAdvManager->ProcessSelect(&click, &cell);
+        return true;
+    };
+    i16 heroButton = -1, townButton = -1;
+    expect(shiftLastRow(824, heroButton) && player.m_heroIds[0] == 7 && player.m_heroLocatorPage == 0,
+           "clicking row seven reorders the eighth hero");
+    expect(shiftLastRow(896, townButton) && player.m_townIds[0] == 7 && player.m_townLocatorPage == 0
+               && townButton != heroButton,
+           "clicking row seven reorders the eighth town");
+    wheel(824, -120, 500);
+    wheel(896, -120, 510);
+    wheel(824, 120, 550);
+    wheel(896, 120, 560);
+    expect(player.m_heroLocatorPage == 0 && player.m_townLocatorPage == 0,
+           "reversing wheel direction restores both first pages");
+
+    const int markerX = RADAR_LEFT + 31 * RADAR_CELL_PIXELS;
+    expect(gAdvManager->HeroAtRadarPoint(markerX, RADAR_TOP + 20 * RADAR_CELL_PIXELS) == 7,
+           "mini-map finds the eighth hero");
+    expect(gAdvManager->TownAtRadarPoint(markerX, RADAR_TOP + 30 * RADAR_CELL_PIXELS) == 7,
+           "mini-map finds the eighth town");
+    expect(gAdvManager->HeroAtRadarPoint(RADAR_LEFT - 1, RADAR_TOP) == HERO_ID_NONE,
+           "clicks outside the mini-map cannot target a hero");
+    int box[4];
+    expect(platform::CompareWithReference(box) == 0, "sidebar uploads match the game buffer");
+
+    gAdvManager->PanMap(10, 10);
+    auto* screen = gWindowManager->m_screen;
+    const auto borderPixel = screen->m_pixels[0];
+    expect(gAdvManager->BeginMapDrag(300, 280)
+               && !gAdvManager->DragMap(297, 280)
+               && gAdvManager->DragMap(291, 275),
+           "small clicks stay clicks and an intentional drag starts");
+    const auto* frame = gAdvManager->m_cameraFrame;
+    const auto sample = [&](int dx, int dy) {
+        return std::memcmp(screen->m_pixels + (BORDER_EDGE_SIZE + 40) * screen->m_width + BORDER_EDGE_SIZE,
+                           frame->m_pixels + (BORDER_EDGE_SIZE + 40 + dy) * frame->m_width
+                               + BORDER_EDGE_SIZE + dx,
+                           64) == 0;
+    };
+    expect(gAdvManager->m_mapOriginX == 10 && gAdvManager->m_cameraOffsetX == 9
+               && gAdvManager->m_cameraOffsetY == 5 && sample(9, 5),
+           "drag moves by pixels within the same cell");
+    expect(gAdvManager->DragMap(282, 275) && gAdvManager->m_mapOriginX == 11
+               && gAdvManager->m_cameraOffsetX == -14 && sample(-14, 5),
+           "drag crosses the cell boundary without losing the remaining movement");
+    expect(screen->m_pixels[0] == borderPixel && platform::CompareWithReference(box) == 0,
+           "drag keeps the frame fixed and uploads the correct map");
+    gAdvManager->EndMapDrag();
+    expect(!gAdvManager->m_mapDragging && sample(-14, 5) && platform::CompareWithReference(box) == 0,
+           "release keeps the last displayed camera position");
+    i16 cellX, cellY;
+    expect(gAdvManager->MapCellAtScreenPoint(37, 27, cellX, cellY) && cellX == 0 && cellY == 1
+               && !gAdvManager->MapCellAtScreenPoint(1, 27, cellX, cellY),
+           "clicks use the displayed tiles and reject the decorative border");
+    tag_message hover{};
+    hover.id = ADVENTURE_CONTROL_MAP_VIEW;
+    hover.mouseX = 37;
+    hover.mouseY = 27;
+    gAdvManager->ProcessHover(&hover);
+    expect(gAdvManager->m_commandTargetX == 11 && gAdvManager->m_commandTargetY == 11,
+           "map input targets the visible cell at the released camera position");
+    expect(gAdvManager->HeroAtRadarPoint(markerX, RADAR_TOP + 20 * RADAR_CELL_PIXELS) == 7
+               && gAdvManager->TownAtRadarPoint(markerX, RADAR_TOP + 30 * RADAR_CELL_PIXELS) == 7,
+           "hero and town markers still resolve with the camera between cells");
+    gAdvManager->CompleteDraw(false);
+    gAdvManager->UpdateScreen(false, false);
+    expect(sample(-14, 5) && platform::CompareWithReference(box) == 0,
+           "a full map redraw preserves the fractional camera");
+    expect(gAdvManager->BeginMapDrag(300, 280) && gAdvManager->DragMap(291, 280)
+               && gAdvManager->m_mapOriginX == 11 && gAdvManager->m_cameraOffsetX == -5
+               && sample(-5, 5),
+           "a second drag starts exactly where the previous drag ended");
+    gAdvManager->EndMapDrag();
+    gAdvManager->PanMap(11, 10);
+    expect(!gAdvManager->HasCameraOffset() && platform::CompareWithReference(box) == 0,
+           "an explicit camera jump recenters the map");
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::fprintf(stderr,
                      "usage: survey ai MAP DAYS SEED PLAYERS | campaign SIDE SCENARIO DAYS SEED | "
-                     "load SAVE DAYS SEED | combat MAP COUNT SEED\n");
+                     "load SAVE DAYS SEED | combat MAP COUNT SEED | lab MAP\n");
         return 2;
     }
     std::string mode = argv[1];
     auto argument = [&](int index, int fallback) {
         return index < argc ? std::atoi(argv[index]) : fallback;
     };
-    setenv("SDL_VIDEODRIVER", "dummy", 0);
+    const auto setEnvironment = [](const char* key, const char* value, bool overwrite) {
+        if (overwrite || std::getenv(key) == nullptr) {
+#ifdef _WIN32
+            _putenv_s(key, value);
+#else
+            setenv(key, value, 1);
+#endif
+        }
+    };
+    setEnvironment("SDL_VIDEODRIVER", "dummy", false);
     // SIGTERM ends the program at once (timeout, ctest); SDL would turn it into
     // a quit event that a hung loop never reads.
-    setenv("SDL_NO_SIGNAL_HANDLERS", "1", 0);
-    setenv("SDL_AUDIO_DRIVER", "dummy", 0);
-    setenv("HOMM1_NO_DIALOGS", "1", 1);
+    setEnvironment("SDL_NO_SIGNAL_HANDLERS", "1", false);
+    setEnvironment("SDL_AUDIO_DRIVER", "dummy", false);
+    setEnvironment("HOMM1_NO_DIALOGS", "1", true);
+    if (mode == "lab")
+        setEnvironment("HOMM1_NATIVE_SIZE", "960x600", true);
     if (!KBStartHost(nullptr, "/I0", 0))
         return 2;
     StartWatchdog();
@@ -470,6 +635,12 @@ int main(int argc, char** argv) {
         Progress("loaded %s: day %d", argv[2], GAME_DAY_NUMBER(*gGame));
         EnterAdventure();
         PlayDays(argument(3, 14), true);
+        LeaveAdventure();
+    } else if (mode == "lab" && argc >= 3) {
+        NewComputerGame(argv[2], GAME_PLAYER_COUNT);
+        gThisNetHumanPlayer[gCurPlayer] = true;
+        EnterAdventure();
+        CheckLabLocators();
         LeaveAdventure();
     } else if (mode == "combat") {
         seed = argument(4, 1);

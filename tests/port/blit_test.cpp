@@ -274,12 +274,12 @@ void TestIconsKnown() {
         EXPECT(f.At(7, 0) == 9 && f.At(4, 0) == 9 && f.At(3, 0) == 0 && f.At(6, 1) == 9 && f.At(5, 1) == 9);
     }
     {
-        // Dim rows advance by 640 bytes, so use a 640-wide bitmap.
-        Canvas c(640, 3, 0x30);
+        // HD framebuffers and temporary icons must use their actual row pitch.
+        Canvas c(1280, 3, 0x30);
         DimIconToBitmap(ic, &c.bmp, 10, 1, 1, 0);
         EXPECT(c.At(10, 1) == gDimPalette[0x30] && c.At(13, 1) == gDimPalette[0x30]);
         EXPECT(c.At(10, 2) == 0x30 && c.At(11, 2) == gDimPalette[0x30] && c.At(13, 2) == 0x30);
-        Canvas f(640, 3, 0x30);
+        Canvas f(32, 3, 0x30);
         FlipDimIconToBitmap(ic, &f.bmp, 13, 0, 1, 0);
         EXPECT(f.At(13, 0) == gDimPalette[0x30] && f.At(10, 0) == gDimPalette[0x30] && f.At(9, 0) == 0x30);
         EXPECT(f.At(12, 1) == gDimPalette[0x30] && f.At(11, 1) == gDimPalette[0x30] && f.At(13, 1) == 0x30);

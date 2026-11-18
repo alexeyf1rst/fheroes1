@@ -12,7 +12,6 @@ enum WingraphPaintConstant {
     WINGRAPH_COLOR_DEPTH = 8,
     WINGRAPH_PALETTE_VALUE_SHIFT = 2,
     WINGRAPH_SCROLL_MARGIN = 16,
-    WINGRAPH_SCROLL_SIZE = LOGICAL_SCREEN_HEIGHT - WINGRAPH_SCROLL_MARGIN * 2,
     WINGRAPH_PAINT_TIMEOUT = 10000
 };
 
@@ -73,5 +72,7 @@ void RestoreDisplayMode();
 i32 QueryNewPalette();
 i32 SetGraphicsType(i32 graphicsType);
 void GetGraphicsInfo(void);
+
+#define WINGRAPH_SCROLL_SIZE (LOGICAL_SCREEN_HEIGHT - WINGRAPH_SCROLL_MARGIN * 2)
 
 #endif

@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <BASE/legacyCanvas.h>
 #include <algorithm>
 
 #include <PLATFORM/File.h>
@@ -9,6 +10,7 @@
 #include <BASE/BITS.h>
 #include <BASE/executive.h>
 #include <BASE/font.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -55,30 +57,21 @@
 #include <string.h>
 
 i8 playerData::NextHero(i32) {
-    i32 curHero = -1;
-    i32 i;
-
-    if (gCurPlayerData->m_currentHero != HERO_ID_NONE) {
-        for (i = 0; i < gCurPlayerData->m_heroCount; ++i) {
-            if (gCurPlayerData->m_currentHero == gCurPlayerData->m_heroIds[i])
-                curHero = i;
-        }
-    }
-
-    for (i = curHero + 1; i < gCurPlayerData->m_heroCount; ++i) {
-        if (gGame->IsMobile(gCurPlayerData->m_heroIds[i]))
-            return m_heroIds[i];
-    }
-    for (i = 0; i < curHero + 1; ++i) {
-        if (gGame->IsMobile(gCurPlayerData->m_heroIds[i]))
-            return m_heroIds[i];
+    const i8* begin = m_heroIds;
+    const i8* end = begin + m_heroCount;
+    const i8* current = std::find(begin, end, m_currentHero);
+    const i32 first = current == end ? 0 : current - begin + 1;
+    for (i32 offset = 0; offset < m_heroCount; ++offset) {
+        const i8 id = m_heroIds[(first + offset) % m_heroCount];
+        if (gGame->IsMobile(id) && !(gGame->GetHero(id)->m_eventFlags & HERO_EVENT_WAITING))
+            return id;
     }
     return HERO_ID_NONE;
 }
 
 b8 playerData::HasMobileHero(void) {
     for (i16 i = 0; i < m_heroCount; ++i) {
-        if (gGame->IsMobile(m_heroIds[i]))
+        if (gGame->IsMobile(m_heroIds[i]) && !(gGame->GetHero(m_heroIds[i])->m_eventFlags & HERO_EVENT_WAITING))
             return true;
     }
     return false;
@@ -1949,7 +1942,10 @@ i8 game::ViewSpells(
 ) {
     tag_message msg;
 
+    const i32 centerX = (LOGICAL_SCREEN_WIDTH - 640) / 2;
+    const i32 centerY = (LOGICAL_SCREEN_HEIGHT - 480) / 2;
     m_viewSpell = SPELL_NONE;
+    m_viewSpellsWheel = 0;
     m_viewSpellsHero = spellHero;
     SetupSpellRange(spellType == SPELL_TYPE_ALL ? SPELL_TYPE_ADVENTURE : spellType);
     if (spellType == SPELL_TYPE_ALL && m_viewSpellCount == 0)
@@ -1960,11 +1956,11 @@ i8 game::ViewSpells(
         m_viewSpellsCallback = callback;
         m_viewSpellsReadOnly = readOnly;
         if (spellType == SPELL_TYPE_ALL || spellType == SPELL_TYPE_COMBAT) {
-            m_viewSpellsWindow = new heroWindow(146, 145, "spellwin.bin");
+            m_viewSpellsWindow = new heroWindow(146 + centerX, 145 + centerY, "spellwin.bin");
             if (!m_viewSpellsWindow)
                 MemError();
         } else {
-            m_viewSpellsWindow = new heroWindow(97, 145, "spellwin.bin");
+            m_viewSpellsWindow = new heroWindow(97 + centerX, 145 + centerY, "spellwin.bin");
             if (!m_viewSpellsWindow)
                 MemError();
         }
@@ -2053,7 +2049,31 @@ void game::UpdateSpellWidgets(void) {
     }
 }
 
+void game::PageSpellBook(i32 pages) {
+    if (m_viewSpellCount == 0)
+        return;
+    const i32 lastPage = (m_viewSpellCount - 1) / SPELL_BOOK_PAGE_SIZE;
+    const i32 page = std::clamp(m_viewSpellsTop / SPELL_BOOK_PAGE_SIZE + pages, 0, lastPage);
+    const i32 top = page * SPELL_BOOK_PAGE_SIZE;
+    if (top != m_viewSpellsTop) {
+        m_viewSpellsTop = top;
+        UpdateSpellWidgets();
+        m_viewSpellsWindow->MoveWindow(0, 0);
+    }
+}
+
 i16 ViewSpellsHandler(tag_message& message) {
+    if (message.type == MESSAGE_MOUSE_WHEEL) {
+        gGame->m_viewSpellsWheel += message.value;
+        gGame->PageSpellBook(-(gGame->m_viewSpellsWheel / INPUT_WHEEL_STEP));
+        gGame->m_viewSpellsWheel %= INPUT_WHEEL_STEP;
+        return MESSAGE_DISPATCH_CONSUME;
+    }
+    if (message.type == MESSAGE_KEY_DOWN && (message.modifiers & MESSAGE_MODIFIER_ARROW)
+        && (message.keyCode == INPUT_SCAN_NUMPAD_4 || message.keyCode == INPUT_SCAN_NUMPAD_6)) {
+        gGame->PageSpellBook(message.keyCode == INPUT_SCAN_NUMPAD_4 ? -1 : 1);
+        return MESSAGE_DISPATCH_CONSUME;
+    }
     if (message.type == MESSAGE_KEY_DOWN && message.keyCode == INPUT_SCAN_ESCAPE) {
         FINISH_DIALOG_MESSAGE(message);
         return MESSAGE_DISPATCH_FORWARD;
@@ -2144,18 +2164,8 @@ i16 ViewSpellsHandler(tag_message& message) {
                             return MESSAGE_DISPATCH_FORWARD;
                         }
                         case SPELL_BOOK_PREVIOUS_PAGE:
-                            if (gGame->m_viewSpellsTop == 0)
-                                break;
-                            gGame->m_viewSpellsTop -= SPELL_BOOK_PAGE_SIZE;
-                            gGame->UpdateSpellWidgets();
-                            gGame->m_viewSpellsWindow->MoveWindow(0, 0);
-                            break;
                         case SPELL_BOOK_NEXT_PAGE:
-                            if (gGame->m_viewSpellsTop + SPELL_BOOK_PAGE_SIZE >= gGame->m_viewSpellCount)
-                                break;
-                            gGame->m_viewSpellsTop += SPELL_BOOK_PAGE_SIZE;
-                            gGame->UpdateSpellWidgets();
-                            gGame->m_viewSpellsWindow->MoveWindow(0, 0);
+                            gGame->PageSpellBook(message.id == SPELL_BOOK_PREVIOUS_PAGE ? -1 : 1);
                             break;
                         case SPELL_BOOK_ADVENTURE_SPELLS:
                             gGame->SetupSpellRange(SPELL_TYPE_ADVENTURE);
@@ -2477,7 +2487,174 @@ i16 ViewArmyHandler(tag_message& message) {
     return MESSAGE_DISPATCH_CONSUME;
 }
 
-void game::Overview(void) {
+namespace {
+constexpr i16 kOverviewHeroes = 4000;
+constexpr i16 kOverviewTowns = 4001;
+constexpr i16 kOverviewPrevious = 4002;
+constexpr i16 kOverviewNext = 4003;
+constexpr i16 kOverviewClose = 4004;
+constexpr i16 kOverviewFirstRow = 4010;
+constexpr int kOverviewRows = 8;
+constexpr int kOverviewRowHeight = 34;
+
+class KingdomRoster : public textWidget {
+public:
+    bool towns;
+    int page = 0;
+
+    explicit KingdomRoster(bool townTab)
+        : textWidget(0, 0, 544, 390, strdup(""), "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
+                     WIDGET_ID_NONE, WIDGET_KIND_TEXT), towns(townTab) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+
+    int Count() const {
+        return towns ? gCurPlayerData->m_townCount : gCurPlayerData->m_heroCount;
+    }
+
+    void Draw() override {
+        const int x = m_owner->m_posX;
+        const int y = m_owner->m_posY;
+        auto* screen = gWindowManager->m_screen;
+        const int border = goldButton::MatchGold(50, 34, 12, true);
+        const int shade = goldButton::MatchGold(18, 10, 5, true);
+        const int dark = goldButton::MatchGold(28, 17, 9, true);
+        const int light = goldButton::MatchGold(35, 22, 12, true);
+        FillBitmapArea(screen, x, y, m_width, m_height, border);
+        FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, shade);
+        char label[192];
+        snprintf(label, sizeof(label), localization::Tr("overview.roster.page"), page + 1,
+                 std::max(1, (Count() + kOverviewRows - 1) / kOverviewRows));
+        m_font->DrawBoundedString(label, x + 330, y + 18, 195, 13, m_color, FONT_ALIGN_RIGHT);
+        for (int row = 0; row < kOverviewRows; ++row) {
+            const int index = page * kOverviewRows + row;
+            if (index >= Count())
+                break;
+            const int top = y + 48 + row * kOverviewRowHeight;
+            FillBitmapArea(screen, x + 10, top, m_width - 20, kOverviewRowHeight - 2, row % 2 ? dark : light);
+            if (towns) {
+                town& city = *gGame->GetTown(gCurPlayerData->m_townIds[index]);
+                bool canBuild = false;
+                bool canAfford = false;
+                for (int building = 0; building < BUILDING_SLOT_COUNT; ++building) {
+                    if (!TOWN_BUILDING_COMPLETE(city, building) && CanBuild(&city, building)) {
+                        canBuild = true;
+                        canAfford = canAfford || CanBuy(&city, building);
+                    }
+                }
+                const char* state = BitTest(gGame->m_townBuiltToday, city.m_id) ? localization::Tr("overview.roster.built")
+                    : canAfford ? localization::Tr("overview.roster.can_build")
+                    : canBuild ? localization::Tr("overview.roster.cannot_afford")
+                    : localization::Tr("overview.roster.no_building");
+                int recruits = 0;
+                for (int tier = 0; tier < BUILDING_SLOT_DWELLING_COUNT; ++tier) {
+                    if (city.m_buildings & (1 << (BUILDING_SLOT_DWELLING_FIRST + tier)))
+                        recruits += std::max<i16>(0, city.m_dwellingAvailable[tier]);
+                }
+                const char* visitor = city.m_occupyingHeroId == TOWN_OCCUPYING_HERO_NONE
+                    ? "-" : gGame->GetHero(city.m_occupyingHeroId)->m_name;
+                snprintf(label, sizeof(label), "%s      %s", GetTownName(city.m_id), state);
+                m_font->DrawBoundedString(label, x + 19, top + 3, 493, 12, m_color, FONT_ALIGN_LEFT);
+                snprintf(label, sizeof(label), localization::Tr("overview.roster.town_status"), recruits, visitor);
+            } else {
+                hero& subject = *gGame->GetHero(gCurPlayerData->m_heroIds[index]);
+                const int level = subject.GetLevel(subject.m_experience);
+                const int next = std::max(0, subject.GetExperience(level + 1) - subject.m_experience);
+                snprintf(label, sizeof(label), localization::Tr("overview.roster.hero_status"), subject.m_name,
+                         level, subject.GetMovementPoints(), next, subject.m_eventFlags & HERO_EVENT_WAITING ? " [Z]" : "");
+                m_font->DrawBoundedString(label, x + 19, top + 3, 493, 12, m_color, FONT_ALIGN_LEFT);
+                label[0] = 0;
+                size_t used = 0;
+                for (int slot = 0; slot < ARMY_GROUP_SLOT_COUNT; ++slot) {
+                    const i8 creature = subject.m_army.m_creatureTypes[slot];
+                    if (creature != CREATURE_NONE && used < sizeof(label) - 1) {
+                        snprintf(label + used, sizeof(label) - used, "%s%d %s", used ? "    " : "",
+                                 subject.m_army.m_creatureCounts[slot], gArmyNamesPlural[creature]);
+                        used = strlen(label);
+                    }
+                }
+            }
+            m_font->DrawBoundedString(label, x + 19, top + 17, 493, 12, m_color, FONT_ALIGN_LEFT);
+        }
+    }
+};
+
+KingdomRoster* gKingdomRoster = nullptr;
+i16 gKingdomSelection = game::OVERVIEW_NO_TARGET;
+
+i16 KingdomRosterHandler(tag_message& message) {
+    KingdomRoster& roster = *gKingdomRoster;
+    int step = 0;
+    if (message.type == MESSAGE_MOUSE_WHEEL)
+        step = message.value > 0 ? -1 : 1;
+    if (message.type == MESSAGE_KEY_DOWN && message.keyCode == INPUT_SCAN_ESCAPE)
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, kOverviewClose);
+    if (message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_DESELECT
+        && !(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)) {
+        const int row = message.id - kOverviewFirstRow;
+        const int index = roster.page * kOverviewRows + row;
+        if (row >= 0 && row < kOverviewRows && index < roster.Count()) {
+            gKingdomSelection = roster.towns ? game::OVERVIEW_TOWN_TARGET + gCurPlayerData->m_townIds[index]
+                                             : gCurPlayerData->m_heroIds[index];
+            FINISH_DIALOG_MESSAGE(message);
+            return MESSAGE_DISPATCH_FORWARD;
+        }
+        switch (message.id) {
+            case kOverviewClose:
+                FINISH_DIALOG_MESSAGE(message);
+                return MESSAGE_DISPATCH_FORWARD;
+            case kOverviewHeroes:
+            case kOverviewTowns:
+                roster.towns = message.id == kOverviewTowns;
+                roster.page = 0;
+                break;
+            case kOverviewPrevious: step = -1; break;
+            case kOverviewNext: step = 1; break;
+            default: return MESSAGE_DISPATCH_CONTINUE;
+        }
+    } else if (step == 0) {
+        return MESSAGE_DISPATCH_CONTINUE;
+    }
+    roster.page = std::clamp(roster.page + step, 0, std::max(0, (roster.Count() - 1) / kOverviewRows));
+    roster.m_owner->DrawWindow();
+    return MESSAGE_DISPATCH_CONSUME;
+}
+
+i16 OverviewSummaryHandler(tag_message& message) {
+    if (message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_DESELECT
+        && !(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
+        && (message.id == kOverviewHeroes || message.id == kOverviewTowns)) {
+        FINISH_DIALOG_MESSAGE(message);
+        return MESSAGE_DISPATCH_FORWARD;
+    }
+    return TrueFalseDialogHandler(message);
+}
+
+i16 ShowKingdomRoster(bool towns) {
+    heroWindow window(48, 45, 544, 390, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
+    auto* roster = new KingdomRoster(towns);
+    window.AddWidget(roster, WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(12, 11, 97, 25, kOverviewHeroes, localization::Tr("overview.roster.heroes")), WINDOW_Z_ORDER_BOTTOM);
+    window.AddWidget(new goldButton(113, 11, 97, 25, kOverviewTowns, localization::Tr("overview.roster.towns")), WINDOW_Z_ORDER_BOTTOM);
+    window.AddWidget(new goldButton(12, 343, 36, 26, kOverviewPrevious, "", goldButton::Left), WINDOW_Z_ORDER_BOTTOM);
+    window.AddWidget(new goldButton(52, 343, 36, 26, kOverviewNext, "", goldButton::Right), WINDOW_Z_ORDER_BOTTOM);
+    window.AddWidget(new goldButton(445, 343, 84, 26, kOverviewClose, localization::Tr("overview.roster.exit")), WINDOW_Z_ORDER_BOTTOM);
+    for (int row = 0; row < kOverviewRows; ++row) {
+        auto* target = new textWidget(10, 48 + row * kOverviewRowHeight, 524, kOverviewRowHeight - 2,
+                                      strdup(""), "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
+                                      kOverviewFirstRow + row, WIDGET_KIND_TEXT);
+        window.AddWidget(target, WINDOW_Z_ORDER_BOTTOM);
+    }
+    gKingdomRoster = roster;
+    gKingdomSelection = game::OVERVIEW_NO_TARGET;
+    gWindowManager->DoDialog(&window, KingdomRosterHandler, false);
+    gKingdomRoster = nullptr;
+    return gKingdomSelection;
+}
+}
+
+i16 game::Overview(void) {
+    LegacyCanvas canvas;
     i16 activeTextW;
     i16 mineRowYVal;
     b8 redrawRequested;
@@ -2704,6 +2881,10 @@ void game::Overview(void) {
     if (!baseWin)
         MemError();
     SetWinText(baseWin, WINDOW_TEXT_OVERVIEW);
+    baseWin->AddWidget(new goldButton(273, 64, 98, 25, kOverviewHeroes,
+                                     localization::Tr("overview.roster.heroes")), WINDOW_Z_ORDER_BOTTOM);
+    baseWin->AddWidget(new goldButton(376, 64, 98, 25, kOverviewTowns,
+                                     localization::Tr("overview.roster.towns")), WINDOW_Z_ORDER_BOTTOM);
     baseWin->SetConfirmButton(DIALOG_BUTTON_0, true);
     SET_WIDGET_MESSAGE(activeMessage, WIDGET_COMMAND_SET_TEXT, OVERVIEW_DATE);
     sprintf(gText, gOverviewText[0], m_month, m_week, m_day);
@@ -2731,13 +2912,17 @@ void game::Overview(void) {
         gWindowManager->UpdateScreenRegion(100, 465, 400, 12);
     }
     gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, NULL);
-    gWindowManager->DoDialog(baseWin, TrueFalseDialogHandler, false);
+    gWindowManager->DoDialog(baseWin, OverviewSummaryHandler, false);
+    const i32 tab = gWindowManager->m_dialogResult;
     delete baseWin;
+    const i16 target = tab == kOverviewHeroes || tab == kOverviewTowns
+        ? ShowKingdomRoster(tab == kOverviewTowns) : OVERVIEW_NO_TARGET;
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
     gResourceManager->Dispose(ovIconRef);
     gResourceManager->Dispose(smallFontItem);
     gResourceManager->Dispose(bigFont);
     gOverviewShowing = false;
+    return target;
 }
 
 i8 game::GetRandomNumTroops(i8 monsterType) {

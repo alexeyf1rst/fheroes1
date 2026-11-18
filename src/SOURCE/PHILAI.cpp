@@ -1528,18 +1528,14 @@ i32 philAI::CreaturesToBuy(i32 creatureType, i32 availableCount) {
 }
 
 i32 philAI::MaxBuyableCreatures(i32 creatureType) {
-    i32 affordable;
-    i32 i;
     i32 cost[RESOURCE_COUNT];
-
     GetMonsterCost(creatureType, cost);
-    for (i = RESOURCE_FIRST; i < RESOURCE_COUNT; i++) {
-        if (cost[i] == 0)
-            affordable = 9999;
-        else if (gCurPlayerData->m_resources[i] > 0)
-            affordable = gCurPlayerData->m_resources[i] / cost[i];
-        else
-            affordable = 0;
+    i32 affordable = 9999;
+    for (i32 resource = RESOURCE_FIRST; resource < RESOURCE_COUNT; ++resource) {
+        if (cost[resource] > 0) {
+            const i32 available = std::max<i32>(0, gCurPlayerData->m_resources[resource]);
+            affordable = std::min(affordable, available / cost[resource]);
+        }
     }
     return affordable;
 }
@@ -2274,9 +2270,10 @@ void philAI::EvaluateOneTimeCreaturePurchase(
                 replacementSlot = -1;
                 index = ARMY_GROUP_SLOT_COUNT;
             } else {
-                replacementValue =
-                    aiHero->m_army.m_creatureCounts[index]
-                    * gMonsterDatabase[index].fightValue;
+                const i8 existing = aiHero->m_army.m_creatureTypes[index];
+                replacementValue = aiHero->m_army.m_creatureCounts[index] > 0 && existing >= 0
+                    ? aiHero->m_army.m_creatureCounts[index] * gMonsterDatabase[existing].fightValue
+                    : 0;
                 if (replacementValue < leastStackValue) {
                     leastStackValue = replacementValue;
                     replacementSlot = index;

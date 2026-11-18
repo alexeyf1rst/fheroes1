@@ -261,6 +261,10 @@ public:
     u16 m_buildableBuildings;
     b8 m_castleDialogActive;
     i16 m_purchasedBuilding;
+    town* m_nextTown = nullptr;
+    i16 m_nextTownPanel = BUILDING_SLOT_NONE;
+    i16 m_openTownPanel = BUILDING_SLOT_NONE;
+    void RequestTownSwitch(i32 direction, i16 panel);
     heroWindow* m_buildingWindow;
     heroWindow* m_childWindow;
     i16 m_splitAmount;

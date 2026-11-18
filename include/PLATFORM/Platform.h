@@ -99,15 +99,26 @@ enum DisplayConstant {
     CURSOR_SIZE = 32
 };
 
-// The display shows a 640x480 8-bit image through a 256-color palette, as the
-// original's DirectDraw primary surface did. The game draws into its own
-// buffer and copies finished rectangles here.
+// Logical framebuffer dimensions. Set once during startup, before game state
+// or drawing buffers are initialized. DISPLAY_WIDTH/HEIGHT remain the legacy
+// artwork dimensions.
+extern int gLogicalWidth;
+extern int gLogicalHeight;
+bool SetNativeResolution(int width, int height);
+// Draw and receive input in a centered, unscaled 640x480 viewport while the
+// native output retains gLogicalWidth/gLogicalHeight. Switching clears the
+// display image; callers assemble the next frame before presenting it.
+void SetLegacyCanvas(bool enabled);
+bool LegacyCanvas();
+
+// The display shows the logical 8-bit image through a 256-color palette.
+// The game draws into its own buffer and copies finished rectangles here.
 bool OpenDisplay();
 void CloseDisplay();
 bool DisplayOpen();
 
 // Copies a rectangle of an 8-bit image (pitch bytes per row) to the display
-// image at (destinationX, destinationY). Clipped to the display.
+// image at (destinationX, destinationY). Clipped to the active canvas.
 void UpdateDisplay(
     const u8* pixels,
     int pitch,
@@ -154,19 +165,21 @@ enum ChromeConstant {
 
 void SetChromeBar(int height);
 int ChromeBar();
-// pixels and mask are DISPLAY_WIDTH x (ChromeBar() + DISPLAY_HEIGHT), row 0
+// pixels and mask are gLogicalWidth x (ChromeBar() + gLogicalHeight), row 0
 // at the top of the bar; a pixel shows where its mask byte is nonzero.
 void UpdateChrome(const u8* pixels, const u8* mask);
 
 // The window's image - chrome bar, game image and chrome panels - as 24-bit
-// RGB rows, DISPLAY_WIDTH x (ChromeBar() + DISPLAY_HEIGHT) (screenshots and
+// RGB rows, gLogicalWidth x (ChromeBar() + gLogicalHeight) (screenshots and
 // tests).
 void CaptureDisplay(u8* rgb);
 bool SaveDisplayBmp(const char* hostPath);
 
-// The game's own 640x480 picture, which the display copies from. A test can
+// The game's own logical picture, which the display copies from. A test can
 // compare the two when the game waits for input: a difference is a region
-// the game drew but never copied (the replay's "check" action).
+// the game drew but never copied (the replay's "check" action). The image
+// uses the active canvas dimensions when registered; register it again after
+// changing the canvas and swapping the game framebuffer.
 void SetReferenceImage(const u8* pixels);
 // The number of game image pixels that differ from the reference, and their
 // bounding box (left, top, right, bottom); 0 without a reference.
@@ -225,9 +238,15 @@ struct Event {
     bool arrowKey = false;   // an arrow key outside the keypad
     int x = 0;  // display coordinates; y < 0 on the chrome bar
     int y = 0;
+    // Mouse events also retain native output coordinates for the host menus.
+    // A negative canvas-local y in the upper margin is not menu chrome.
+    int nativeX = 0;
+    int nativeY = 0;
+    bool onChrome = false;
     Button button = BUTTON_LEFT;
     bool doubleClick = false;
     float wheelY = 0;
+    u32 timestamp = 0;
 };
 
 // Returns the next event; false when none is waiting. With a timeout, waits

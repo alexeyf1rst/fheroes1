@@ -1,4 +1,5 @@
 #include <H1/Ints.h>
+#include <BASE/legacyCanvas.h>
 
 #include <BASE/audio.h>
 #include <BASE/baseManager.h>
@@ -52,6 +53,7 @@ void executive::ShutDownSystem(void) {
 }
 
 i16 executive::DoDialog(baseManager* manager) {
+    LegacyCanvas canvas;
     baseManager* savedPrevLinks[EXECUTIVE_DIALOG_MANAGER_CAPACITY];
     i32 index;
     baseManager* node;
@@ -152,10 +154,13 @@ void executive::RemoveManager(baseManager* manager) {
 void executive::CallManager(baseManager* manager) {
     baseManager* saved = m_activeManager;
     RemoveManager(m_activeManager);
-    if (AddManager(manager, BASE_MANAGER_PRIORITY_UNASSIGNED) != BASE_MANAGER_SUCCESS)
-        ShutDown(localization::Tr("startup.manager.failed"));
-    MainLoop();
-    RemoveManager(manager);
+    {
+        LegacyCanvas canvas;
+        if (AddManager(manager, BASE_MANAGER_PRIORITY_UNASSIGNED) != BASE_MANAGER_SUCCESS)
+            ShutDown(localization::Tr("startup.manager.failed"));
+        MainLoop();
+        RemoveManager(manager);
+    }
     if (AddManager(saved, BASE_MANAGER_PRIORITY_UNASSIGNED) != BASE_MANAGER_SUCCESS)
         ShutDown(localization::Tr("startup.manager.failed"));
     m_activeManager = saved;

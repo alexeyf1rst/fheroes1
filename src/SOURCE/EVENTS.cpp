@@ -467,11 +467,11 @@ void advManager::DoEvent(class mapCell* cell, i32 x, i32 y) {
             );
             removeObj = true;
             fizzleEffect = EVENT_FIZZLE_PICKUP;
-            gGame->m_mapSounds[m_mapOriginX + ADVMGR_VIEW_CENTER]
-                              [m_mapOriginY + ADVMGR_VIEW_CENTER] = MAP_SOUND_NONE;
+            gGame->m_mapSounds[m_mapOriginX + ADVENTURE_VIEW_CENTER_X]
+                              [m_mapOriginY + ADVENTURE_VIEW_CENTER_Y] = MAP_SOUND_NONE;
             SetEnvironmentOrigin(
-                m_mapOriginX + ADVMGR_VIEW_CENTER,
-                m_mapOriginY + ADVMGR_VIEW_CENTER,
+                m_mapOriginX + ADVENTURE_VIEW_CENTER_X,
+                m_mapOriginY + ADVENTURE_VIEW_CENTER_Y,
                 1
             );
             break;
@@ -678,6 +678,8 @@ void advManager::DoEvent(class mapCell* cell, i32 x, i32 y) {
         case MAP_OBJECT_OBELISK:
             if (!(gGame->m_obeliskVisitors[cell->m_objectMetadata - 1]
                   & (1 << visitingHero->m_owner))) {
+                u8 previouslyRevealed[PLAYER_PUZZLE_PIECE_STORAGE_SIZE];
+                memcpy(previouslyRevealed, gCurPlayerData->m_puzzlePiecesRemoved, sizeof(previouslyRevealed));
                 gGame->VisitObelisk(visitingHero->m_owner);
                 gGame->m_obeliskVisitors[cell->m_objectMetadata - 1] |= 1 << visitingHero->m_owner;
                 EventWindow(
@@ -690,7 +692,7 @@ void advManager::DoEvent(class mapCell* cell, i32 x, i32 y) {
                     0,
                     NORMAL_DIALOG_NO_OR_TEXT
                 );
-                ViewPuzzle();
+                ViewPuzzle(previouslyRevealed);
             } else {
                 EventWindow(
                     EVENT_TEXT_OBELISK_VISITED,
@@ -1226,8 +1228,8 @@ void advManager::EraseObj(class mapCell* cell, i32 x, i32 y) {
         gGame->m_mapSounds[x][y] = MAP_SOUND_NONE;
         if (gShowIt)
             SetEnvironmentOrigin(
-                m_mapOriginX + ADVMGR_VIEW_CENTER,
-                m_mapOriginY + ADVMGR_VIEW_CENTER,
+                m_mapOriginX + ADVENTURE_VIEW_CENTER_X,
+                m_mapOriginY + ADVENTURE_VIEW_CENTER_Y,
                 1
             );
     }
@@ -2163,8 +2165,8 @@ void advManager::DoAIEvent(class mapCell* cell, class hero* eventHero, i32 x, i3
                 cell->m_objectMetadata >> CAMPFIRE_AMOUNT_SHIFT
             );
             removeEvent = true;
-            gGame->m_mapSounds[m_mapOriginX + ADVMGR_VIEW_CENTER]
-                              [m_mapOriginY + ADVMGR_VIEW_CENTER] = MAP_SOUND_NONE;
+            gGame->m_mapSounds[m_mapOriginX + ADVENTURE_VIEW_CENTER_X]
+                              [m_mapOriginY + ADVENTURE_VIEW_CENTER_Y] = MAP_SOUND_NONE;
             break;
         case MAP_OBJECT_GAZEBO:
             if (!(eventHero->m_visitedSites & (1 << (cell->m_objectMetadata & 31)))) {

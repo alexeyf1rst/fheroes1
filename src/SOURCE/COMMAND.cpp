@@ -712,12 +712,12 @@ void combatManager::ResetRound(void) {
 
 namespace {
 
-enum BattleOption { OptionSpeed = 2000, OptionOrder, OptionGrid, OptionDamage, OptionSpells, OptionOkay };
+enum BattleOption { OptionSpeed = 2000, OptionOrder, OptionGrid, OptionDamage, OptionSpells, OptionHealth, OptionRange, OptionOkay };
 heroWindow* gBattleOptions = nullptr;
 
 class BattleOptionsPanel : public textWidget {
 public:
-    BattleOptionsPanel() : textWidget(0, 0, 318, 182,
+    BattleOptionsPanel() : textWidget(0, 0, 318, 215,
         strdup(localization::Tr("combat.options.title")), "bigfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
         -1, WIDGET_KIND_TEXT) { m_flags &= ~WIDGET_FLAG_ENABLED; }
     void Draw() override {
@@ -733,13 +733,20 @@ public:
 void RefreshBattleOptions(heroWindow& window) {
     const char* labels[] = {localization::Tr("combat.options.speed"), localization::Tr("combat.options.order"),
                             localization::Tr("combat.options.grid"), localization::Tr("combat.options.damage"),
-                            localization::Tr("combat.options.spells")};
+                            localization::Tr("combat.options.spells"), localization::Tr("combat.options.health"),
+                            localization::Tr("combat.options.range")};
     const bool enabled[] = {true, gConfig.showCombatOrder != 0, gConfig.showCombatGrid != 0,
-                            gConfig.hideCombatDamage == 0, gConfig.autoCombatSpells != 0};
-    for (int index = 0; index < 5; ++index) {
+                            gConfig.hideCombatDamage == 0, gConfig.autoCombatSpells != 0, true,
+                            gConfig.showCombatRange != 0};
+    const char* health[] = {localization::Tr("combat.options.wounded"), localization::Tr("combat.options.all"),
+                            localization::Tr("combat.options.off")};
+    for (int index = 0; index < OptionOkay - OptionSpeed; ++index) {
         char label[80];
         if (index == 0)
             snprintf(label, sizeof(label), "%s %dx", labels[index], std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED));
+        else if (OptionSpeed + index == OptionHealth)
+            snprintf(label, sizeof(label), "%s  %s", labels[index],
+                     health[std::clamp(gConfig.combatHealthBars, 0, 2)]);
         else
             snprintf(label, sizeof(label), "%s  %s", labels[index],
                      enabled[index] ? localization::Tr("combat.options.on") : localization::Tr("combat.options.off"));
@@ -766,6 +773,10 @@ i16 BattleOptionsHandler(tag_message& message) {
         case OptionGrid: gConfig.showCombatGrid = !gConfig.showCombatGrid; break;
         case OptionDamage: gConfig.hideCombatDamage = !gConfig.hideCombatDamage; break;
         case OptionSpells: gConfig.autoCombatSpells = !gConfig.autoCombatSpells; break;
+        case OptionHealth:
+            gConfig.combatHealthBars = (std::clamp(gConfig.combatHealthBars, 0, 2) + 1) % 3;
+            break;
+        case OptionRange: gConfig.showCombatRange = !gConfig.showCombatRange; break;
         case OptionOkay:
             FINISH_DIALOG_MESSAGE(message);
             return MESSAGE_DISPATCH_FORWARD;
@@ -803,12 +814,12 @@ bool BattleRestartRequested(const tag_message& message) {
 }  // namespace
 
 void combatManager::ShowBattleOptions() {
-    heroWindow window(161, 139, 318, 182, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
+    heroWindow window(161, 125, 318, 215, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
     window.AddWidget(new BattleOptionsPanel(), WINDOW_Z_ORDER_APPEND);
-    for (i16 index = 0; index < 5; ++index)
+    for (i16 index = 0; index < OptionOkay - OptionSpeed; ++index)
         window.AddWidget(new battleGoldButton(13 + (index % 2) * 149, 44 + (index / 2) * 33,
                                         143, 27, OptionSpeed + index, "", *m_combatWindow, COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
-    window.AddWidget(new battleGoldButton(119, 150, 80, 22, OptionOkay,
+    window.AddWidget(new battleGoldButton(119, 184, 80, 22, OptionOkay,
                                           localization::Tr("combat.options.okay"), *m_combatWindow,
                                           COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
     RefreshBattleOptions(window);

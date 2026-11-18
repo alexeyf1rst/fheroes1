@@ -46,7 +46,20 @@ msgstr "Uncharted territory"
 #: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
-msgstr "Move points: %d\nTo target: %d\nRemaining: %d"
+msgstr "%s\nNow: %d\nAt target: %d"
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.later"
+msgstr "In %d day(s)\nNow: %d\nRoute: %d"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.meet_today"
+msgstr "Meet today"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.today"
+msgstr "Today"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
@@ -353,6 +366,10 @@ msgstr "Error receiving data.  Keep trying??"
 msgid "combat.network.town"
 msgstr "Town"
 
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.all"
+msgstr "All"
+
 #: src/SOURCE/CMBTMGR.cpp
 msgid "combat.options.button"
 msgstr "Options"
@@ -364,6 +381,10 @@ msgstr "Damage info"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.grid"
 msgstr "Grid"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.health"
+msgstr "HP bars"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.off"
@@ -382,6 +403,10 @@ msgid "combat.options.order"
 msgstr "Turn order"
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.options.range"
+msgstr "Move range"
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.options.speed"
 msgstr "Speed"
 
@@ -392,6 +417,10 @@ msgstr "Auto spells"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.title"
 msgstr "Battle Options"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.wounded"
+msgstr "Wounded"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.quick.confirm"
@@ -1252,6 +1281,16 @@ msgstr "%s meets %s"
 
 #: src/SOURCE/HERO.cpp
 #, c-format
+msgid "hero.meeting.today"
+msgstr "Today %d"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.meeting.tomorrow"
+msgstr "Next day %d"
+
+#: src/SOURCE/HERO.cpp
+#, c-format
 msgid "hero.move_points"
 msgstr "MP %d/%d"
 
@@ -1270,11 +1309,55 @@ msgstr "%s the %s"
 msgid "hero.title.with_level"
 msgstr "%s the %s   (Level %d)"
 
+#: src/SOURCE/ADVMGR.cpp
+msgid "hero.waiting.badge"
+msgstr "Z"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.close"
+msgstr "Close"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.fullscreen"
+msgstr "Fullscreen"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.mac13"
+msgstr "MacBook 13-inch / 16:10"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.mode"
+msgstr "Display mode"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.native_crisp"
+msgstr "Sharp pixels / original proportions"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.native_selected"
+msgstr "Game resolution"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.resolution"
+msgstr "Resolution"
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.scaling"
+msgstr "Scaling"
+
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.settings"
+msgstr "Screen settings..."
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.windowed"
+msgstr "Windowed"
+
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"
 msgstr "Fullscreen resolution"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.fullscreen_resolution.desktop"
 msgstr "Desktop (automatic)"
 
@@ -1290,19 +1373,19 @@ msgstr "Original maps"
 msgid "menu.scaling"
 msgstr "Scaling"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.fill"
 msgstr "Fill screen (pixel art)"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.fit"
 msgstr "Fit (sharp)"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.integer"
 msgstr "Integer pixels"
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.smooth"
 msgstr "Fit (smooth)"
 
@@ -1391,6 +1474,49 @@ msgstr "Sending Data"
 #: src/SOURCE/KB.cpp
 msgid "network.setup.wait"
 msgstr "Waiting for other remote player to set up game."
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.built"
+msgstr "Built today"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.can_build"
+msgstr "Can build"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.cannot_afford"
+msgstr "Need resources"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.exit"
+msgstr "Exit"
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.hero_status"
+msgstr "%s     L%d     Move %d     XP to next %d%s"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.heroes"
+msgstr "Heroes"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.no_building"
+msgstr "No building available"
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.page"
+msgstr "Page %d / %d"
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.town_status"
+msgstr "Available recruits: %d     Visitor: %s"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.towns"
+msgstr "Towns"
 
 #: src/SOURCE/KB.cpp
 #, c-format

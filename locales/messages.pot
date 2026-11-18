@@ -50,6 +50,19 @@ msgid "adventure.route.cost"
 msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.later"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.meet_today"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.today"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
 msgstr ""
 
@@ -354,6 +367,10 @@ msgstr ""
 msgid "combat.network.town"
 msgstr ""
 
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.all"
+msgstr ""
+
 #: src/SOURCE/CMBTMGR.cpp
 msgid "combat.options.button"
 msgstr ""
@@ -364,6 +381,10 @@ msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.grid"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.health"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
@@ -383,6 +404,10 @@ msgid "combat.options.order"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
+msgid "combat.options.range"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
 msgid "combat.options.speed"
 msgstr ""
 
@@ -392,6 +417,10 @@ msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.title"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.options.wounded"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
@@ -1253,6 +1282,16 @@ msgstr ""
 
 #: src/SOURCE/HERO.cpp
 #, c-format
+msgid "hero.meeting.today"
+msgstr ""
+
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.meeting.tomorrow"
+msgstr ""
+
+#: src/SOURCE/HERO.cpp
+#, c-format
 msgid "hero.move_points"
 msgstr ""
 
@@ -1271,11 +1310,55 @@ msgstr ""
 msgid "hero.title.with_level"
 msgstr ""
 
+#: src/SOURCE/ADVMGR.cpp
+msgid "hero.waiting.badge"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.close"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.fullscreen"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.mac13"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.mode"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.native_crisp"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.native_selected"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.resolution"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.scaling"
+msgstr ""
+
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.settings"
+msgstr ""
+
+#: src/PORT/SOURCE/kbwin.cpp
+msgid "menu.display.windowed"
+msgstr ""
+
 #: src/PORT/SOURCE/Menu.cpp
 msgid "menu.fullscreen_resolution"
 msgstr ""
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.fullscreen_resolution.desktop"
 msgstr ""
 
@@ -1291,19 +1374,19 @@ msgstr ""
 msgid "menu.scaling"
 msgstr ""
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.fill"
 msgstr ""
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.fit"
 msgstr ""
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.integer"
 msgstr ""
 
-#: src/PORT/SOURCE/Menu.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
 msgid "menu.scaling.smooth"
 msgstr ""
 
@@ -1391,6 +1474,49 @@ msgstr ""
 
 #: src/SOURCE/KB.cpp
 msgid "network.setup.wait"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.built"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.can_build"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.cannot_afford"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.exit"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.hero_status"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.heroes"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.no_building"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.page"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+#, c-format
+msgid "overview.roster.town_status"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.towns"
 msgstr ""
 
 #: src/SOURCE/KB.cpp

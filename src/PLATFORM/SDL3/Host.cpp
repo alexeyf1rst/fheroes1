@@ -54,8 +54,11 @@ void PreferParallelsRenderer() {
     if (RegGetValueW(HKEY_LOCAL_MACHINE, L"HARDWARE\\DESCRIPTION\\System\\BIOS", L"SystemManufacturer",
                      RRF_RT_REG_SZ, nullptr, manufacturer, &size) == ERROR_SUCCESS
         && std::wcsstr(manufacturer, L"Parallels") != nullptr) {
-        // SDL's Direct3D 9 backend reuses the staging texture for our partial frame uploads.
-        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "direct3d,direct3d11,software", SDL_HINT_DEFAULT);
+        // On Parallels D3D11 avoids the longer D3D9 stalls observed
+        // while dragging the map in the 960x600 layout. Keep fallbacks for older guests.
+        const char* renderers = gLogicalWidth == 960 && gLogicalHeight == 600
+            ? "direct3d11,direct3d,software" : "direct3d,direct3d11,software";
+        SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, renderers, SDL_HINT_DEFAULT);
     }
 }
 

@@ -86,6 +86,12 @@ i32 CalcTerrainCost(i32 terrain, i32 diagonal, i32 mobility, i32 heroClass) {
     return gTerrainCost[terrain][FINDPATH_STEP_DIAGONAL];
 }
 
+i32 MobilityAfterStep(i32 mobility, i32 stepCost, i32 terrain, i32 heroClass) {
+    const i32 remaining = mobility - stepCost;
+    return remaining < CalcTerrainCost(terrain, FINDPATH_STEP_STRAIGHT, remaining, heroClass)
+        ? 0 : remaining;
+}
+
 i16 searchArray::FindCombatPath(
     i16 sourceHex,
     i16 targetHex,

@@ -123,9 +123,9 @@ i16 iconWidget::Main(tag_message& message) {
         case MESSAGE_RIGHT_BUTTON_UP:
             if (m_flags & WIDGET_FLAG_SELECTED) {
                 m_flags &= ~WIDGET_FLAG_SELECTED;
-                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, m_id);
                 if (message.type == MESSAGE_RIGHT_BUTTON_UP)
                     message.modifiers = MESSAGE_MODIFIER_RIGHT_BUTTON;
+                SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, m_id);
                 return MESSAGE_DISPATCH_FORWARD;
             }
             return MESSAGE_DISPATCH_CONTINUE;
@@ -136,6 +136,18 @@ i16 iconWidget::Main(tag_message& message) {
 void iconWidget::Draw(void) {
     i16 x = m_owner->m_posX + m_x;
     i16 y = m_owner->m_posY + m_y;
+    // Full-screen legacy panels retain their original artwork bounds when
+    // drawn inside a larger framebuffer. Do not reveal off-panel frames
+    // that the original 640x480 surface rejected.
+    if (m_owner->m_posX == 0 && m_owner->m_posY == 0
+        && m_owner->m_winWidth == 640 && m_owner->m_winHeight == 480
+        && m_icon && m_frame >= 0 && m_frame < m_icon->m_frameCount) {
+        const IconEntry& frame = m_icon->m_frames[m_frame];
+        const int right = m_orientation == ICON_DRAW_NORMAL
+            ? x + frame.x + frame.w : x - frame.x + 1;
+        if (right > 640 || y + frame.y + frame.h > 480)
+            return;
+    }
     switch (m_kind) {
         case ICON_WIDGET_DRAW:
             PollSound();

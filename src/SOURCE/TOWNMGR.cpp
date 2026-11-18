@@ -8,6 +8,7 @@
 #include <BASE/border.h>
 #include <BASE/executive.h>
 #include <BASE/font.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -52,6 +53,65 @@ static char s_dwellingArmyLabel[1024];
 static i16 WellRecruitHandler(tag_message& message);
 static const i16 kWellRecruitMaximum = 100;
 static constexpr i32 kTownBuildFadeStepMs = 30;
+constexpr i16 kPreviousTown = 0x7901;
+constexpr i16 kNextTown = 0x7902;
+constexpr i16 kTownPanelNavigationLayer = 1000;
+constexpr i16 kTownPanelNavigationX = 471;
+
+static i32 TownSwitchDirection(const tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN && (message.modifiers & MESSAGE_MODIFIER_ARROW)) {
+        if (message.keyCode == INPUT_SCAN_NUMPAD_4)
+            return -1;
+        if (message.keyCode == INPUT_SCAN_NUMPAD_6)
+            return 1;
+    }
+    if (message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_DESELECT
+        && !(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)) {
+        if (message.id == kPreviousTown)
+            return -1;
+        if (message.id == kNextTown)
+            return 1;
+    }
+    return 0;
+}
+
+static void AddTownSwitchButtons(heroWindow& window, i16 x, i16 y, i16 zOrder) {
+    if (gCurPlayerData->m_townCount < 2)
+        return;
+    window.AddWidget(new goldButton(x, y, 30, 20, kPreviousTown, "", goldButton::Left), zOrder);
+    window.AddWidget(new goldButton(x + 32, y, 30, 20, kNextTown, "", goldButton::Right), zOrder);
+}
+
+void townManager::RequestTownSwitch(i32 direction, i16 panel) {
+    const i32 count = gCurPlayerData->m_townCount;
+    if (m_town->m_owner != gCurPlayer || count < 2)
+        return;
+    const i8* begin = gCurPlayerData->m_townIds;
+    const i8* current = std::find(begin, begin + count, m_town->m_id);
+    if (current == begin + count)
+        return;
+    const i32 index = current - begin;
+    for (i32 step = 1; step < count; ++step) {
+        town* candidate = gGame->GetTown(begin[(index + count + step * direction) % count]);
+        if (panel == BUILDING_SLOT_NONE || (candidate->m_buildings & (1 << panel))) {
+            m_nextTown = candidate;
+            m_nextTownPanel = panel;
+            return;
+        }
+    }
+}
+
+static bool SwitchTownFromPanel(tag_message& message, i16 panel) {
+    if (const i32 direction = TownSwitchDirection(message)) {
+        gTownManager->RequestTownSwitch(direction, panel);
+        if (gTownManager->m_nextTown) {
+            SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_DIALOG_SELECT, DIALOG_BUTTON_0);
+            return true;
+        }
+    }
+    return false;
+}
+
 enum TownTransferControl { TOWN_TRANSFER_TO_HERO = 1000, TOWN_TRANSFER_TO_GARRISON, TOWN_SWAP_ARMIES };
 
 townObject::townObject(char* name) {
@@ -157,6 +217,7 @@ i16 townManager::Open(i16 priority) {
     if (m_townWindow == NULL)
         MemError();
     m_townWindow->SetConfirmButton(TOWN_CLOSE_CONTROL, true);
+    AddTownSwitchButtons(*m_townWindow, 15, 12, WINDOW_Z_ORDER_BOTTOM);
     UpdateConstructionTitle();
     SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, TOWN_STATUS_TEXT_CONTROL);
     strcpy(gText, localization::Tr("town.screen.title"));
@@ -584,6 +645,22 @@ i16 townManager::Main(struct tag_message& message) {
     b8 rightButton;
     recruitUnit* recruitMgr;
 
+    const bool reopeningPanel = m_openTownPanel != BUILDING_SLOT_NONE;
+    if (reopeningPanel) {
+        const i16 panel = m_openTownPanel;
+        m_openTownPanel = BUILDING_SLOT_NONE;
+        message.modifiers = MESSAGE_MODIFIER_NONE;
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_SELECT, panel);
+    }
+    if (const i32 direction = TownSwitchDirection(message)) {
+        RequestTownSwitch(direction, BUILDING_SLOT_NONE);
+        if (m_nextTown) {
+            message.type = MESSAGE_EXECUTIVE;
+            message.executiveCommand = EXECUTIVE_COMMAND_TERMINATE_LOOP;
+            return MESSAGE_DISPATCH_FORWARD;
+        }
+        return MESSAGE_DISPATCH_CONSUME;
+    }
     done = 0;
     if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
         rightButton = true;
@@ -664,13 +741,21 @@ i16 townManager::Main(struct tag_message& message) {
                                     SetWinText(m_buildingWindow, WINDOW_TEXT_CASTLE);
                                     m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                     SetupCastle(m_buildingWindow);
+                                    if (gCurPlayerData->m_townCount > 1) {
+                                        for (widget* item = m_buildingWindow->m_widgetListHead; item; item = item->m_next) {
+                                            if (item->m_id == TOWN_CASTLE_STATUS_TEXT_CONTROL)
+                                                item->m_width = kTownPanelNavigationX - item->m_x - 4;
+                                        }
+                                        AddTownSwitchButtons(*m_buildingWindow, kTownPanelNavigationX,
+                                                             237, kTownPanelNavigationLayer);
+                                    }
                                     m_castleDialogActive = true;
                                     gWindowManager
                                         ->DoDialog(m_buildingWindow, CastleHandler, false);
                                     m_castleDialogActive = false;
                                     break;
                                 case BUILDING_SLOT_MAGE_GUILD:
-                                    if (m_town->m_occupyingHeroId != TOWN_OCCUPYING_HERO_NONE
+                                    if (!reopeningPanel && m_town->m_occupyingHeroId != TOWN_OCCUPYING_HERO_NONE
                                         && !gGame->GetHero(m_town->m_occupyingHeroId)
                                                 ->HasArtifact(ARTIFACT_MAGIC_BOOK)) {
                                         if (gGame->GetHero(m_town->m_occupyingHeroId)
@@ -731,6 +816,8 @@ i16 townManager::Main(struct tag_message& message) {
                                         SetWinText(m_buildingWindow, WINDOW_TEXT_MAGE_GUILD);
                                         m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                         SetupMage(m_buildingWindow);
+                                        AddTownSwitchButtons(*m_buildingWindow, kTownPanelNavigationX,
+                                                             237, kTownPanelNavigationLayer);
                                         gWindowManager
                                             ->DoDialog(m_buildingWindow, MageGuildHandler, false);
                                     }
@@ -776,6 +863,12 @@ i16 townManager::Main(struct tag_message& message) {
                             delete m_coverWindow;
                             if (m_purchasedBuilding != BUILDING_SLOT_NONE)
                                 BuildObj(m_purchasedBuilding);
+                            if (m_nextTown) {
+                                gWindowManager->ReleaseFizzleSource();
+                                message.type = MESSAGE_EXECUTIVE;
+                                message.executiveCommand = EXECUTIVE_COMMAND_TERMINATE_LOOP;
+                                return MESSAGE_DISPATCH_FORWARD;
+                            }
                             if (m_heroRecruited) {
                                 hero* visitingHero;
                                 i32 i;
@@ -1061,7 +1154,7 @@ i16 townManager::Main(struct tag_message& message) {
             break;
         }
     }
-    if (done == 1) {
+    if (done == 1 || m_nextTown) {
         message.type = MESSAGE_EXECUTIVE;
         message.executiveCommand = EXECUTIVE_COMMAND_TERMINATE_LOOP;
         return MESSAGE_DISPATCH_FORWARD;
@@ -1157,11 +1250,18 @@ void townManager::DoCommand(i8 command) {
             RedrawTownScreen();
             gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, NULL);
             break;
-        case TOWN_ARMY_COMMAND_KINGDOM_OVERVIEW:
-            gGame->Overview();
+        case TOWN_ARMY_COMMAND_KINGDOM_OVERVIEW: {
+            const i16 target = gGame->Overview();
+            if (target >= game::OVERVIEW_TOWN_TARGET && target - game::OVERVIEW_TOWN_TARGET != m_town->m_id) {
+                m_nextTown = gGame->GetTown(target - game::OVERVIEW_TOWN_TARGET);
+                m_nextTownPanel = BUILDING_SLOT_NONE;
+            } else if (target >= 0 && target < game::OVERVIEW_TOWN_TARGET) {
+                gGame->GetHero(target)->HeroView(true);
+            }
             RedrawTownScreen();
             gWindowManager->FadeScreen(WINDOW_FADE_IN, WINDOW_FADE_SHORT, NULL);
             break;
+        }
         case TOWN_ARMY_COMMAND_SPLIT:
             SplitArmy();
             ResetStrips();
@@ -1342,6 +1442,7 @@ void townManager::DrawTown(b8 updateScreen, b32 advanceAnimation) {
     for (index = 0; index < m_townObjectCount; index++)
         m_townObjects[index]->Draw(advanceAnimation);
     m_townWindow->DrawWindow(0, TOWN_REDRAW_FIRST_CONTROL, TOWN_REDRAW_LAST_CONTROL);
+    m_townWindow->DrawWindow(0, kPreviousTown, kNextTown);
     gMouseManager->MouseCoords(x, y);
     if (y < TOWN_VIEWPORT_HEIGHT)
         gMouseManager->SaveAndDraw(gWindowManager->m_screen, 0, 0, 1);
@@ -2084,6 +2185,8 @@ void townManager::SetupMage(class heroWindow* window) {
 }
 
 i16 MageGuildHandler(struct tag_message& message) {
+    if (SwitchTownFromPanel(message, BUILDING_SLOT_MAGE_GUILD))
+        return MESSAGE_DISPATCH_FORWARD;
     i16 firstSpell = TOWN_MAGE_FIRST_SPELL_CONTROL;
     i16 iconBaseVal = TOWN_MAGE_FIRST_ICON_CONTROL;
     i32 quickViewVal;
@@ -2523,6 +2626,8 @@ void townManager::DoTavern(void) {
 }
 
 i16 CastleHandler(struct tag_message& message) {
+    if (SwitchTownFromPanel(message, BUILDING_SLOT_CASTLE))
+        return MESSAGE_DISPATCH_FORWARD;
     i16 statusId = TOWN_CASTLE_STATUS_CONTROL;
     i32 result = 0;
     b32 quickViewVal;

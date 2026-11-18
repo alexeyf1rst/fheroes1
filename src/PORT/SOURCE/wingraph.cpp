@@ -1,12 +1,15 @@
 // The native display host: the counterpart of src/SOURCE/wingraph.cpp, which
 // drew through WinG in a window and DirectDraw at full screen. The game draws
-// into a 640x480 8-bit buffer; finished rectangles and palette changes go to
+// into a logical-resolution 8-bit buffer; finished rectangles and palette changes go to
 // the platform display, which shows them as DirectDraw's palettized primary
 // surface did.
 
 #include <H1/Ints.h>
 
 #include <SOURCE/wingraph.h>
+#ifndef HOMM1_EDITOR
+#include <SOURCE/advManager.h>
+#endif
 
 #include <BASE/bitmap.h>
 #include <BASE/heroWindowManager.h>
@@ -120,20 +123,22 @@ void SetFullScreenStatus(i32 fullScreen) {
 // The original invalidated this rectangle and painted it from WM_PAINT. While
 // the adventure map scrolls (gScrollX or gScrollY set), the paint takes its
 // source from the scrolled position inside the 16-pixel margin around the
-// 448x448 view, as DDAppPaint did.
+// map view, as DDAppPaint did.
 void KBPaintScreen(i32 left, i32 top, i32 right, i32 bottom) {
     if (gInitWin == NULL)
         return;
+#ifndef HOMM1_EDITOR
     if ((gScrollX || gScrollY)
-        && left == WINGRAPH_SCROLL_MARGIN && top == WINGRAPH_SCROLL_MARGIN
-        && right == left + WINGRAPH_SCROLL_SIZE - 1
-        && bottom == top + WINGRAPH_SCROLL_SIZE - 1) {
+        && left == BORDER_EDGE_SIZE && top == BORDER_EDGE_SIZE
+        && right == left + ADVENTURE_VIEWPORT_INNER_WIDTH - 1
+        && bottom == top + ADVENTURE_VIEWPORT_INNER_HEIGHT - 1) {
         ++gTtlBlts;
         platform::UpdateDisplay(static_cast<const u8*>(gInitWin), LOGICAL_SCREEN_WIDTH,
-                                left + gScrollX, top + gScrollY, WINGRAPH_SCROLL_SIZE,
-                                WINGRAPH_SCROLL_SIZE, left, top);
+                                left + gScrollX, top + gScrollY, ADVENTURE_VIEWPORT_INNER_WIDTH,
+                                ADVENTURE_VIEWPORT_INNER_HEIGHT, left, top);
         return;
     }
+#endif
     // The original invalidated [left, right) and DDAppPaint then copied one
     // more column and row than the rectangle it was given (right++ below the
     // screen's edge, and a width of right - left + 1): the game's blits rely

@@ -19,8 +19,10 @@
 #include <SOURCE/KB.h>
 #include <SOURCE/kbwin.h>
 #include <SOURCE/NOOPT.h>
+#include <SOURCE/searchArray.h>
 #include <SOURCE/wingraph.h>
 
+#include <array>
 #include <stdio.h>
 #include <string.h>
 
@@ -28,7 +30,7 @@ namespace {
 constexpr i16 kOrderSlotWidth = 40;
 constexpr i16 kOrderHeight = 46;
 constexpr i16 kOrderWidth = COMBAT_TURN_ORDER_CAPACITY * kOrderSlotWidth;
-constexpr i16 kOrderX = (LOGICAL_SCREEN_WIDTH - kOrderWidth) / 2;
+constexpr i16 kOrderX = (640 - kOrderWidth) / 2;
 }
 
 void combatManager::ShowTurnOrder() {
@@ -184,6 +186,10 @@ public:
 HistoryPanel* gHistoryPanel = nullptr;
 
 i16 HistoryHandler(tag_message& message) {
+    if (message.type == MESSAGE_MOUSE_WHEEL) {
+        combatManager::ScrollCombatHistory(static_cast<float>(message.value) / INPUT_WHEEL_STEP);
+        return MESSAGE_DISPATCH_CONSUME;
+    }
     if (message.type == MESSAGE_KEY_DOWN) {
         switch (message.keyCode) {
             case INPUT_SCAN_ENTER:
@@ -373,6 +379,67 @@ void combatManager::ResetLimitCreature(void) {
                     ? COMBAT_LIMIT_CREATURE_HIDDEN
                     : 0;
         }
+    }
+}
+
+void combatManager::DrawMovementRange() {
+    if (m_quickCombat || IsAutoCombat() || m_combatResult != COMBAT_RESULT_PENDING
+        || m_currentSide < COMBAT_SIDE_FIRST || m_currentSide >= COMBAT_SIDE_COUNT || m_currentArmyIndex < 0
+        || m_currentArmyIndex >= m_numArmies[m_currentSide] || gNextAction != ACTION_NONE
+        || m_playerId[m_currentSide] == GAME_PLAYER_NONE || !gThisNetHumanPlayer[m_playerId[m_currentSide]])
+        return;
+    const army& active = m_armies[m_currentSide][m_currentArmyIndex];
+    if (active.m_quantity <= 0 || !ValidHex(active.m_hex))
+        return;
+
+    // Cache by the actual pathfinding inputs, so idle animation frames do not
+    // run a separate search for every hex. Occupants, obstacles, speed and
+    // facing invalidate the cache immediately, including spell effects.
+    constexpr int fieldsPerHex = 5;
+    std::array<int, 6 + COMBAT_HEX_COUNT * fieldsPerHex> key{};
+    key[0] = active.m_hex;
+    key[1] = active.m_facing;
+    key[2] = active.m_stats.speed;
+    key[3] = active.m_stats.attributes;
+    key[4] = m_currentSide;
+    key[5] = m_currentArmyIndex;
+    for (int hex = 0; hex < COMBAT_HEX_COUNT; ++hex) {
+        const hexcell& cell = m_hexCells[hex];
+        const int offset = 6 + hex * fieldsPerHex;
+        key[offset] = cell.m_occupantSide;
+        key[offset + 1] = cell.m_occupantIndex;
+        key[offset + 2] = cell.m_obstacleIndex;
+        key[offset + 3] = cell.m_x;
+        key[offset + 4] = cell.m_y;
+    }
+    static decltype(key) previousKey{};
+    static bool valid = false;
+    static std::array<bool, COMBAT_HEX_COUNT> reachable{};
+    if (!valid || key != previousKey) {
+        static searchArray previewSearch;
+        searchArray* previousSearch = gSearchArray;
+        gSearchArray = &previewSearch;
+        army preview = active;
+        CLEAR_ARMY_TARGET(&preview);
+        reachable.fill(false);
+        for (int row = 0; row < COMBAT_GRID_ROWS; ++row) {
+            for (int col = COMBAT_GRID_FIRST_INNER_COLUMN; col <= COMBAT_GRID_LAST_INNER_COLUMN; ++col) {
+                const int hex = row * COMBAT_GRID_COLUMNS + col;
+                reachable[hex] = m_hexCells[hex].m_occupantSide == COMBAT_SIDE_NONE
+                    && m_hexCells[hex].m_obstacleIndex == COMBAT_OBSTACLE_NONE
+                    && preview.ValidPath(hex, ARMY_PATH_ANY_TARGET_HEX) == 1;
+            }
+        }
+        gSearchArray = previousSearch;
+        previousKey = key;
+        valid = true;
+    }
+    const int color = goldButton::MatchGold(60, 50, 15, true);
+    for (int hex = 0; hex < COMBAT_HEX_COUNT; ++hex) {
+        if (!reachable[hex])
+            continue;
+        const int y = COMBAT_FIELD_TOP + (hex / COMBAT_GRID_COLUMNS) * COMBAT_HEX_HEIGHT + COMBAT_HEX_HEIGHT / 2;
+        FillBitmapArea(gWindowManager->m_screen, m_hexCells[hex].m_x - 6, y + 16, 13, 2, color);
     }
 }
 
@@ -581,6 +648,8 @@ void combatManager::DrawFrame(b8 updateScreen) {
         }
         if (m_spellPreviewHex != ARMY_HEX_INVALID)
             DrawSpellAreaPreview();
+        else if (gConfig.showCombatRange)
+            DrawMovementRange();
     }
     if (m_computeExtent) {
         gLimitToExtent = true;

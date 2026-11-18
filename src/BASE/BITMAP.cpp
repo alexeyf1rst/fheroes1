@@ -96,21 +96,6 @@ void bitmap::CopyTo(
     i32 width,
     i32 height
 ) {
-    PollSound();
-    if (width != LOGICAL_SCREEN_WIDTH) {
-        for (i32 row = 0; row < height; row++) {
-            memcpy(
-                destination->m_pixels + destinationX + (destinationY + row) * LOGICAL_SCREEN_WIDTH,
-                m_pixels + sourceX + (sourceY + row) * LOGICAL_SCREEN_WIDTH,
-                width
-            );
-        }
-    } else {
-        memcpy(
-            destination->m_pixels + destinationX + destinationY,
-            m_pixels + sourceX + sourceY,
-            width * height
-        );
-    }
-    PollSound();
+    BlitBitmap(this, sourceX, sourceY, width, height, destination, destinationX, destinationY);
+
 }

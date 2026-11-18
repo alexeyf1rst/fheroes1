@@ -84,7 +84,7 @@ public:
     }
     void GiveSpells(void);
     void XformToCastle(void);
-    void View(void);
+    void View(i16 panel = -1);
     void Deallocate(void);
 };
 

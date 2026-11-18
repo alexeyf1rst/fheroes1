@@ -67,18 +67,30 @@ void town::XformToCastle(void) {
     }
 }
 
-void town::View(void) {
+void town::View(i16 panel) {
     if (gHighMemBuffer > TOWN_VIEW_HIGH_MEMORY_LIMIT)
         gAdvDisposeLevel = ADV_DISPOSE_FULL;
     else
         gAdvDisposeLevel = ADV_DISPOSE_PARTIAL;
 
     townManager* manager = gTownManager;
-    manager->SetTown(this);
+    town* current = this;
+    manager->m_nextTown = nullptr;
+    manager->m_openTownPanel = panel;
     gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, NULL);
-    gExec->CallManager(gTownManager);
-    if (m_occupyingHeroId != TOWN_OCCUPYING_HERO_NONE)
-        gAdvManager->SetHeroContext(m_occupyingHeroId, false);
+    do {
+        manager->SetTown(current);
+        manager->m_nextTown = nullptr;
+        gExec->CallManager(manager);
+        if (!manager->m_nextTown)
+            break;
+        current = manager->m_nextTown;
+        manager->m_openTownPanel = manager->m_nextTownPanel;
+    } while (true);
+    if (current->m_occupyingHeroId != TOWN_OCCUPYING_HERO_NONE)
+        gAdvManager->SetHeroContext(current->m_occupyingHeroId, false);
+    else if (current != this)
+        gAdvManager->SetTownContext(current->m_id);
     gAdvDisposeLevel = ADV_DISPOSE_NONE;
 }
 

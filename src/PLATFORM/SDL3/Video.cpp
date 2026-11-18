@@ -9,12 +9,18 @@
 
 namespace platform {
 
+int gLogicalWidth = DISPLAY_WIDTH;
+int gLogicalHeight = DISPLAY_HEIGHT;
+
 namespace {
 
-constexpr int kWidth = DISPLAY_WIDTH;
-constexpr int kHeight = DISPLAY_HEIGHT;
-// The canvas holds the chrome bar above the game image.
-constexpr int kCanvasHeight = kHeight + CHROME_BAR_MAX;
+const int& kWidth = gLogicalWidth;
+const int& kHeight = gLogicalHeight;
+bool gLegacyCanvas = false;
+int CanvasWidth() { return gLegacyCanvas ? DISPLAY_WIDTH : kWidth; }
+int CanvasHeight() { return gLegacyCanvas ? DISPLAY_HEIGHT : kHeight; }
+int CanvasX() { return gLegacyCanvas ? (kWidth - DISPLAY_WIDTH) / 2 : 0; }
+int CanvasY() { return gLegacyCanvas ? (kHeight - DISPLAY_HEIGHT) / 2 : 0; }
 // Presentation is coalesced to this interval unless forced: the game copies
 // many small rectangles per frame, the way DirectDraw blits were cheap.
 constexpr u32 kPresentInterval = 8;
@@ -25,10 +31,10 @@ SDL_Texture* gTexture = nullptr;
 bool gFullscreen = false;
 DisplayScaling gScaling = DISPLAY_SCALING_FIT;
 
-std::array<u8, kWidth * kHeight> gIndexed{};
-std::array<u32, kWidth * kCanvasHeight> gPixels{};
-std::array<u8, kWidth * kCanvasHeight> gChrome{};
-std::array<u8, kWidth * kCanvasHeight> gChromeMask{};
+std::vector<u8> gIndexed;
+std::vector<u32> gPixels;
+std::vector<u8> gChrome;
+std::vector<u8> gChromeMask;
 int gBar = 0;
 
 void ApplyLogicalPresentation() {
@@ -51,6 +57,8 @@ SDL_Rect gDamage{};
 SDL_Rect gLastCursorBounds{};
 u32 gLastPresent = 0;
 const u8* gReference = nullptr;
+int gReferenceWidth = 0;
+int gReferenceHeight = 0;
 
 struct DisplayTiming {
     unsigned frames = 0;
@@ -191,9 +199,42 @@ void MarkDisplayDirty() {
 
 }  // namespace sdl
 
+bool SetNativeResolution(int width, int height) {
+    if (gWindow != nullptr)
+        return width == kWidth && height == kHeight;
+    if (!((width == DISPLAY_WIDTH && height == DISPLAY_HEIGHT)
+          || (width == 960 && height == 600)
+          || (width == 1280 && height == 800)
+          || (width == 1440 && height == 900)))
+        return false;
+    gLogicalWidth = width;
+    gLogicalHeight = height;
+    return true;
+}
+
+void SetLegacyCanvas(bool enabled) {
+    if (gLegacyCanvas == enabled)
+        return;
+    gLegacyCanvas = enabled;
+    std::fill(gIndexed.begin(), gIndexed.end(), u8{0});
+    // The owner is about to swap its framebuffer; do not retain its old
+    // dimensions or pointer during that transition.
+    gReference = nullptr;
+    InvalidateCanvas();
+}
+
+bool LegacyCanvas() {
+    return gLegacyCanvas;
+}
+
 bool OpenDisplay() {
     if (gWindow != nullptr)
         return true;
+    const size_t canvasPixels = static_cast<size_t>(kWidth) * (kHeight + CHROME_BAR_MAX);
+    gIndexed.assign(static_cast<size_t>(kWidth) * kHeight, 0);
+    gPixels.assign(canvasPixels, 0);
+    gChrome.assign(canvasPixels, 0);
+    gChromeMask.assign(canvasPixels, 0);
     StartupOptions defaults;
     int scale = ChooseScale();
     std::string requested = Environment("HOMM1_SCALE");
@@ -219,7 +260,7 @@ bool OpenDisplay() {
     SDL_SetRenderVSync(gRenderer, 0);
     ApplyLogicalPresentation();
     gTexture = SDL_CreateTexture(
-        gRenderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, kWidth, kCanvasHeight);
+        gRenderer, SDL_PIXELFORMAT_XRGB8888, SDL_TEXTUREACCESS_STREAMING, kWidth, kHeight + CHROME_BAR_MAX);
     if (gTexture == nullptr) {
         Log("cannot create the display texture: %s", SDL_GetError());
         return false;
@@ -264,9 +305,11 @@ void UpdateDisplay(
     int destinationX,
     int destinationY
 ) {
-    if (pixels == nullptr)
+    if (pixels == nullptr || gIndexed.empty() || pitch <= 0)
         return;
-    // Clip against the display; the source is the game's 640x480 buffer, so
+    const int canvasWidth = CanvasWidth();
+    const int canvasHeight = CanvasHeight();
+    // Clip against the display; the source is the game's logical buffer, so
     // the same clip keeps the source in range.
     if (destinationX < 0) {
         sourceX -= destinationX;
@@ -288,10 +331,12 @@ void UpdateDisplay(
         height += sourceY;
         sourceY = 0;
     }
-    width = std::min({width, kWidth - destinationX, pitch - sourceX});
-    height = std::min({height, kHeight - destinationY, kHeight - sourceY});
+    width = std::min({width, canvasWidth - destinationX, canvasWidth - sourceX, pitch - sourceX});
+    height = std::min({height, canvasHeight - destinationY, canvasHeight - sourceY});
     if (width <= 0 || height <= 0)
         return;
+    destinationX += CanvasX();
+    destinationY += CanvasY();
     for (int row = 0; row < height; row++)
         std::memcpy(
             &gIndexed[static_cast<size_t>((destinationY + row) * kWidth + destinationX)],
@@ -388,6 +433,10 @@ void Present(bool force) {
         const u64 duration = end - presentStart;
         ++gDisplayTiming.frames;
         gDisplayTiming.over16ms += duration > 16'000'000;
+        if (duration > 50'000'000)
+            Log("slow display present at tick %u (%s): %.2f ms", now, SDL_GetRendererName(gRenderer),
+                static_cast<double>(duration) / 1e6);
+
         gDisplayTiming.maxPresentNs = std::max(gDisplayTiming.maxPresentNs, duration);
     }
 }
@@ -434,7 +483,7 @@ void SetChromeBar(int height) {
         SDL_GetWindowSize(gWindow, &windowWidth, &windowHeight);
     int oldBar = gBar;
     gBar = height;
-    gChromeMask.fill(0);
+    std::fill(gChromeMask.begin(), gChromeMask.end(), u8{0});
     if (gRenderer != nullptr) {
         ApplyLogicalPresentation();
         if (!gFullscreen && windowHeight > 0) {
@@ -583,7 +632,11 @@ bool SaveReferenceBmp(const char* hostPath) {
         return false;
     std::vector<u8> rgb(static_cast<size_t>(kWidth * kHeight * 3));
     for (size_t i = 0; i < gIndexed.size(); i++) {
-        const Color& color = gPalette[gReference[i]];
+        const int x = static_cast<int>(i % kWidth) - CanvasX();
+        const int y = static_cast<int>(i / kWidth) - CanvasY();
+        const bool inReference = x >= 0 && y >= 0 && x < gReferenceWidth && y < gReferenceHeight;
+        const u8 index = inReference ? gReference[y * gReferenceWidth + x] : gIndexed[i];
+        const Color& color = gPalette[index];
         rgb[i * 3] = color.r;
         rgb[i * 3 + 1] = color.g;
         rgb[i * 3 + 2] = color.b;
@@ -593,6 +646,8 @@ bool SaveReferenceBmp(const char* hostPath) {
 
 void SetReferenceImage(const u8* pixels) {
     gReference = pixels;
+    gReferenceWidth = CanvasWidth();
+    gReferenceHeight = CanvasHeight();
 }
 
 int CompareWithReference(int box[4]) {
@@ -603,10 +658,11 @@ int CompareWithReference(int box[4]) {
     if (gReference == nullptr)
         return 0;
     int count = 0;
-    for (int y = 0; y < kHeight; y++) {
-        for (int x = 0; x < kWidth; x++) {
-            size_t index = static_cast<size_t>(y * kWidth + x);
-            if (gIndexed[index] == gReference[index])
+    for (int y = 0; y < gReferenceHeight; y++) {
+        for (int x = 0; x < gReferenceWidth; x++) {
+            const size_t index = static_cast<size_t>((y + CanvasY()) * kWidth + x + CanvasX());
+            const size_t referenceIndex = static_cast<size_t>(y * gReferenceWidth + x);
+            if (gIndexed[index] == gReference[referenceIndex])
                 continue;
             count++;
             box[0] = std::min(box[0], x);
