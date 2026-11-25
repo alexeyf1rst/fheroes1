@@ -796,8 +796,13 @@ void fileRequester::UpdateSavePreview(bool force) {
         m_saveCanLoad = gGame->ReadSavePreview(path.c_str(), preview)
             && campaignPattern == (preview.campaign > CAMPAIGN_NONE);
         if (m_saveCanLoad) {
-            snprintf(m_previewTitle, sizeof(m_previewTitle), "%s",
-                     preview.mapName[0] ? preview.mapName : m_fileNames[m_selectedIndex].text);
+            const char* title = m_fileNames[m_selectedIndex].text;
+            // The retail tables store the short title in ScenarioText.
+            if (campaignPattern)
+                title = gCampaignScenarioText[preview.scenario];
+            else if (preview.mapName[0])
+                title = preview.mapName;
+            snprintf(m_previewTitle, sizeof(m_previewTitle), "%s", title);
             if (campaignPattern)
                 snprintf(m_previewDetails, sizeof(m_previewDetails), localization::Tr("file.preview.campaign"),
                          preview.scenario + 1, preview.day);

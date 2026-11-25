@@ -135,6 +135,27 @@ void RouteLeavingTheGrid() {
     Expect(length == 0 && gSearchArray->m_pathLength == 0, "a route traced off the map fails empty");
 }
 
+void RoutePreviewKeepsPlannedPath() {
+    gSearchArray->Clear();
+    searchNode& east = gSearchArray->m_cells[11][10];
+    east.x = 11;
+    east.y = 10;
+    east.distance = 100;
+    east.direction = MAP_DIRECTION_EAST;
+    searchNode& west = gSearchArray->m_cells[9][10];
+    west.x = 9;
+    west.y = 10;
+    west.distance = 100;
+    west.direction = MAP_DIRECTION_WEST;
+
+    Expect(gSearchArray->BuildPath(10, 10, 11, 10, 100) == 1, "the planned route goes east");
+    u8 preview[SEARCH_PATH_CAPACITY];
+    Expect(gSearchArray->TracePath(10, 10, 9, 10, 100, preview) == 1 && preview[0] == MAP_DIRECTION_WEST,
+           "the preview follows a separate route west");
+    Expect(gSearchArray->m_pathLength == 1 && gSearchArray->m_directions[0] == MAP_DIRECTION_EAST,
+           "the preview keeps the length and steps of the planned route");
+}
+
 // The map contents are checked when a game starts on them.
 void MapChecks() {
     Expect(gGame->MapDataValid() != 0, "the started map is valid");
@@ -259,6 +280,7 @@ int main() {
     ObeliskValueWithoutUltimate();
     MineFlagOnTopRow();
     RouteLeavingTheGrid();
+    RoutePreviewKeepsPlannedPath();
     MapChecks();
     WeekWithAbsentPlayers();
     CampaignCrests();

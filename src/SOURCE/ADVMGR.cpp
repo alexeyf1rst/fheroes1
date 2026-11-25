@@ -5238,8 +5238,24 @@ constexpr int kWorldZoomMin = 1;
 constexpr int kWorldZoomMax = 4;
 int gWorldZoom = kWorldZoomMin;
 
+class WorldMapZoomLabel : public textWidget {
+public:
+    WorldMapZoomLabel() : textWidget(36, 100, 72, 12, strdup(""), "smalfont.fnt",
+                                     TEXT_WIDGET_PLAIN_COLOR, WIDGET_ID_NONE, WIDGET_KIND_TEXT) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+
+    void Draw() override {
+        char current[12];
+        snprintf(current, sizeof(current), "%dx", gWorldZoom);
+        m_font->DrawBoundedString(current, m_owner->m_posX + m_x, m_owner->m_posY + m_y,
+                                  m_width, m_height, m_color, FONT_ALIGN_CENTER);
+    }
+};
+
 struct WorldMapView {
     bitmap& image;
+    heroWindow* panel = nullptr;
     int left = 0;
     int top = 0;
     int pressX = -1;
@@ -5280,6 +5296,8 @@ struct WorldMapView {
         gWorldZoom = value;
         pressX = -1;
         Draw();
+        if (panel)
+            panel->DrawWindow();
     }
 };
 
@@ -5758,6 +5776,10 @@ void advManager::ViewWorld(
         MemError();
     win->AddWidget(new goldButton(11, 120, 24, 22, kWorldZoomOut, "-"), WINDOW_Z_ORDER_BOTTOM);
     win->AddWidget(new goldButton(109, 120, 24, 22, kWorldZoomIn, "+"), WINDOW_Z_ORDER_BOTTOM);
+    if (!drawAllObjects && !drawAllTerrains) {
+        win->AddWidget(new WorldMapZoomLabel(), WINDOW_Z_ORDER_APPEND);
+        view.panel = win;
+    }
     gWorldMapView = &view;
     gWindowManager->DoDialog(win, WorldMapHandler, false);
     gWorldMapView = nullptr;

@@ -1359,6 +1359,10 @@ msgid "hero.level.short"
 msgstr ""
 
 #: src/SOURCE/SWAPMGR.cpp
+msgid "hero.meeting.artifacts"
+msgstr ""
+
+#: src/SOURCE/SWAPMGR.cpp
 #, c-format
 msgid "hero.meeting.title"
 msgstr ""
@@ -1371,6 +1375,10 @@ msgstr ""
 #: src/SOURCE/HERO.cpp
 #, c-format
 msgid "hero.meeting.tomorrow"
+msgstr ""
+
+#: src/SOURCE/SWAPMGR.cpp
+msgid "hero.meeting.troops"
 msgstr ""
 
 #: src/SOURCE/HERO.cpp

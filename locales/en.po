@@ -1358,6 +1358,10 @@ msgid "hero.level.short"
 msgstr "L%d"
 
 #: src/SOURCE/SWAPMGR.cpp
+msgid "hero.meeting.artifacts"
+msgstr "Artifacts"
+
+#: src/SOURCE/SWAPMGR.cpp
 #, c-format
 msgid "hero.meeting.title"
 msgstr "%s meets %s"
@@ -1371,6 +1375,10 @@ msgstr "Today %d"
 #, c-format
 msgid "hero.meeting.tomorrow"
 msgstr "Next day %d"
+
+#: src/SOURCE/SWAPMGR.cpp
+msgid "hero.meeting.troops"
+msgstr "Troops"
 
 #: src/SOURCE/HERO.cpp
 #, c-format

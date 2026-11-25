@@ -48,11 +48,17 @@ public:
     void Draw() override {
         const i16 x = m_owner->m_posX + m_x;
         const i16 y = m_owner->m_posY + m_y;
+        if (m_meeting) {
+            auto* screen = gWindowManager->m_screen;
+            FillBitmapArea(screen, x, y - 2, m_width, 24, goldButton::MatchGold(31, 23, 13, true));
+            FillBitmapArea(screen, x + 1, y - 1, m_width - 2, 22, goldButton::MatchGold(14, 12, 10, true));
+        }
         if (m_includeLevel) {
             char level[24];
             snprintf(level, sizeof(level), localization::Tr("hero.level.short"),
                      m_hero.GetLevel(m_hero.m_experience));
-            m_font->DrawBoundedString(level, x, y, m_width, m_font->m_height, m_color, FONT_ALIGN_LEFT);
+            const i16 inset = m_meeting ? 4 : 0;
+            m_font->DrawBoundedString(level, x + inset, y, m_width - inset, m_font->m_height, m_color, FONT_ALIGN_LEFT);
         }
         if (m_meeting) {
             char points[64];

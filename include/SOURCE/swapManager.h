@@ -43,6 +43,7 @@ public:
     void DrawSelector(void);
     void ViewMon(void);
     void TransferMeetingItems(i16 action);
+    void DropMeetingItem(i16 source, i16 modifiers);
     void SwapArtifacts(void);
     void SwapMons(void);
     void Update(void);

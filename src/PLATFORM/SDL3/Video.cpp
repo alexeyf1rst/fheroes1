@@ -36,6 +36,7 @@ std::vector<u32> gPixels;
 std::vector<u8> gChrome;
 std::vector<u8> gChromeMask;
 int gBar = 0;
+bool gChromeOverlaysScene = false;
 
 void ApplyLogicalPresentation() {
     if (!gRenderer)
@@ -61,9 +62,22 @@ int gReferenceWidth = 0;
 int gReferenceHeight = 0;
 
 struct DisplayTiming {
+    static constexpr u64 bucketWidthNs = 250'000;
+    std::array<unsigned, 400> presents{};
     unsigned frames = 0;
     unsigned over16ms = 0;
     u64 maxPresentNs = 0;
+
+    double Percentile(unsigned percentile) const {
+        const u64 target = (static_cast<u64>(frames) * percentile + 99) / 100;
+        u64 counted = 0;
+        for (size_t bucket = 0; bucket + 1 < presents.size(); ++bucket) {
+            counted += presents[bucket];
+            if (counted >= target)
+                return static_cast<double>((bucket + 1) * bucketWidthNs) / 1e6;
+        }
+        return static_cast<double>(maxPresentNs) / 1e6;
+    }
 };
 DisplayTiming gDisplayTiming;
 bool gTraceDisplay = false;
@@ -276,8 +290,14 @@ bool OpenDisplay() {
 
 void CloseDisplay() {
     if (gTraceDisplay && gRenderer != nullptr) {
-        Log("display timing (%s): %u frames, %u presents >16 ms, max present %.2f ms",
-            SDL_GetRendererName(gRenderer), gDisplayTiming.frames, gDisplayTiming.over16ms,
+        int width = 0;
+        int height = 0;
+        SDL_GetRenderOutputSize(gRenderer, &width, &height);
+        Log("display timing (%s, canvas %dx%d, output %dx%d): %u frames, %u presents >16 ms, "
+            "p50 <= %.2f ms, p95 <= %.2f ms, max present %.2f ms",
+            SDL_GetRendererName(gRenderer), kWidth, kHeight, width, height,
+            gDisplayTiming.frames, gDisplayTiming.over16ms,
+            gDisplayTiming.Percentile(50), gDisplayTiming.Percentile(95),
             static_cast<double>(gDisplayTiming.maxPresentNs) / 1e6);
     }
     if (gTexture != nullptr)
@@ -410,10 +430,18 @@ void Present(bool force) {
         for (int y = gDamage.y; y < gDamage.y + gDamage.h; ++y) {
             const auto begin = static_cast<size_t>(y * kWidth + gDamage.x);
             const auto end = begin + static_cast<size_t>(gDamage.w);
-            for (size_t pixel = begin; pixel < end; ++pixel)
-                gPixels[pixel] = gPalettePixels[pixel < barPixels || gChromeMask[pixel] != 0
-                                            ? gChrome[pixel]
-                                            : gIndexed[pixel - barPixels]];
+            if (y < gBar) {
+                for (size_t pixel = begin; pixel < end; ++pixel)
+                    gPixels[pixel] = gPalettePixels[gChrome[pixel]];
+            } else if (gChromeOverlaysScene) {
+                for (size_t pixel = begin; pixel < end; ++pixel) {
+                    const u8 index = gChromeMask[pixel] ? gChrome[pixel] : gIndexed[pixel - barPixels];
+                    gPixels[pixel] = gPalettePixels[index];
+                }
+            } else {
+                for (size_t pixel = begin; pixel < end; ++pixel)
+                    gPixels[pixel] = gPalettePixels[gIndexed[pixel - barPixels]];
+            }
         }
         if (!SDL_RectEmpty(&cursorBounds))
             DrawCursor();
@@ -432,6 +460,8 @@ void Present(bool force) {
         const u64 end = SDL_GetTicksNS();
         const u64 duration = end - presentStart;
         ++gDisplayTiming.frames;
+        const auto bucket = std::min<u64>(duration / DisplayTiming::bucketWidthNs, gDisplayTiming.presents.size() - 1);
+        ++gDisplayTiming.presents[bucket];
         gDisplayTiming.over16ms += duration > 16'000'000;
         if (duration > 50'000'000)
             Log("slow display present at tick %u (%s): %.2f ms", now, SDL_GetRendererName(gRenderer),
@@ -484,6 +514,7 @@ void SetChromeBar(int height) {
     int oldBar = gBar;
     gBar = height;
     std::fill(gChromeMask.begin(), gChromeMask.end(), u8{0});
+    gChromeOverlaysScene = false;
     if (gRenderer != nullptr) {
         ApplyLogicalPresentation();
         if (!gFullscreen && windowHeight > 0) {
@@ -503,6 +534,8 @@ void UpdateChrome(const u8* pixels, const u8* mask) {
     std::memcpy(gChrome.data(), pixels, count);
     std::memcpy(gChromeMask.data(), mask, count);
     std::fill(gChromeMask.begin() + static_cast<std::ptrdiff_t>(count), gChromeMask.end(), u8{0});
+    const size_t barPixels = static_cast<size_t>(gBar * kWidth);
+    gChromeOverlaysScene = std::any_of(mask + barPixels, mask + count, [](u8 pixel) { return pixel != 0; });
     InvalidateCanvas();
 }
 

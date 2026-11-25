@@ -12,6 +12,7 @@
 #include <BASE/mouseManager.h>
 #include <BASE/palette.h>
 #include <BASE/resourceManager.h>
+#include <BASE/textWidget.h>
 #include <BASE/widget.h>
 #include <BASE/goldButton.h>
 #include <algorithm>
@@ -97,10 +98,19 @@ i16 swapManager::Open(i16 id) {
         MemError();
     RemoveMeetingBackgroundArrows(*m_window);
     SetWinText(m_window, WINDOW_TEXT_SWAP);
+    const char* meetingSections[] = {localization::Tr("hero.meeting.troops"),
+                                     localization::Tr("hero.meeting.artifacts")};
+    for (i16 index = 0; index < 2; ++index) {
+        auto* section = new textWidget(176, 177 + index * 40, 104, 13, strdup(meetingSections[index]), "smalfont.fnt",
+                                       TEXT_WIDGET_PLAIN_COLOR, WIDGET_ID_NONE, WIDGET_KIND_TEXT);
+        section->m_alignment = FONT_ALIGN_CENTER;
+        section->m_flags &= ~WIDGET_FLAG_ENABLED;
+        m_window->AddWidget(section, WINDOW_Z_ORDER_APPEND);
+    }
     const goldButton::Mark arrows[] = {goldButton::Left, goldButton::Right, goldButton::Exchange};
     constexpr i16 columns[] = {2, 0, 1};
     for (i16 index = 0; index < 6; ++index) {
-        const i16 y = index < 3 ? 192 : 218;
+        const i16 y = index < 3 ? 192 : 232;
         auto* button = new goldButton(176 + columns[index % 3] * 36, y, 32, 22,
                                       TROOPS_LEFT + index, "", arrows[index % 3]);
         m_window->AddWidget(button, WINDOW_Z_ORDER_APPEND);
@@ -125,8 +135,8 @@ i16 swapManager::Open(i16 id) {
     message.id = CONTROL_TITLE;
     m_window->BroadcastMessage(message);
     SET_ADVENTURE_BUTTON_FLAGS(message, gAdvManager->m_adventureWindow, WIDGET_COMMAND_CLEAR_FLAGS);
-    m_heroes[SWAP_SIDE_LEFT]->AddAdventureStats(*m_window, 28, 121, 101, true, true);
-    m_heroes[SWAP_SIDE_RIGHT]->AddAdventureStats(*m_window, 319, 121, 101, true, true);
+    m_heroes[SWAP_SIDE_LEFT]->AddAdventureStats(*m_window, 28, 116, 101, true, true);
+    m_heroes[SWAP_SIDE_RIGHT]->AddAdventureStats(*m_window, 319, 116, 101, true, true);
     Update();
     gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
     KBChangeMenu(gAdventureMenu);
@@ -277,6 +287,41 @@ void swapManager::TransferMeetingItems(i16 action) {
     m_window->DrawWindow();
 }
 
+void swapManager::DropMeetingItem(i16 source, i16 modifiers) {
+    if (m_itemType == SWAP_ITEM_NONE || m_selectedSide == SWAP_SIDE_NONE)
+        return;
+
+    const bool army = m_itemType == SWAP_ITEM_ARMY;
+    const i16 leftFirst = army ? CONTROL_LEFT_ARMY_FIRST : CONTROL_LEFT_ARTIFACT_FIRST;
+    const i16 leftLast = army ? CONTROL_LEFT_ARMY_LAST : CONTROL_LEFT_ARTIFACT_LAST;
+    const i16 rightFirst = army ? CONTROL_RIGHT_ARMY_FIRST : CONTROL_RIGHT_ARTIFACT_FIRST;
+    const i16 rightLast = army ? CONTROL_RIGHT_ARMY_LAST : CONTROL_RIGHT_ARTIFACT_LAST;
+    if (source != (m_selectedSide == SWAP_SIDE_LEFT ? leftFirst : rightFirst) + m_selectedSlot)
+        return;
+
+    const i16 left = m_window->HoveredWidget(leftFirst, leftLast);
+    const i16 right = m_window->HoveredWidget(rightFirst, rightLast);
+    if ((left == WIDGET_ID_NONE && right == WIDGET_ID_NONE) || source == left || source == right)
+        return;
+
+    m_targetSide = left != WIDGET_ID_NONE ? SWAP_SIDE_LEFT : SWAP_SIDE_RIGHT;
+    m_targetSlot = m_targetSide == SWAP_SIDE_LEFT ? left - leftFirst : right - rightFirst;
+    if (army) {
+        const i8 selectedType = m_heroes[m_selectedSide]->m_army.m_creatureTypes[m_selectedSlot];
+        const i8 targetType = m_heroes[m_targetSide]->m_army.m_creatureTypes[m_targetSlot];
+        if ((modifiers & MESSAGE_MODIFIER_SHIFT_KEYS) && m_selectedSide != m_targetSide
+            && (targetType == CREATURE_NONE || targetType == selectedType))
+            SplitMons();
+        else
+            SwapMons();
+    } else {
+        SwapArtifacts();
+    }
+    Reset();
+    Update();
+    m_window->DrawWindow();
+}
+
 i16 swapManager::Main(struct tag_message& message) {
     b8 nowCloseRequested = false;
     b8 quickView;
@@ -354,6 +399,8 @@ i16 swapManager::Main(struct tag_message& message) {
                         nowCloseRequested = true;
                     else if (message.id >= TROOPS_LEFT && message.id <= ARTIFACTS_SWAP)
                         TransferMeetingItems(message.id);
+                    else
+                        DropMeetingItem(message.id, message.modifiers);
                     break;
                 case WIDGET_NOTIFY_SELECT:
                     switch (message.id) {
