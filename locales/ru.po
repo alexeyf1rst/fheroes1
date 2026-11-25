@@ -24,6 +24,11 @@ msgid "adventure.dimension_door.failed"
 msgstr "Не удалось перенестись!"
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.hero.movement"
+msgstr "Ход: %d"
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.quick.none"
 msgstr "Нет"
 
@@ -44,14 +49,26 @@ msgid "adventure.quick_info.uncharted"
 msgstr "Неизученная земля"
 
 #: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quickload.confirm"
+msgstr "Загрузить быстрое сохранение? Несохранённый прогресс будет потерян."
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quickload.unavailable"
+msgstr "Нет доступного быстрого сохранения для этого режима."
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quicksave.success"
+msgstr "Быстрое сохранение готово."
+
+#: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
-msgstr "%s\nСейчас: %d\nУ цели: %d"
+msgstr "%s\nСейчас: %d\nПуть: %d\nУ цели: %d"
 
 #: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.later"
-msgstr "Через %d дн.\nСейчас: %d\nПуть: %d"
+msgstr "Через %d дн. (прогноз)"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.route.meet_today"
@@ -60,6 +77,15 @@ msgstr "Встреча сегодня"
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.route.today"
 msgstr "Сегодня"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.tomorrow"
+msgstr "Завтра (прогноз)"
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.unavailable"
+msgstr "Нет пути\nСейчас: %d"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
@@ -1269,6 +1295,11 @@ msgstr "Вы действительно хотите уволить героя?"
 msgid "hero.experience.details"
 msgstr "%d уровень\n\n%d оч. опыта\nСледующий уровень: %d"
 
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.experience.short"
+msgstr "\nОпыт %d"
+
 #: src/SOURCE/ADVMGR.cpp src/SOURCE/HERO.cpp
 #, c-format
 msgid "hero.level.short"
@@ -1476,6 +1507,14 @@ msgid "network.setup.wait"
 msgstr "Ожидаю других игроков для установки игры."
 
 #: src/SOURCE/GAME.cpp
+msgid "overview.income.button"
+msgstr "Доход"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.income.title"
+msgstr "Доход королевства за день"
+
+#: src/SOURCE/GAME.cpp
 msgid "overview.roster.built"
 msgstr "Уже строили"
 
@@ -1494,7 +1533,7 @@ msgstr "Выход"
 #: src/SOURCE/GAME.cpp
 #, c-format
 msgid "overview.roster.hero_status"
-msgstr "%s     Ур. %d     Ход %d     До уровня %d%s"
+msgstr "Ур. %d    Ход %d    До уровня %d%s"
 
 #: src/SOURCE/GAME.cpp
 msgid "overview.roster.heroes"
@@ -1503,6 +1542,10 @@ msgstr "Герои"
 #: src/SOURCE/GAME.cpp
 msgid "overview.roster.no_building"
 msgstr "Нет доступных построек"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.open"
+msgstr "Список"
 
 #: src/SOURCE/GAME.cpp
 #, c-format
@@ -1524,16 +1567,37 @@ msgid "player.vanquished"
 msgstr "%s игрок разгромлен!"
 
 #: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.army.full"
+msgstr "Нет места для этих войск"
+
+#: src/SOURCE/RECRUIT.cpp
 msgid "recruitment.available.label"
 msgstr "Доступно: "
 
 #: src/SOURCE/RECRUIT.cpp
-msgid "recruitment.garrison.full"
-msgstr "Нет места в гарнизоне для этой армии."
+msgid "recruitment.destination.army"
+msgstr "Армия героя"
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.destination.garrison"
+msgstr "Гарнизон"
+
+#: src/SOURCE/RECRUIT.cpp
+#, c-format
+msgid "recruitment.destination.maximum"
+msgstr "%s  -  Можно нанять: %d"
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.stock.empty"
+msgstr "Войск для найма нет"
 
 #: src/SOURCE/RECRUIT.cpp
 msgid "recruitment.title.prefix"
 msgstr "Нанять "
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.treasury.short"
+msgstr "Недостаточно ресурсов"
 
 #: src/SOURCE/Heroes.rc
 msgid "resource.HEROES.ok"
@@ -6727,9 +6791,37 @@ msgstr "Галопом"
 msgid "table.walkSpeedText.4"
 msgstr "Прыжками"
 
+#: src/SOURCE/STRIP.cpp src/SOURCE/TOWNMGR.cpp
+msgid "town.army.garrison"
+msgstr "Гарнизон"
+
+#: src/SOURCE/STRIP.cpp
+msgid "town.army.no_visitor"
+msgstr "Нет гостя"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.transfer_to_hero"
+msgstr "Герою"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.transfer_to_town"
+msgstr "Город"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.visitor"
+msgstr "Герой в городе"
+
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.boat.unavailable"
 msgstr "Нельзя построить еще один корабль."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.blocked"
+msgstr "Условия строительства не выполнены."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.daily_limit"
+msgstr "Сегодня уже строили."
 
 #: src/SOURCE/TOWNMGR.cpp
 #, c-format
@@ -6739,6 +6831,10 @@ msgstr "Гильдия магов, %d этаж"
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.build.requires"
 msgstr "\nНужно:"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.shortage"
+msgstr "Недостаточно ресурсов."
 
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.construction.done_suffix"
@@ -6769,6 +6865,14 @@ msgstr "героя"
 msgid "town.split.prompt"
 msgstr "Перенести %s из армии %s в армию %s?"
 
+#: src/SOURCE/STRIP.cpp
+msgid "town.treasury.title"
+msgstr "Казна"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.confirm_purchase"
+msgstr "Нанять эти войска?"
+
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.well.empty"
 msgstr "Доступно:\nНЕТ\nПрирост:\nН/Д"
@@ -6777,6 +6881,18 @@ msgstr "Доступно:\nНЕТ\nПрирост:\nН/Д"
 #, c-format
 msgid "town.well.growth"
 msgstr "Доступно:\n%d\nПрирост:\n%d/нед."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.none_available"
+msgstr "Сейчас никого нельзя нанять."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.recruit_all"
+msgstr "Нанять всех"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.total_cost"
+msgstr "Общая цена"
 
 #: src/SOURCE/GAME.cpp
 #, c-format

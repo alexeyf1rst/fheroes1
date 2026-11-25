@@ -121,7 +121,8 @@ b32 KeyboardMessageHandler(void* window, u32 message, u32 virtualKey, i32 messag
                 SetFullScreenStatus(0);
                 AppMenuCommand(KBWIN_MENU_HELP);
             }
-            if (event->type == MESSAGE_KEY_DOWN && event->keyCode == INPUT_SCAN_F4)
+            if (event->type == MESSAGE_KEY_DOWN && event->keyCode == INPUT_SCAN_F4
+                && event->modifiers == MESSAGE_MODIFIER_NONE)
                 SetFullScreenStatus(1 - CURRENT_GRAPHICS_CONFIG.fullScreen);
         }
     }

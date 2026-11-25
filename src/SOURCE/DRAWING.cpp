@@ -27,10 +27,15 @@
 #include <string.h>
 
 namespace {
-constexpr i16 kOrderSlotWidth = 40;
-constexpr i16 kOrderHeight = 46;
-constexpr i16 kOrderWidth = COMBAT_TURN_ORDER_CAPACITY * kOrderSlotWidth;
-constexpr i16 kOrderX = (640 - kOrderWidth) / 2;
+constexpr i16 kOrderCardWidth = 35;
+constexpr i16 kOrderGap = 3;
+constexpr i16 kOrderStride = kOrderCardWidth + kOrderGap;
+constexpr i16 kOrderTop = 3;
+constexpr i16 kOrderHeight = 43;
+
+i16 OrderLeft(i8 count) {
+    return (LOGICAL_SCREEN_WIDTH - count * kOrderStride + kOrderGap) / 2;
+}
 }
 
 void combatManager::ShowTurnOrder() {
@@ -62,9 +67,11 @@ void combatManager::ShowTurnOrder() {
     m_currentSide = side;
     m_currentArmyIndex = index;
     m_currentSpeed = speed;
-    if (m_combatWindowOpen) {
-        DrawTurnOrder();
-        gWindowManager->UpdateScreenRegion(kOrderX, 0, kOrderWidth, kOrderHeight);
+    m_turnOrderHover = -1;
+    if (m_combatWindowOpen && !m_quickCombat) {
+        // Redraw the field so cards from a longer queue leave no marks behind.
+        DrawFrame(false);
+        UpdateCombatArea();
     }
 }
 
@@ -73,9 +80,10 @@ void combatManager::UpdateTurnOrderHover() {
     if (m_showTurnOrder && !m_quickCombat && m_combatResult == COMBAT_RESULT_PENDING) {
         i16 x, y;
         gMouseManager->MouseCoords(x, y);
-        if (y >= 0 && y < kOrderHeight && x >= kOrderX
-            && x < kOrderX + m_turnOrderCount * kOrderSlotWidth)
-            hover = (x - kOrderX) / kOrderSlotWidth;
+        const i16 offset = x - OrderLeft(m_turnOrderCount);
+        if (y >= kOrderTop && y < kOrderTop + kOrderHeight && offset >= 0
+            && offset / kOrderStride < m_turnOrderCount && offset % kOrderStride < kOrderCardWidth)
+            hover = offset / kOrderStride;
     }
     if (hover != m_turnOrderHover) {
         m_turnOrderHover = hover;
@@ -95,21 +103,36 @@ void combatManager::DrawTurnOrder() {
     if (!m_showTurnOrder || m_quickCombat || m_combatResult != COMBAT_RESULT_PENDING || !m_turnOrderCount)
         return;
     bitmap* screen = gWindowManager->m_screen;
-    FillBitmapArea(screen, kOrderX, 0, kOrderWidth, kOrderHeight, 0);
+    const i16 left = OrderLeft(m_turnOrderCount);
+    const int shadow = goldButton::MatchGold(10, 10, 11, true);
+    const int stone = goldButton::MatchGold(20, 20, 22, true);
+    const int edge = goldButton::MatchGold(39, 35, 25, true);
+    const int gold = goldButton::MatchGold(63, 50, 20, true);
+    const int friendly = goldButton::MatchGold(39, 47, 57, true);
+    const int opponent = goldButton::MatchGold(51, 27, 23, true);
+    auto* portraits = m_combatIcons[COMBAT_ICON_ORDER];
+    const i16 countHeight = m_smallFont->m_height;
+    const i16 countTop = kOrderTop + kOrderHeight - countHeight - 3;
+    const i16 portraitHeight = countTop - (kOrderTop + 3);
     for (i8 index = 0; index < m_turnOrderCount; ++index) {
         const TurnOrderEntry& entry = m_turnOrder[index];
-        const i16 x = kOrderX + index * kOrderSlotWidth;
-        const i16 color = index == m_turnOrderHover ? ARMY_GOOD_SPELL_OUTLINE_COLOR
-                          : index == 0 ? ARMY_SELECTOR_OUTLINE_COLOR
-                          : entry.side == m_currentSide ? ARMY_GOOD_SPELL_OUTLINE_COLOR
-                                                        : ARMY_BAD_SPELL_OUTLINE_COLOR;
-        FillBitmapArea(screen, x + 1, 1, kOrderSlotWidth - 2, kOrderHeight - 2, color);
-        FillBitmapArea(screen, x + 2, 2, kOrderSlotWidth - 4, kOrderHeight - 4, 0);
-        m_combatIcons[COMBAT_ICON_ORDER]->DrawToBuffer(
-            x + 4, 3, entry.creature, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
+        const i16 x = left + index * kOrderStride;
+        const bool highlighted = index == m_turnOrderHover || index == 0;
+        const int sideColor = entry.side == m_currentSide ? friendly : opponent;
+        FillBitmapArea(screen, x, kOrderTop, kOrderCardWidth, kOrderHeight, shadow);
+        FillBitmapArea(screen, x + 1, kOrderTop + 1, kOrderCardWidth - 2, kOrderHeight - 2,
+                       highlighted ? gold : edge);
+        FillBitmapArea(screen, x + 2, kOrderTop + 2, kOrderCardWidth - 4, kOrderHeight - 4, stone);
+        const auto& frame = portraits->m_frames[entry.creature];
+        portraits->DrawToBuffer(x + (kOrderCardWidth - frame.w) / 2 - frame.x,
+                                kOrderTop + 3 + std::max(0, (portraitHeight - frame.h) / 2) - frame.y,
+                                entry.creature, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
+        FillBitmapArea(screen, x + 2, countTop, kOrderCardWidth - 4, countHeight + 1, shadow);
+        FillBitmapArea(screen, x + 2, countTop, kOrderCardWidth - 4, 1, sideColor);
         char count[12];
         snprintf(count, sizeof(count), "%d", entry.quantity);
-        m_smallFont->DrawBoundedString(count, x + 2, 29, kOrderSlotWidth - 4, kOrderHeight - 30, 1, FONT_ALIGN_CENTER);
+        m_smallFont->DrawBoundedString(count, x + 2, countTop + 1, kOrderCardWidth - 4,
+                                      countHeight, 1, FONT_ALIGN_CENTER);
     }
 }
 

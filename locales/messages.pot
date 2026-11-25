@@ -25,6 +25,11 @@ msgid "adventure.dimension_door.failed"
 msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.hero.movement"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.quick.none"
 msgstr ""
 
@@ -45,6 +50,18 @@ msgid "adventure.quick_info.uncharted"
 msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quickload.confirm"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quickload.unavailable"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quicksave.success"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
 msgstr ""
@@ -60,6 +77,15 @@ msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.route.today"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.tomorrow"
+msgstr ""
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.unavailable"
 msgstr ""
 
 #: src/SOURCE/ADVMGR.cpp
@@ -1270,6 +1296,11 @@ msgstr ""
 msgid "hero.experience.details"
 msgstr ""
 
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.experience.short"
+msgstr ""
+
 #: src/SOURCE/ADVMGR.cpp src/SOURCE/HERO.cpp
 #, c-format
 msgid "hero.level.short"
@@ -1477,6 +1508,14 @@ msgid "network.setup.wait"
 msgstr ""
 
 #: src/SOURCE/GAME.cpp
+msgid "overview.income.button"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.income.title"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
 msgid "overview.roster.built"
 msgstr ""
 
@@ -1506,6 +1545,10 @@ msgid "overview.roster.no_building"
 msgstr ""
 
 #: src/SOURCE/GAME.cpp
+msgid "overview.roster.open"
+msgstr ""
+
+#: src/SOURCE/GAME.cpp
 #, c-format
 msgid "overview.roster.page"
 msgstr ""
@@ -1525,15 +1568,36 @@ msgid "player.vanquished"
 msgstr ""
 
 #: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.army.full"
+msgstr ""
+
+#: src/SOURCE/RECRUIT.cpp
 msgid "recruitment.available.label"
 msgstr ""
 
 #: src/SOURCE/RECRUIT.cpp
-msgid "recruitment.garrison.full"
+msgid "recruitment.destination.army"
+msgstr ""
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.destination.garrison"
+msgstr ""
+
+#: src/SOURCE/RECRUIT.cpp
+#, c-format
+msgid "recruitment.destination.maximum"
+msgstr ""
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.stock.empty"
 msgstr ""
 
 #: src/SOURCE/RECRUIT.cpp
 msgid "recruitment.title.prefix"
+msgstr ""
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.treasury.short"
 msgstr ""
 
 #: src/SOURCE/Heroes.rc
@@ -6728,8 +6792,36 @@ msgstr ""
 msgid "table.walkSpeedText.4"
 msgstr ""
 
+#: src/SOURCE/STRIP.cpp src/SOURCE/TOWNMGR.cpp
+msgid "town.army.garrison"
+msgstr ""
+
+#: src/SOURCE/STRIP.cpp
+msgid "town.army.no_visitor"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.transfer_to_hero"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.transfer_to_town"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.visitor"
+msgstr ""
+
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.boat.unavailable"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.blocked"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.daily_limit"
 msgstr ""
 
 #: src/SOURCE/TOWNMGR.cpp
@@ -6739,6 +6831,10 @@ msgstr ""
 
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.build.requires"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.shortage"
 msgstr ""
 
 #: src/SOURCE/TOWNMGR.cpp
@@ -6770,6 +6866,14 @@ msgstr ""
 msgid "town.split.prompt"
 msgstr ""
 
+#: src/SOURCE/STRIP.cpp
+msgid "town.treasury.title"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.confirm_purchase"
+msgstr ""
+
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.well.empty"
 msgstr ""
@@ -6777,6 +6881,18 @@ msgstr ""
 #: src/SOURCE/TOWNMGR.cpp
 #, c-format
 msgid "town.well.growth"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.none_available"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.recruit_all"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.total_cost"
 msgstr ""
 
 #: src/SOURCE/GAME.cpp

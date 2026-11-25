@@ -1,6 +1,7 @@
 #include <H1/Ints.h>
 
 #include <BASE/baseManager.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/inputManager.h>
@@ -22,6 +23,88 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits>
+
+namespace {
+
+constexpr i16 kRecruitStatus = 0x5100;
+constexpr int kStackCapacity = std::numeric_limits<i16>::max();
+
+i32 RecruitmentRoom(const armyGroup& army, i8 creature) {
+    i32 room = 0;
+    for (int slot = 0; slot < ARMY_GROUP_SLOT_COUNT; ++slot) {
+        if (army.m_creatureTypes[slot] == CREATURE_NONE)
+            room += kStackCapacity;
+        else if (army.m_creatureTypes[slot] == creature)
+            room += kStackCapacity - army.m_creatureCounts[slot];
+    }
+    return room;
+}
+
+i16 RecruitLimit(const recruitUnit& order) {
+    i32 limit = std::min<i32>(*order.m_available, RecruitmentRoom(*order.m_army, order.m_creatureType));
+    if (order.m_goldCost > 0)
+        limit = std::min(limit, gCurPlayerData->m_resources[RESOURCE_GOLD] / order.m_goldCost);
+    if (order.m_resourceType != RESOURCE_NONE && order.m_resourceCost > 0)
+        limit = std::min(limit, gCurPlayerData->m_resources[order.m_resourceType] / order.m_resourceCost);
+    return static_cast<i16>(std::max<i32>(0, limit));
+}
+
+class RecruitStatus : public textWidget {
+public:
+    explicit RecruitStatus(const recruitUnit& order)
+        : textWidget(16, 35, order.m_window->m_winWidth - 32, 14, strdup(""), "smalfont.fnt",
+                     TEXT_WIDGET_PLAIN_COLOR, kRecruitStatus, WIDGET_KIND_TEXT), m_order(order) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+
+    void Draw() override {
+        char status[96];
+        if (*m_order.m_available <= 0) {
+            snprintf(status, sizeof(status), "%s", localization::Tr("recruitment.stock.empty"));
+        } else if (RecruitmentRoom(*m_order.m_army, m_order.m_creatureType) <= 0) {
+            snprintf(status, sizeof(status), "%s", localization::Tr("recruitment.army.full"));
+        } else if (m_order.m_maximum <= 0) {
+            snprintf(status, sizeof(status), "%s", localization::Tr("recruitment.treasury.short"));
+        } else {
+            const char* destination = m_order.m_sourceType == RECRUIT_SOURCE_TOWN
+                ? localization::Tr("recruitment.destination.garrison") : localization::Tr("recruitment.destination.army");
+            snprintf(status, sizeof(status), localization::Tr("recruitment.destination.maximum"), destination,
+                     m_order.m_maximum);
+        }
+        auto* screen = gWindowManager->m_screen;
+        const int x = m_owner->m_posX + m_x;
+        const int y = m_owner->m_posY + m_y;
+        const int color = m_order.m_maximum > 0 ? goldButton::MatchGold(18, 17, 13, true)
+                                                : goldButton::MatchGold(27, 13, 8, true);
+        FillBitmapArea(screen, x, y, m_width, m_height, color);
+        m_font->DrawBoundedString(status, x + 4, y + (m_height - m_font->m_height) / 2, m_width - 8,
+                                  m_font->m_height, 1, FONT_ALIGN_CENTER);
+    }
+
+private:
+    const recruitUnit& m_order;
+};
+
+}
+
+i32 AddRecruits(armyGroup& army, i8 creature, i32 quantity) {
+    const i32 requested = quantity;
+    for (const i8 type : {creature, static_cast<i8>(CREATURE_NONE)}) {
+        for (i8 slot = 0; slot < ARMY_GROUP_SLOT_COUNT && quantity > 0; ++slot) {
+            if (army.m_creatureTypes[slot] != type)
+                continue;
+            const int count = type == CREATURE_NONE ? 0 : army.m_creatureCounts[slot];
+            const int added = std::min<int>(quantity, kStackCapacity - count);
+            if (added <= 0)
+                continue;
+            army.m_creatureTypes[slot] = creature;
+            army.m_creatureCounts[slot] = static_cast<i16>(count + added);
+            quantity -= added;
+        }
+    }
+    return requested - quantity;
+}
 
 void SetupRecruitWin(
     heroWindow* window,
@@ -71,9 +154,6 @@ void SetupRecruitWin(
 }
 
 i16 recruitUnit::Open(i16 priority) {
-    i32 resourceMaximum;
-    i32 goldMaximum;
-
     m_window = new heroWindow(
         RECRUIT_WINDOW_X,
         RECRUIT_WINDOW_Y,
@@ -83,8 +163,6 @@ i16 recruitUnit::Open(i16 priority) {
         MemError();
     m_window->SetConfirmButton(RECRUIT_CONFIRM_CONTROL);
     m_quantity = 0;
-    m_goldTotal = 0;
-    m_resourceTotal = 0;
     SetupRecruitWin(
         m_window,
         m_creatureType,
@@ -100,34 +178,13 @@ i16 recruitUnit::Open(i16 priority) {
         WIDGET_FLAG_UPDATE | WIDGET_FLAG_DIMMED
     );
 
-    goldMaximum = gCurPlayerData->m_resources[RESOURCE_GOLD] / m_goldCost;
-    if (m_resourceType != RESOURCE_NONE) {
-        resourceMaximum = gCurPlayerData->m_resources[m_resourceType] / m_resourceCost;
-        m_maximum = __min(goldMaximum, resourceMaximum);
-    } else
-        m_maximum = goldMaximum;
-    if (m_maximum > *m_available)
-        m_maximum = *m_available;
+    m_maximum = RecruitLimit(*this);
     if (m_sourceType == RECRUIT_SOURCE_TOWN)
         m_quantity = m_maximum;
+    m_window->AddWidget(new RecruitStatus(*this), WINDOW_Z_ORDER_APPEND);
     Update();
     m_recruited = false;
-    m_noRoom = false;
     gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
-    if (m_maximum == 0) {
-        gWindowManager->BroadcastMessage(
-            MESSAGE_WIDGET,
-            WIDGET_COMMAND_CLEAR_FLAGS,
-            RECRUIT_CONFIRM_CONTROL,
-            WIDGET_FLAG_ENABLED
-        );
-        gWindowManager->BroadcastMessage(
-            MESSAGE_WIDGET,
-            WIDGET_COMMAND_SET_FLAGS,
-            RECRUIT_CONFIRM_CONTROL,
-            WIDGET_FLAG_UPDATE | WIDGET_FLAG_DIMMED
-        );
-    }
     KBChangeMenu(gDefaultMenu);
     m_messageMask = BASE_MANAGER_ACCEPT_EXECUTIVE;
     m_priority = priority;
@@ -139,13 +196,6 @@ i16 recruitUnit::Open(i16 priority) {
 void recruitUnit::Close(void) {
     gWindowManager->RemoveWindow(m_window);
     delete m_window;
-    if (m_noRoom)
-        NormalDialog(
-            localization::Tr("recruitment.garrison.full"),
-            NORMAL_DIALOG_TYPE_OK,
-            RECRUIT_NO_ROOM_DIALOG_X,
-            RECRUIT_NO_ROOM_DIALOG_Y
-        );
     gWindowManager->BroadcastMessage(
         MESSAGE_WIDGET,
         WIDGET_COMMAND_CLEAR_FLAGS,
@@ -160,8 +210,7 @@ void recruitUnit::Close(void) {
 }
 
 void recruitUnit::Update(void) {
-    char text[20];
-    tag_message message;
+    tag_message message{};
 
     message.type = MESSAGE_WIDGET;
     message.command = WIDGET_COMMAND_SET_TEXT;
@@ -172,21 +221,25 @@ void recruitUnit::Update(void) {
     sprintf(gText, "%d", m_quantity);
     message.id = RECRUIT_QUANTITY_CONTROL;
     m_window->BroadcastMessage(message);
-    m_goldTotal = m_quantity * m_goldCost;
-    sprintf(gText, "%d", m_goldTotal);
+    sprintf(gText, "%d", m_quantity * m_goldCost);
     message.id = RECRUIT_GOLD_TOTAL_CONTROL;
     m_window->BroadcastMessage(message);
     if (m_resourceType != RESOURCE_NONE) {
-        m_resourceTotal = m_quantity * m_resourceCost;
-        sprintf(gText, "%d", m_resourceTotal);
+        sprintf(gText, "%d", m_quantity * m_resourceCost);
         message.id = RECRUIT_RESOURCE_TOTAL_CONTROL;
         m_window->BroadcastMessage(message);
     }
+    message.id = RECRUIT_CONFIRM_CONTROL;
+    message.command = m_quantity > 0 ? WIDGET_COMMAND_SET_FLAGS : WIDGET_COMMAND_CLEAR_FLAGS;
+    message.value = WIDGET_FLAG_ENABLED;
+    m_window->BroadcastMessage(message);
+    message.command = m_quantity > 0 ? WIDGET_COMMAND_CLEAR_FLAGS : WIDGET_COMMAND_SET_FLAGS;
+    message.value = WIDGET_FLAG_DIMMED;
+    m_window->BroadcastMessage(message);
 }
 
 i16 recruitUnit::Main(struct tag_message& message) {
     b32 done;
-    i32 cost;
     b8 quickView;
 
     if (message.type == MESSAGE_KEY_DOWN) {
@@ -219,9 +272,8 @@ i16 recruitUnit::Main(struct tag_message& message) {
                     case RECRUIT_INCREASE_CONTROL:
                         if (quickView)
                             break;
-                        m_quantity++;
-                        if (m_quantity > m_maximum)
-                            m_quantity = m_maximum;
+                        if (m_quantity < m_maximum)
+                            ++m_quantity;
                         break;
                     case RECRUIT_DECREASE_CONTROL:
                         if (quickView)
@@ -277,20 +329,17 @@ i16 recruitUnit::Main(struct tag_message& message) {
                         m_quantity = 0;
                         done = true;
                         break;
-                    case RECRUIT_CONFIRM_CONTROL:
-                        if (quickView)
+                    case RECRUIT_CONFIRM_CONTROL: {
+                        if (quickView || m_quantity <= 0)
                             break;
-                        if (m_quantity == 0) {
-                            done = true;
-                            goto checkClose;
+                        m_maximum = RecruitLimit(*this);
+                        if (m_quantity > m_maximum) {
+                            m_quantity = m_maximum;
+                            Update();
+                            m_window->MoveWindow(0, 0);
+                            break;
                         }
-                        if (m_army->CanJoin(m_creatureType)) {
-                            m_army->Add(m_creatureType, m_quantity, ARMY_GROUP_EMPTY_SLOT);
-                        } else {
-                            done = true;
-                            m_noRoom = true;
-                            goto checkClose;
-                        }
+                        AddRecruits(*m_army, m_creatureType, m_quantity);
                         gCurPlayerData->m_resources[RESOURCE_GOLD] -= m_quantity * m_goldCost;
                         if (m_resourceType != RESOURCE_NONE)
                             gCurPlayerData->m_resources[m_resourceType] -=
@@ -299,13 +348,13 @@ i16 recruitUnit::Main(struct tag_message& message) {
                         m_recruited = true;
                         done = true;
                         break;
+                    }
                 }
                 break;
             default:
                 break;
         }
 
-    checkClose:
         if (done == true) {
             message.type = MESSAGE_EXECUTIVE;
             message.executiveCommand = EXECUTIVE_COMMAND_RETURN_RESULT;

@@ -3,6 +3,7 @@
 
 #include <BASE/audio.h>
 #include <BASE/font.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/inputManager.h>
@@ -70,6 +71,93 @@ private:
     hero& m_hero;
     bool m_includeLevel;
     bool m_meeting;
+};
+
+class HeroScreenDetails : public textWidget {
+public:
+    HeroScreenDetails(hero& subject, const heroWindow& window)
+        : textWidget(0, 0, 1, 1, strdup(""), "smalfont.fnt",
+                     TEXT_WIDGET_PLAIN_COLOR, WIDGET_ID_NONE, WIDGET_KIND_TEXT), m_hero(subject) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+        for (const widget* item = window.m_widgetListHead; item; item = item->m_next) {
+            if (item->m_id >= HERO_SCREEN_ARMY_SLOT_FIRST
+                && item->m_id < HERO_SCREEN_ARMY_SLOT_FIRST + ARMY_GROUP_SLOT_COUNT)
+                m_armySlots[item->m_id - HERO_SCREEN_ARMY_SLOT_FIRST] = item;
+            if (item->m_id >= HERO_SCREEN_ARTIFACT_FIRST
+                && item->m_id < HERO_SCREEN_ARTIFACT_FIRST + HERO_ARTIFACT_SLOT_COUNT)
+                m_artifactSlots[item->m_id - HERO_SCREEN_ARTIFACT_FIRST] = item;
+        }
+    }
+
+    void Draw() override {
+        auto* screen = gWindowManager->m_screen;
+        const int recess = goldButton::MatchGold(14, 12, 10, true);
+        const int artifactRecess = goldButton::MatchGold(18, 17, 15, true);
+        const int edge = goldButton::MatchGold(31, 23, 13, true);
+        for (int slot = 0; slot < ARMY_GROUP_SLOT_COUNT; ++slot) {
+            const widget* cell = m_armySlots[slot];
+            if (!cell)
+                continue;
+            if (m_hero.m_army.m_creatureTypes[slot] == CREATURE_NONE)
+                DrawEmpty(screen, *cell, recess, edge);
+            else
+                DrawQuantity(screen, *cell, m_hero.m_army.m_creatureCounts[slot], recess, edge);
+        }
+        for (int slot = 0; slot < HERO_ARTIFACT_SLOT_COUNT; ++slot) {
+            if (m_artifactSlots[slot] && m_hero.m_artifacts[slot] == ARTIFACT_NONE)
+                DrawEmpty(screen, *m_artifactSlots[slot], artifactRecess, edge);
+        }
+        if (m_hero.m_owner == gCurPlayer)
+            DrawMovement(screen, recess, edge);
+    }
+
+private:
+    void DrawEmpty(bitmap* screen, const widget& cell, int face, int edge) const {
+        constexpr int inset = 3;
+        const int x = m_owner->m_posX + cell.m_x + inset;
+        const int y = m_owner->m_posY + cell.m_y + inset;
+        const int width = cell.m_width - 2 * inset;
+        const int height = cell.m_height - 2 * inset;
+        if (width < 4 || height < 4)
+            return;
+        FillBitmapArea(screen, x, y, width, height, edge);
+        FillBitmapArea(screen, x + 1, y + 1, width - 2, height - 2, face);
+    }
+
+    void DrawQuantity(bitmap* screen, const widget& cell, int quantity, int face, int edge) const {
+        char text[12];
+        snprintf(text, sizeof(text), "%d", quantity);
+        const int width = m_font->LineWidth(text) + 12;
+        const int height = m_font->m_height + 4;
+        const int x = m_owner->m_posX + cell.m_x + cell.m_width - width - 4;
+        const int y = m_owner->m_posY + cell.m_y + cell.m_height - height - 4;
+        FillBitmapArea(screen, x, y, width, height, edge);
+        FillBitmapArea(screen, x + 1, y + 1, width - 2, height - 2, face);
+        m_font->DrawBoundedString(text, x + 3, y + 2, width - 6, m_font->m_height, 1, FONT_ALIGN_CENTER);
+    }
+
+    void DrawMovement(bitmap* screen, int face, int edge) const {
+        const int x = m_owner->m_posX + 49;
+        const int y = m_owner->m_posY + 166;
+        constexpr int width = 97;
+        constexpr int height = 23;
+        constexpr int barWidth = width - 12;
+        const int current = m_hero.GetMovementPoints();
+        const int maximum = m_hero.CalcMobility() * HERO_MOVEMENT_POINT_SCALE;
+        const int filled = maximum > 0 ? std::min(current, maximum) * barWidth / maximum : 0;
+        FillBitmapArea(screen, x, y, width, height, edge);
+        FillBitmapArea(screen, x + 1, y + 1, width - 2, height - 2, face);
+        char text[40];
+        snprintf(text, sizeof(text), localization::Tr("hero.move_points"), current, maximum);
+        m_font->DrawBoundedString(text, x + 3, y + 3, width - 6, m_font->m_height, 1, FONT_ALIGN_CENTER);
+        FillBitmapArea(screen, x + 6, y + 16, barWidth, 3, edge);
+        if (filled > 0)
+            FillBitmapArea(screen, x + 6, y + 16, filled, 3, goldButton::MatchGold(61, 46, 11, true));
+    }
+
+    hero& m_hero;
+    const widget* m_armySlots[ARMY_GROUP_SLOT_COUNT] = {};
+    const widget* m_artifactSlots[HERO_ARTIFACT_SLOT_COUNT] = {};
 };
 }
 
@@ -303,14 +391,14 @@ b8 hero::HeroView(b8 viewOnly) {
     message.id = HERO_SCREEN_TITLE;
     message.text = gText;
     gHeroScreenWindow->BroadcastMessage(message);
-    if (m_owner == gCurPlayer)
-        AddAdventureStats(*gHeroScreenWindow, 49, 173, 97, false);
     message.command = WIDGET_COMMAND_CLEAR_FLAGS;
     message.value = WIDGET_FLAG_DRAW;
     for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
         message.id = i + HERO_SCREEN_STAT_FIRST;
         gHeroScreenWindow->BroadcastMessage(message);
         message.id = i + HERO_SCREEN_ARMY_SLOT_FIRST;
+        gHeroScreenWindow->BroadcastMessage(message);
+        message.id = i + HERO_SCREEN_ARMY_COUNT_FIRST;
         gHeroScreenWindow->BroadcastMessage(message);
     }
     if (viewOnly || gTownManager->m_castleDialogActive
@@ -373,7 +461,7 @@ b8 hero::HeroView(b8 viewOnly) {
         message.value = WIDGET_FLAG_ENABLED | WIDGET_FLAG_DRAW;
         gHeroScreenWindow->BroadcastMessage(message);
     }
-    sprintf(gText, "\n%d", m_experience);
+    snprintf(gText, 200, localization::Tr("hero.experience.short"), m_experience);
     message.command = WIDGET_COMMAND_SET_TEXT;
     message.id = HERO_SCREEN_EXPERIENCE;
     message.text = gText;
@@ -407,6 +495,7 @@ b8 hero::HeroView(b8 viewOnly) {
             gHeroScreenWindow->BroadcastMessage(message);
         }
     }
+    gHeroScreenWindow->AddWidget(new HeroScreenDetails(*this, *gHeroScreenWindow), WINDOW_Z_ORDER_APPEND);
     RedrawHeroScreen();
     gWindowManager->FadeScreen(WINDOW_FADE_IN, 8, NULL);
     gInfoViewedHero = this;
@@ -475,8 +564,6 @@ void hero::UpdateArmies(void) {
             message.id = i + HERO_SCREEN_ARMY_CREATURE_FIRST;
             message.value = WIDGET_FLAG_DRAW;
             gHeroScreenWindow->BroadcastMessage(message);
-            message.id = i + HERO_SCREEN_ARMY_COUNT_FIRST;
-            gHeroScreenWindow->BroadcastMessage(message);
             message.id = i + HERO_SCREEN_ARMY_SLOT_FIRST;
             gHeroScreenWindow->BroadcastMessage(message);
         } else {
@@ -487,14 +574,6 @@ void hero::UpdateArmies(void) {
             gHeroScreenWindow->BroadcastMessage(message);
             message.id = i + HERO_SCREEN_ARMY_CREATURE_FIRST;
             message.value = m_army.m_creatureTypes[i];
-            gHeroScreenWindow->BroadcastMessage(message);
-            message.command = WIDGET_COMMAND_SET_FLAGS;
-            message.value = WIDGET_FLAG_DRAW;
-            gHeroScreenWindow->BroadcastMessage(message);
-            sprintf(gText, "%d", m_army.m_creatureCounts[i]);
-            message.command = WIDGET_COMMAND_SET_TEXT;
-            message.id = i + HERO_SCREEN_ARMY_COUNT_FIRST;
-            message.text = gText;
             gHeroScreenWindow->BroadcastMessage(message);
             message.command = WIDGET_COMMAND_SET_FLAGS;
             message.value = WIDGET_FLAG_DRAW;

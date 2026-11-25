@@ -24,6 +24,11 @@ msgid "adventure.dimension_door.failed"
 msgstr "Dimension Door failed!!!"
 
 #: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.hero.movement"
+msgstr "Movement: %d"
+
+#: src/SOURCE/ADVMGR.cpp
 msgid "adventure.quick.none"
 msgstr "None"
 
@@ -44,14 +49,26 @@ msgid "adventure.quick_info.uncharted"
 msgstr "Uncharted territory"
 
 #: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quickload.confirm"
+msgstr "Load the quick save? Unsaved progress will be lost."
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quickload.unavailable"
+msgstr "No usable quick save for this game mode."
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.quicksave.success"
+msgstr "Quick save complete."
+
+#: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.cost"
-msgstr "%s\nNow: %d\nAt target: %d"
+msgstr "%s\nNow: %d\nRoute: %d\nAt target: %d"
 
 #: src/SOURCE/ADVMGR.cpp
 #, c-format
 msgid "adventure.route.later"
-msgstr "In %d day(s)\nNow: %d\nRoute: %d"
+msgstr "In %d days (est.)"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.route.meet_today"
@@ -60,6 +77,15 @@ msgstr "Meet today"
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.route.today"
 msgstr "Today"
+
+#: src/SOURCE/ADVMGR.cpp
+msgid "adventure.route.tomorrow"
+msgstr "Tomorrow (est.)"
+
+#: src/SOURCE/ADVMGR.cpp
+#, c-format
+msgid "adventure.route.unavailable"
+msgstr "No route\nNow: %d"
 
 #: src/SOURCE/ADVMGR.cpp
 msgid "adventure.save.success"
@@ -1269,6 +1295,11 @@ msgstr "Are you sure you want to dismiss this Hero?"
 msgid "hero.experience.details"
 msgstr "Level %d\n\nCurrent experience %d\nNext level %d"
 
+#: src/SOURCE/HERO.cpp
+#, c-format
+msgid "hero.experience.short"
+msgstr "\nXP %d"
+
 #: src/SOURCE/ADVMGR.cpp src/SOURCE/HERO.cpp
 #, c-format
 msgid "hero.level.short"
@@ -1476,6 +1507,14 @@ msgid "network.setup.wait"
 msgstr "Waiting for other remote player to set up game."
 
 #: src/SOURCE/GAME.cpp
+msgid "overview.income.button"
+msgstr "Income"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.income.title"
+msgstr "Kingdom income per day"
+
+#: src/SOURCE/GAME.cpp
 msgid "overview.roster.built"
 msgstr "Built today"
 
@@ -1494,7 +1533,7 @@ msgstr "Exit"
 #: src/SOURCE/GAME.cpp
 #, c-format
 msgid "overview.roster.hero_status"
-msgstr "%s     L%d     Move %d     XP to next %d%s"
+msgstr "Level %d    Move %d    XP to next %d%s"
 
 #: src/SOURCE/GAME.cpp
 msgid "overview.roster.heroes"
@@ -1503,6 +1542,10 @@ msgstr "Heroes"
 #: src/SOURCE/GAME.cpp
 msgid "overview.roster.no_building"
 msgstr "No building available"
+
+#: src/SOURCE/GAME.cpp
+msgid "overview.roster.open"
+msgstr "Open list"
 
 #: src/SOURCE/GAME.cpp
 #, c-format
@@ -1524,16 +1567,37 @@ msgid "player.vanquished"
 msgstr "%s player has been vanquished!"
 
 #: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.army.full"
+msgstr "No room for these troops"
+
+#: src/SOURCE/RECRUIT.cpp
 msgid "recruitment.available.label"
 msgstr "Available: "
 
 #: src/SOURCE/RECRUIT.cpp
-msgid "recruitment.garrison.full"
-msgstr "There is no room in the garrison for this army."
+msgid "recruitment.destination.army"
+msgstr "Hero's army"
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.destination.garrison"
+msgstr "Garrison"
+
+#: src/SOURCE/RECRUIT.cpp
+#, c-format
+msgid "recruitment.destination.maximum"
+msgstr "%s  -  Can hire: %d"
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.stock.empty"
+msgstr "No troops available"
 
 #: src/SOURCE/RECRUIT.cpp
 msgid "recruitment.title.prefix"
 msgstr "Recruit"
+
+#: src/SOURCE/RECRUIT.cpp
+msgid "recruitment.treasury.short"
+msgstr "Insufficient resources"
 
 #: src/SOURCE/Heroes.rc
 msgid "resource.HEROES.ok"
@@ -6727,9 +6791,37 @@ msgstr "Gallop"
 msgid "table.walkSpeedText.4"
 msgstr "Jump"
 
+#: src/SOURCE/STRIP.cpp src/SOURCE/TOWNMGR.cpp
+msgid "town.army.garrison"
+msgstr "Garrison"
+
+#: src/SOURCE/STRIP.cpp
+msgid "town.army.no_visitor"
+msgstr "No visitor"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.transfer_to_hero"
+msgstr "Hero"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.transfer_to_town"
+msgstr "Town"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.army.visitor"
+msgstr "Visiting hero"
+
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.boat.unavailable"
 msgstr "Cannot build another boat."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.blocked"
+msgstr "Requirements are not met."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.daily_limit"
+msgstr "Construction already used today."
 
 #: src/SOURCE/TOWNMGR.cpp
 #, c-format
@@ -6739,6 +6831,10 @@ msgstr "Mage Guild, Level %d"
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.build.requires"
 msgstr "\n\nRequires:"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.build.shortage"
+msgstr "Insufficient resources."
 
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.construction.done_suffix"
@@ -6769,6 +6865,14 @@ msgstr "Hero's Army"
 msgid "town.split.prompt"
 msgstr "Move how many %s troops from %s to %s?"
 
+#: src/SOURCE/STRIP.cpp
+msgid "town.treasury.title"
+msgstr "Treasury"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.confirm_purchase"
+msgstr "Recruit these troops?"
+
 #: src/SOURCE/TOWNMGR.cpp
 msgid "town.well.empty"
 msgstr "Available:\nNONE\nGrowth Rate:\nN/A"
@@ -6777,6 +6881,18 @@ msgstr "Available:\nNONE\nGrowth Rate:\nN/A"
 #, c-format
 msgid "town.well.growth"
 msgstr "Available:\n%d\nGrowth Rate:\n%d/week"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.none_available"
+msgstr "No troops can be recruited."
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.recruit_all"
+msgstr "Recruit all"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.well.total_cost"
+msgstr "Total cost"
 
 #: src/SOURCE/GAME.cpp
 #, c-format

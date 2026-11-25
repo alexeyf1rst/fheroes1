@@ -359,7 +359,34 @@ inline void game::WriteWorldMap(RecordWriter& out) {
     }
 }
 
-i16 game::SaveGame(char* filename, b8 generateName) {
+const char* game::QuickSaveFilename() const {
+    return m_campaignType > CAMPAIGN_NONE ? "QCKSLOT.CGM" : "QCKSLOT.GM1";
+}
+
+bool game::CanQuickLoad() {
+    char path[64];
+    snprintf(path, sizeof(path), "%s%s", gGamePath, QuickSaveFilename());
+    RecordReader saved;
+    if (!saved.LoadFile(path))
+        return false;
+
+    // The save layout is fixed. Reject incomplete slots before leaving the map.
+    RecordWriter current;
+    WriteSaveRecord(current);
+    if (saved.Remaining() != current.Size())
+        return false;
+
+    saved.Skip(sizeof(gIAmGreatest) + sizeof(m_difficultyRating) + sizeof(gMonthType)
+               + sizeof(gMonthTypeExtra) + sizeof(gWeekType) + sizeof(gWeekTypeExtra));
+    const i32 campaign = saved.GetI32();
+    const i32 scenario = saved.GetI32();
+    if (m_campaignType <= CAMPAIGN_NONE)
+        return campaign <= CAMPAIGN_NONE;
+    return campaign >= CAMPAIGN_IRONFIST && campaign <= CAMPAIGN_ALAMAR
+        && scenario >= 0 && scenario < CAMPAIGN_SCENARIO_COUNT;
+}
+
+i16 game::SaveGame(const char* filename, b8 generateName, bool updateName) {
     i32 unusedIndex;
     i32 nHuman;
     i32 unusedName;
@@ -391,7 +418,8 @@ i16 game::SaveGame(char* filename, b8 generateName) {
         sprintf(savePath, "%s%s", gDataPath, genName);
     } else {
         sprintf(savePath, "%s%s", gGamePath, genName);
-        if (strnicmp(genName, localization::Tr("save.name.autosave"), SAVE_FILE_BASE_NAME_LENGTH)
+        if (updateName
+            && strnicmp(genName, localization::Tr("save.name.autosave"), SAVE_FILE_BASE_NAME_LENGTH)
             && strnicmp(
                 genName,
                 localization::Tr("save.name.player_exit"),
@@ -479,7 +507,7 @@ void game::WriteSaveRecord(RecordWriter& outFile) {
     outFile.Put(&gMapVisitFlags[0][0], sizeof(gMapVisitFlags));
 }
 
-i16 game::LoadGame(char* filename, b32 origData, b32 remoteGame) {
+i16 game::LoadGame(const char* filename, b32 origData, b32 remoteGame) {
     i32 junk2;
     i32 numHumans;
     i32 ix;
@@ -515,7 +543,7 @@ i16 game::LoadGame(char* filename, b32 origData, b32 remoteGame) {
     theLoadHandle.Get(m_mapDifficulty);
     theLoadHandle.Get(m_mapName, sizeof(m_mapName));
     theLoadHandle.Get(m_saveName, 0x11);
-    strcpy(m_saveName, filename);
+    m_saveName[0x11] = '\0';
     theLoadHandle.Get(m_difficulty);
     theLoadHandle.Get(m_playerCount);
     theLoadHandle.Get(gSavedCurPlayer);
@@ -583,7 +611,7 @@ i16 game::LoadGame(char* filename, b32 origData, b32 remoteGame) {
         theLoadHandle.Get(&m_mapSounds[0][0], sizeof(m_mapSounds));
         theLoadHandle.Get(&m_mapExtra[0][0], sizeof(m_mapExtra));
         theLoadHandle.Get(&gMapVisitFlags[0][0], sizeof(gMapVisitFlags));
-        if (strcmp(filename, "REMOTE.GAM"))
+        if (stricmp(filename, QuickSaveFilename()))
             strcpy(gGame->m_saveName, filename);
     }
     // The player count and the current player index the player tables, and
@@ -1115,6 +1143,8 @@ void game::InitCampaignMap(i32 scenario, i32) {
             m_players[i].m_resources[resourceIdx] =
                 gCampaignScenarios[scenario].resources[i][resourceIdx];
     }
+    // Match the installed campaign: original maps and opponents, Hard allowance for the player.
+    std::copy_n(gStartingResources[DIFFICULTY_HARD], RESOURCE_COUNT, m_players[0].m_resources);
 }
 
 void game::NewMap(char* mapName) {
@@ -2493,6 +2523,7 @@ constexpr i16 kOverviewTowns = 4001;
 constexpr i16 kOverviewPrevious = 4002;
 constexpr i16 kOverviewNext = 4003;
 constexpr i16 kOverviewClose = 4004;
+constexpr i16 kOverviewIncome = 4005;
 constexpr i16 kOverviewFirstRow = 4010;
 constexpr int kOverviewRows = 8;
 constexpr int kOverviewRowHeight = 34;
@@ -2516,12 +2547,17 @@ public:
         const int x = m_owner->m_posX;
         const int y = m_owner->m_posY;
         auto* screen = gWindowManager->m_screen;
-        const int border = goldButton::MatchGold(50, 34, 12, true);
-        const int shade = goldButton::MatchGold(18, 10, 5, true);
-        const int dark = goldButton::MatchGold(28, 17, 9, true);
-        const int light = goldButton::MatchGold(35, 22, 12, true);
-        FillBitmapArea(screen, x, y, m_width, m_height, border);
+        const int border = goldButton::MatchGold(48, 37, 17, true);
+        const int shade = goldButton::MatchGold(13, 14, 16, true);
+        const int dark = goldButton::MatchGold(20, 21, 23, true);
+        const int light = goldButton::MatchGold(25, 26, 28, true);
+        const int highlight = goldButton::MatchGold(62, 49, 21, true);
+        FillBitmapArea(screen, x, y, m_width, m_height, shade);
+        FillBitmapArea(screen, x + 1, y + 1, m_width - 2, m_height - 2, border);
         FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, shade);
+        FillBitmapArea(screen, x + 10, y + 42, m_width - 20, 1, border);
+        FillBitmapArea(screen, x + 10, y + 334, m_width - 20, 1, border);
+        FillBitmapArea(screen, x + (towns ? 111 : 10), y + 9, 101, 29, highlight);
         char label[192];
         snprintf(label, sizeof(label), localization::Tr("overview.roster.page"), page + 1,
                  std::max(1, (Count() + kOverviewRows - 1) / kOverviewRows));
@@ -2553,23 +2589,26 @@ public:
                 }
                 const char* visitor = city.m_occupyingHeroId == TOWN_OCCUPYING_HERO_NONE
                     ? "-" : gGame->GetHero(city.m_occupyingHeroId)->m_name;
-                snprintf(label, sizeof(label), "%s      %s", GetTownName(city.m_id), state);
-                m_font->DrawBoundedString(label, x + 19, top + 3, 493, 12, m_color, FONT_ALIGN_LEFT);
+                m_font->DrawBoundedString(GetTownName(city.m_id), x + 19, top + 3, 161, 12, m_color, FONT_ALIGN_LEFT);
+                snprintf(label, sizeof(label), "%s", state);
+                m_font->DrawBoundedString(label, x + 190, top + 3, 322, 12, m_color, FONT_ALIGN_LEFT);
                 snprintf(label, sizeof(label), localization::Tr("overview.roster.town_status"), recruits, visitor);
             } else {
                 hero& subject = *gGame->GetHero(gCurPlayerData->m_heroIds[index]);
                 const int level = subject.GetLevel(subject.m_experience);
                 const int next = std::max(0, subject.GetExperience(level + 1) - subject.m_experience);
-                snprintf(label, sizeof(label), localization::Tr("overview.roster.hero_status"), subject.m_name,
+                m_font->DrawBoundedString(subject.m_name, x + 19, top + 3, 161, 12, m_color, FONT_ALIGN_LEFT);
+                snprintf(label, sizeof(label), localization::Tr("overview.roster.hero_status"),
                          level, subject.GetMovementPoints(), next, subject.m_eventFlags & HERO_EVENT_WAITING ? " [Z]" : "");
-                m_font->DrawBoundedString(label, x + 19, top + 3, 493, 12, m_color, FONT_ALIGN_LEFT);
+                m_font->DrawBoundedString(label, x + 190, top + 3, 322, 12, m_color, FONT_ALIGN_LEFT);
                 label[0] = 0;
                 size_t used = 0;
                 for (int slot = 0; slot < ARMY_GROUP_SLOT_COUNT; ++slot) {
                     const i8 creature = subject.m_army.m_creatureTypes[slot];
                     if (creature != CREATURE_NONE && used < sizeof(label) - 1) {
                         snprintf(label + used, sizeof(label) - used, "%s%d %s", used ? "    " : "",
-                                 subject.m_army.m_creatureCounts[slot], gArmyNamesPlural[creature]);
+                                 subject.m_army.m_creatureCounts[slot],
+                                 CREATURE_DISPLAY_NAME(creature, subject.m_army.m_creatureCounts[slot]));
                         used = strlen(label);
                     }
                 }
@@ -2621,11 +2660,23 @@ i16 KingdomRosterHandler(tag_message& message) {
 }
 
 i16 OverviewSummaryHandler(tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE) {
+        switch (message.keyCode) {
+            case INPUT_SCAN_H: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, kOverviewHeroes); break;
+            case INPUT_SCAN_T: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, kOverviewTowns); break;
+            case INPUT_SCAN_I: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, kOverviewIncome); break;
+        }
+    }
     if (message.type == MESSAGE_WIDGET && message.command == WIDGET_NOTIFY_DESELECT
-        && !(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
-        && (message.id == kOverviewHeroes || message.id == kOverviewTowns)) {
-        FINISH_DIALOG_MESSAGE(message);
-        return MESSAGE_DISPATCH_FORWARD;
+        && !(message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)) {
+        if (message.id == kOverviewIncome) {
+            gGame->ShowDailyIncome();
+            return MESSAGE_DISPATCH_CONSUME;
+        }
+        if (message.id == kOverviewHeroes || message.id == kOverviewTowns) {
+            FINISH_DIALOG_MESSAGE(message);
+            return MESSAGE_DISPATCH_FORWARD;
+        }
     }
     return TrueFalseDialogHandler(message);
 }
@@ -2881,10 +2932,13 @@ i16 game::Overview(void) {
     if (!baseWin)
         MemError();
     SetWinText(baseWin, WINDOW_TEXT_OVERVIEW);
-    baseWin->AddWidget(new goldButton(273, 64, 98, 25, kOverviewHeroes,
-                                     localization::Tr("overview.roster.heroes")), WINDOW_Z_ORDER_BOTTOM);
-    baseWin->AddWidget(new goldButton(376, 64, 98, 25, kOverviewTowns,
-                                     localization::Tr("overview.roster.towns")), WINDOW_Z_ORDER_BOTTOM);
+    // The red sidebar sits outside the original portrait, castle and mine artwork.
+    baseWin->AddWidget(new goldButton(8, 55, 78, 21, kOverviewHeroes,
+                                     localization::Tr("overview.roster.open")), WINDOW_Z_ORDER_BOTTOM);
+    baseWin->AddWidget(new goldButton(8, 226, 78, 21, kOverviewTowns,
+                                     localization::Tr("overview.roster.open")), WINDOW_Z_ORDER_BOTTOM);
+    baseWin->AddWidget(new goldButton(8, 403, 78, 21, kOverviewIncome,
+                                     localization::Tr("overview.income.button")), WINDOW_Z_ORDER_BOTTOM);
     baseWin->SetConfirmButton(DIALOG_BUTTON_0, true);
     SET_WIDGET_MESSAGE(activeMessage, WIDGET_COMMAND_SET_TEXT, OVERVIEW_DATE);
     sprintf(gText, gOverviewText[0], m_month, m_week, m_day);
@@ -3128,6 +3182,31 @@ i32 game::ComputeDailyGold(i32 player) {
     return dailyGold;
 }
 
+static i32 DailyNonGoldMineYield(i8 resource) {
+    if (resource < RESOURCE_FIRST || resource >= RESOURCE_GOLD)
+        return 0;
+    return resource == RESOURCE_WOOD || resource == RESOURCE_ORE
+        ? DAILY_MINE_YIELD_WOOD_ORE : DAILY_MINE_YIELD_OTHER;
+}
+
+void game::ShowDailyIncome() {
+    i32 income[RESOURCE_COUNT] = {};
+    for (int index = MINE_SLOT_STANDARD_FIRST; index < GAME_MINE_COUNT; ++index) {
+        const auto& mine = m_mines[index];
+        if (mine.owner == gCurPlayer && mine.type >= RESOURCE_FIRST && mine.type < RESOURCE_GOLD)
+            income[mine.type] += DailyNonGoldMineYield(mine.type);
+    }
+    income[RESOURCE_GOLD] = ComputeDailyGold(gCurPlayer);
+
+    std::string text = localization::Tr("overview.income.title");
+    for (int resource = RESOURCE_FIRST; resource < RESOURCE_COUNT; ++resource) {
+        char line[64];
+        snprintf(line, sizeof(line), "\n%s: +%d", gResourceNames[resource], income[resource]);
+        text += line;
+    }
+    NormalDialog(text.data(), NORMAL_DIALOG_TYPE_OK);
+}
+
 void game::PerDay(void) {
     i16 i;
     i16 theProduction;
@@ -3143,14 +3222,8 @@ void game::PerDay(void) {
     for (i = MINE_SLOT_STANDARD_FIRST; i < GAME_MINE_COUNT; i++) {
         if (m_mines[i].owner != GAME_PLAYER_NONE) {
             curResource = m_mines[i].type;
-            theProduction = 0;
-            if (curResource == RESOURCE_ORE)
-                theProduction = DAILY_MINE_YIELD_WOOD_ORE;
-            else if (curResource == RESOURCE_WOOD)
-                theProduction = DAILY_MINE_YIELD_WOOD_ORE;
-            else if (curResource != RESOURCE_GOLD)
-                theProduction = DAILY_MINE_YIELD_OTHER;
-            if (curResource != RESOURCE_GOLD)
+            theProduction = DailyNonGoldMineYield(curResource);
+            if (theProduction)
                 m_players[m_mines[i].owner].m_resources[curResource] += theProduction;
         }
     }

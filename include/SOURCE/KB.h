@@ -33,7 +33,8 @@ enum MainMenuControl {
     MAIN_MENU_QUIT = 4,
     MAIN_MENU_HIGH_SCORES = 5,
     MAIN_MENU_CREDITS = 6,
-    MAIN_MENU_LAST = MAIN_MENU_CREDITS
+    MAIN_MENU_LAST = MAIN_MENU_CREDITS,
+    MAIN_MENU_QUICK_LOAD = 7
 };
 
 extern b8 gInPollSound;

@@ -29,11 +29,8 @@ public:
     armyGroup* m_army;
     i8 m_padding49;
     b8 m_recruited;
-    b8 m_noRoom;
     i16* m_available;
     i16 m_maximum;
-    i32 m_goldTotal;
-    i16 m_resourceTotal;
     i16 m_quantity;
     char m_padding5a[2];
     recruitUnit(
@@ -57,13 +54,12 @@ void SetupRecruitWin(
     i32 available
 );
 void QuickViewRecruit(class town* townData, i8 dwelling);
+i32 AddRecruits(armyGroup& army, i8 creature, i32 quantity);
 enum RecruitConstant {
     RECRUIT_WINDOW_X = 0xa0,
     RECRUIT_WINDOW_Y = 0x10,
     RECRUIT_VIEW_ARMY_X = 0x77,
     RECRUIT_VIEW_ARMY_Y = 0x20,
-    RECRUIT_NO_ROOM_DIALOG_X = 0xb1,
-    RECRUIT_NO_ROOM_DIALOG_Y = 0x64,
     RECRUIT_NAME_SIZE = 20,
     RECRUIT_LABEL_SIZE = 40
 };

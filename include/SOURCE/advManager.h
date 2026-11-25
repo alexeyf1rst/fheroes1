@@ -38,7 +38,6 @@ enum AdventureManagerStorageConstant {
     ADVMGR_BOTTOM_VIEW_BACKGROUND = 0,
     ADVMGR_BOTTOM_VIEW_FOREGROUND = 1,
     ADVMGR_BOTTOM_VIEW_ICON_FIRST = 2,
-    ADVMGR_BOTTOM_VIEW_HERO_TEXT_FIRST = 1,
     ADVMGR_BOTTOM_VIEW_TEXT = 0,
     ADVMGR_BOTTOM_VIEW_COUNT_TEXT = 1,
     ADVMGR_OBJECT_ICON_COUNT = 21,
@@ -187,6 +186,7 @@ public:
     i8* m_routeMap;
     b8 m_routeShown;
     class widget* m_movementPreview = nullptr;
+    bool m_previewShown = false;
     int m_previewCost = -1;
     int m_previewAvailable = 0;
     int m_previewRemaining = 0;
@@ -624,7 +624,6 @@ enum AdventureRouteCell {
 #define ADVMGR_ROUTE_AT(column, row) (*(m_routeMap + (column) + (row) * MAP_CELL_GRID_SIZE))
 
 enum AdventureLocatorFrame {
-    LOCATOR_FRAME_EMPTY_TOWN_FIRST = 4,
     LOCATOR_FRAME_HERO = 8,
     LOCATOR_FRAME_TOWN_FIRST = 12,
     LOCATOR_FRAME_CASTLE_OFFSET = 4
@@ -932,20 +931,6 @@ enum AdventureKingdomViewConstant {
 };
 #define KINGDOM_VIEW_ICON_X (BOTTOM_VIEW_PANEL_X + 1)
 #define KINGDOM_VIEW_TEXT_X_BASE (BOTTOM_VIEW_PANEL_X - 16)
-
-enum AdventureBottomHeroViewConstant {
-    BOTTOM_HERO_LABEL_BYTES = 6,
-    BOTTOM_HERO_SLOT_THIRD = 2,
-    BOTTOM_HERO_SLOT_FOURTH = 3,
-    BOTTOM_HERO_TWO_STACKS = 2,
-    BOTTOM_HERO_FOUR_STACKS = 4,
-    BOTTOM_HERO_ICON_WIDTH = 32,
-    BOTTOM_HERO_ICON_HEIGHT = 28,
-    BOTTOM_HERO_LABEL_HEIGHT = 12,
-    BOTTOM_HERO_CHARACTER_WIDTH = 5,
-    BOTTOM_HERO_FIRST_ICON_ID = 2002,
-    BOTTOM_HERO_FIRST_TEXT_ID = 2101
-};
 
 enum AdventureScrollConstant {
     SCROLL_TICK_INTERVAL = 70,

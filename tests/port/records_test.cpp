@@ -258,20 +258,38 @@ void CheckArchive() {
     if (file == FILE_INVALID)
         return;
     i32 length = FileLength(file);
-    u8 countBytes[2];
-    Expect(FileReadExact(file, countBytes, 2), "archive count");
-    RecordReader countReader(countBytes, 2);
-    i16 count;
-    countReader.Get(count);
-    std::vector<u8> directory(static_cast<size_t>(count) * AGG_ENTRY_RECORD_SIZE);
-    Expect(FileReadExact(file, directory.data(), static_cast<i32>(directory.size())),
-           "archive directory");
+    constexpr i32 directoryStart = sizeof(i16);
+    u8 header[directoryStart + AGG_ENTRY_RECORD_SIZE];
+    const bool hasHeader = FileReadExact(file, header, sizeof(header));
+    Expect(hasHeader, "archive header");
+    if (!hasHeader) {
+        FileClose(file);
+        return;
+    }
+    RecordReader headerReader(header, sizeof(header));
+    const i16 count = headerReader.GetI16();
+    aggEntry first{};
+    ReadAggEntry(headerReader, first);
+    constexpr i32 gogRecordSize = AGG_ENTRY_RECORD_SIZE + sizeof(u32);
+    const bool gog = first.offset == directoryStart + count * gogRecordSize;
+    const i32 directoryLength = count * (gog ? gogRecordSize : AGG_ENTRY_RECORD_SIZE);
+    const bool hasDirectory = count > 0 && directoryLength <= length - directoryStart
+        && FileSeek(file, directoryStart, FILE_SEEK_SET) == directoryStart;
+    Expect(hasDirectory, "archive directory bounds");
+    if (!hasDirectory) {
+        FileClose(file);
+        return;
+    }
+    std::vector<u8> directory(directoryLength);
+    Expect(FileReadExact(file, directory.data(), directoryLength), "archive directory");
     FileClose(file);
     RecordReader in(directory.data(), static_cast<i32>(directory.size()));
     int valid = 0;
     for (i16 i = 0; i < count; i++) {
         aggEntry entry;
         ReadAggEntry(in, entry);
+        if (gog)
+            in.Skip(sizeof(u32));
         valid += entry.offset >= 0 && entry.offset <= length
                  && entry.size <= static_cast<u32>(length - entry.offset);
     }
@@ -308,9 +326,11 @@ int main() {
                     TranscodeSavedGame(in, out, false);
                 });
         }
-        CheckFile("DATA\\REMOTE.GAM", [](RecordReader& in, RecordWriter& out) {
-            TranscodeSavedGame(in, out, false);
-        });
+        if (FileExists("DATA\\REMOTE.GAM")) {
+            CheckFile("DATA\\REMOTE.GAM", [](RecordReader& in, RecordWriter& out) {
+                TranscodeSavedGame(in, out, false);
+            });
+        }
         CheckFile("DATA\\ORIGDATA.BIN", [](RecordReader& in, RecordWriter& out) {
             TranscodeSavedGame(in, out, true);
         });

@@ -30,12 +30,16 @@
 #include <SOURCE/mapObjectTypes.h>
 #include <SOURCE/philAI.h>
 #include <SOURCE/playerData.h>
+#include <SOURCE/recruitUnit.h>
 #include <SOURCE/resourceTypes.h>
 #include <SOURCE/searchArray.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <limits>
+#include <random>
 #include <string>
 
 bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen);
@@ -43,6 +47,16 @@ bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen
 namespace {
 
 int gFailures = 0;
+
+void SetVariable(const char* name, const char* value, bool replace) {
+    if (!replace && std::getenv(name) != nullptr)
+        return;
+#if defined(_WIN32)
+    _putenv_s(name, value);
+#else
+    setenv(name, value, 1);
+#endif
+}
 
 void Expect(bool condition, const char* what) {
     std::printf("%s %s\n", condition ? "ok" : "FAIL", what);
@@ -174,6 +188,27 @@ void LongWords() {
     gResourceManager->Dispose(small);
 }
 
+void RecruitmentStackLimits() {
+    armyGroup army;
+    constexpr i16 stackLimit = std::numeric_limits<i16>::max();
+    army.m_creatureTypes[1] = CREATURE_ARCHER;
+    army.m_creatureCounts[1] = stackLimit - 2;
+    army.m_creatureTypes[3] = CREATURE_ARCHER;
+    army.m_creatureCounts[3] = stackLimit - 1;
+    Expect(AddRecruits(army, CREATURE_ARCHER, 5) == 5, "recruitment distributes troops across compatible slots");
+    Expect(army.m_creatureCounts[1] == stackLimit && army.m_creatureCounts[3] == stackLimit
+           && army.m_creatureTypes[0] == CREATURE_ARCHER && army.m_creatureCounts[0] == 2,
+           "recruitment fills matching stacks before using an empty slot");
+    army.m_creatureTypes[2] = CREATURE_PIKEMAN;
+    army.m_creatureCounts[2] = 1;
+    army.m_creatureTypes[4] = CREATURE_PIKEMAN;
+    army.m_creatureCounts[4] = 1;
+    Expect(AddRecruits(army, CREATURE_PEASANT, 8) == 0, "a full garrison refuses a different creature");
+    Expect(AddRecruits(army, CREATURE_ARCHER, stackLimit) == stackLimit - 2
+           && army.m_creatureCounts[0] == stackLimit,
+           "recruitment reports the quantity that actually fits without overflowing");
+}
+
 }  // namespace
 
 int main() {
@@ -182,18 +217,19 @@ int main() {
         std::printf("skipped: needs HOMM1_DATA\n");
         return 77;
     }
-    setenv("SDL_VIDEODRIVER", "dummy", 0);
+    SetVariable("SDL_VIDEODRIVER", "dummy", false);
     // SIGTERM ends the program at once (timeout, ctest); SDL would turn it into
     // a quit event that a hung loop never reads.
-    setenv("SDL_NO_SIGNAL_HANDLERS", "1", 0);
-    setenv("SDL_AUDIO_DRIVER", "dummy", 0);
-    setenv("HOMM1_NO_DIALOGS", "1", 1);
-    const char* temporary = std::getenv("TMPDIR");
-    std::string config = std::string(temporary != nullptr && temporary[0] != '\0' ? temporary : "/tmp")
-                         + "/homm1-game-regressions-XXXXXX";
-    if (mkdtemp(config.data()) == nullptr)
+    SetVariable("SDL_NO_SIGNAL_HANDLERS", "1", false);
+    SetVariable("SDL_AUDIO_DRIVER", "dummy", false);
+    SetVariable("HOMM1_NO_DIALOGS", "1", true);
+    namespace fs = std::filesystem;
+    std::error_code error;
+    const fs::path config = fs::temp_directory_path(error)
+        / ("homm1-game-regressions-" + std::to_string(std::random_device()()));
+    if (error || !fs::create_directory(config, error))
         return 1;
-    setenv("XDG_CONFIG_HOME", config.c_str(), 1);
+    SetVariable("HOMM1_CONFIG", config.string().c_str(), true);
     if (!KBStartHost(data, "/I0", 0))
         return 1;
     StartGame();
@@ -205,10 +241,11 @@ int main() {
     MapChecks();
     WeekWithAbsentPlayers();
     CampaignCrests();
+    RecruitmentStackLimits();
     LongWords();
-    std::string cleanup = "rm -r '" + config + "'";
-    if (std::system(cleanup.c_str()) != 0)
-        std::fprintf(stderr, "could not remove %s\n", config.c_str());
+    fs::remove_all(config, error);
+    if (error)
+        std::fprintf(stderr, "could not remove %s\n", config.string().c_str());
     std::fflush(stdout);
     std::_Exit(gFailures != 0 ? 1 : 0);
 }

@@ -2,6 +2,7 @@
 
 #include <BASE/border.h>
 #include <BASE/font.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -14,8 +15,84 @@
 #include <SOURCE/KB.h>
 #include <SOURCE/playerData.h>
 #include <SOURCE/strip.h>
+#include <SOURCE/townManager.h>
 
 #include <stdio.h>
+
+namespace {
+
+void DrawTownInset(bitmap* screen, int x, int y, int width, int height, int background) {
+    FillBitmapArea(screen, x, y, width, height, goldButton::MatchGold(31, 23, 13, true));
+    FillBitmapArea(screen, x + 1, y + 1, width - 2, height - 2, background);
+}
+
+class TownTreasury : public textWidget {
+public:
+    TownTreasury(const playerData& player)
+        : textWidget(4, 5, 88, 165, strdup(""), "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR, WIDGET_ID_NONE, WIDGET_KIND_TEXT),
+          m_player(player), m_resources(gResourceManager->GetIcon("resource.icn")) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+
+    ~TownTreasury() override { gResourceManager->Dispose(m_resources); }
+
+    void Draw() override {
+        const int x = m_owner->m_posX + m_x;
+        const int y = m_owner->m_posY + m_y;
+        auto* screen = gWindowManager->m_screen;
+        const int stone = goldButton::MatchGold(13, 12, 10, true);
+        const int rowColor = goldButton::MatchGold(19, 17, 13, true);
+        const int goldColor = goldButton::MatchGold(26, 19, 8, true);
+        DrawTownInset(screen, x, y, m_width, m_height, stone);
+        char title[32];
+        snprintf(title, sizeof(title), "%s", localization::Tr("town.treasury.title"));
+        m_font->DrawBoundedString(title, x + 3, y + 5, m_width - 6, m_font->m_height, 1, FONT_ALIGN_CENTER);
+        constexpr int order[] = {RESOURCE_WOOD, RESOURCE_ORE, RESOURCE_MERCURY, RESOURCE_SULFUR,
+                                 RESOURCE_CRYSTAL, RESOURCE_GEMS, RESOURCE_GOLD};
+        bitmap sprite(BITMAP_TYPE_MEMORY, 80, 40);
+        for (int row = 0; row < RESOURCE_COUNT; ++row) {
+            const int resource = order[row];
+            const bool gold = resource == RESOURCE_GOLD;
+            const int rowY = y + 20 + row * 19 + (gold ? 4 : 0);
+            const int rowHeight = gold ? 23 : 18;
+            FillBitmapArea(screen, x + 3, rowY, m_width - 6, rowHeight, gold ? goldColor : rowColor);
+            DrawResource(sprite, screen, resource, x + 5, rowY, 24, rowHeight, gold ? goldColor : rowColor);
+            char amount[16];
+            snprintf(amount, sizeof(amount), "%d", m_player.m_resources[resource]);
+            m_font->DrawBoundedString(amount, x + 31, rowY + (rowHeight - m_font->m_height) / 2, m_width - 37,
+                                      m_font->m_height, 1, FONT_ALIGN_RIGHT);
+        }
+    }
+
+private:
+    void DrawResource(bitmap& sprite, bitmap* screen, int resource, int x, int y, int width, int height,
+                      int background) const {
+        if (resource >= m_resources->m_frameCount)
+            return;
+        const auto& frame = m_resources->m_frames[resource];
+        if (!frame.w || !frame.h || frame.w > sprite.m_width || frame.h > sprite.m_height)
+            return;
+        FillBitmapArea(&sprite, 0, 0, frame.w, frame.h, background);
+        IconToBitmap(m_resources, &sprite, -frame.x, -frame.y, resource, ICON_DRAW_OFFSET_FULL);
+        const double scale = std::min({1.0, static_cast<double>(width) / frame.w,
+                                       static_cast<double>(height - 4) / frame.h});
+        const int drawWidth = std::max(1, static_cast<int>(frame.w * scale));
+        const int drawHeight = std::max(1, static_cast<int>(frame.h * scale));
+        x += (width - drawWidth) / 2;
+        y += (height - drawHeight) / 2;
+        for (int row = 0; row < drawHeight; ++row) {
+            const u8* source = sprite.m_pixels + (row * frame.h / drawHeight) * sprite.m_width;
+            u8* destination = screen->m_pixels + (y + row) * screen->m_width + x;
+            for (int column = 0; column < drawWidth; ++column)
+                destination[column] = source[column * frame.w / drawWidth];
+        }
+    }
+
+    const playerData& m_player;
+    icon* m_resources;
+};
+
+}
 
 strip::strip(
     i16 x,
@@ -30,7 +107,7 @@ strip::strip(
     m_selectedSlot = STRIP_SLOT_NONE;
     m_x = x;
     m_y = y;
-    m_unusedStripType = stripType;
+    m_stripType = stripType;
     m_portraitIcon = gResourceManager->GetIcon(portraitIconId);
     m_portraitFrame = portraitFrame;
     m_army = troops;
@@ -92,9 +169,6 @@ void strip::Draw(void) {
 }
 
 void strip::DrawIcons(b8 drawWindow) {
-    i16 i;
-    i8 creatureType;
-
     m_portraitIcon->DrawToBuffer(
         m_x + STRIP_PORTRAIT_X,
         m_y + STRIP_CONTENT_Y,
@@ -102,24 +176,28 @@ void strip::DrawIcons(b8 drawWindow) {
         ICON_DRAW_NORMAL,
         ICON_DRAW_OFFSET_FULL
     );
-    if (!m_army) {
-        for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++)
-            m_stripIcon->DrawToBuffer(
-                m_x + i * STRIP_ARMY_X_STEP + STRIP_ARMY_FIRST_X,
-                m_y + STRIP_CONTENT_Y,
-                STRIP_EMPTY_FRAME,
-                ICON_DRAW_NORMAL,
-                ICON_DRAW_OFFSET_FULL
-            );
-        m_window->DrawWindow(drawWindow);
-        return;
+    auto* screen = gWindowManager->m_screen;
+    const int inset = goldButton::MatchGold(12, 10, 7, true);
+    const char* caption = nullptr;
+    if (m_stripType == TOWN_CREST_FRAME_WITHOUT_HERO)
+        caption = localization::Tr("town.army.garrison");
+    else if (!m_army)
+        caption = localization::Tr("town.army.no_visitor");
+    if (caption) {
+        const int y = m_y + 80;
+        DrawTownInset(screen, m_x + 7, y, 98, 19, inset);
+        char label[32];
+        snprintf(label, sizeof(label), "%s", caption);
+        m_font->DrawBoundedString(label, m_x + 10, y + (19 - m_font->m_height) / 2, 92,
+                                  m_font->m_height, 1, FONT_ALIGN_CENTER);
     }
-    for (i = 0; i < ARMY_GROUP_SLOT_COUNT; i++) {
-        creatureType = m_army->m_creatureTypes[i];
+    for (int i = 0; i < ARMY_GROUP_SLOT_COUNT; ++i) {
+        const int creatureType = m_army ? m_army->m_creatureTypes[i] : static_cast<int>(CREATURE_NONE);
+        const int slotX = m_x + i * STRIP_ARMY_X_STEP + STRIP_ARMY_FIRST_X;
+        const int slotY = m_y + STRIP_CONTENT_Y;
         if (creatureType != CREATURE_NONE) {
             m_stripIcon->DrawToBuffer(
-                m_x + i * STRIP_ARMY_X_STEP + STRIP_ARMY_FIRST_X,
-                m_y + STRIP_CONTENT_Y,
+                slotX, slotY,
                 CREATURE_FACTION(creatureType) + STRIP_FACTION_FRAME_OFFSET,
                 ICON_DRAW_NORMAL,
                 ICON_DRAW_OFFSET_FULL
@@ -131,24 +209,29 @@ void strip::DrawIcons(b8 drawWindow) {
                 ICON_DRAW_NORMAL,
                 ICON_DRAW_OFFSET_FULL
             );
-            sprintf(gText, "%d", m_army->m_creatureCounts[i]);
+            char amount[12];
+            snprintf(amount, sizeof(amount), "%d", m_army->m_creatureCounts[i]);
+            const int amountWidth = m_font->LineWidth(amount) + 12;
+            const int amountX = slotX + STRIP_QUANTITY_WIDTH - amountWidth;
+            const int amountY = m_y + STRIP_QUANTITY_Y - 2;
+            DrawTownInset(screen, amountX, amountY, amountWidth, m_font->m_height + 4, inset);
             m_font->DrawBoundedString(
-                gText,
-                m_x + i * STRIP_ARMY_X_STEP + STRIP_ARMY_FIRST_X,
+                amount,
+                amountX + 3,
                 m_y + STRIP_QUANTITY_Y,
-                STRIP_QUANTITY_WIDTH,
-                STRIP_QUANTITY_HEIGHT,
+                amountWidth - 6,
+                m_font->m_height,
                 1,
-                FONT_ALIGN_RIGHT
+                FONT_ALIGN_CENTER
             );
         } else {
             m_stripIcon->DrawToBuffer(
-                m_x + i * STRIP_ARMY_X_STEP + STRIP_ARMY_FIRST_X,
-                m_y + STRIP_CONTENT_Y,
+                slotX, slotY,
                 STRIP_EMPTY_FRAME,
                 ICON_DRAW_NORMAL,
                 ICON_DRAW_OFFSET_FULL
             );
+            DrawTownInset(screen, slotX + 3, slotY + 3, STRIP_ARMY_BORDER_WIDTH - 5, STRIP_BORDER_HEIGHT - 5, inset);
         }
     }
     m_window->DrawWindow(drawWindow);
@@ -168,12 +251,10 @@ void strip::DrawFrame(void) {
 }
 
 bankBox::bankBox(i16 x, i16 y, class playerData* player) {
-    m_player = player;
-    m_x = x;
-    m_y = y;
-    m_window = new heroWindow(m_x, m_y, "bankbox.bin");
+    m_window = new heroWindow(x, y, "bankbox.bin");
     if (!m_window)
         MemError();
+    m_window->AddWidget(new TownTreasury(*player), WINDOW_Z_ORDER_APPEND);
     gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
     Update();
 }
@@ -184,21 +265,5 @@ bankBox::~bankBox() {
 }
 
 void bankBox::Update(void) {
-    char text[12];
-    tag_message message;
-    i16 i;
-
-    message.type = MESSAGE_WIDGET;
-    message.command = WIDGET_COMMAND_SET_TEXT;
-    for (i = RESOURCE_FIRST; i < RESOURCE_NON_GOLD_END; i++) {
-        sprintf(text, "%d", m_player->m_resources[i]);
-        message.id = i + BANK_BOX_RESOURCE_FIRST;
-        message.text = text;
-        m_window->BroadcastMessage(message);
-    }
-    sprintf(text, "%d", m_player->m_resources[RESOURCE_GOLD]);
-    message.id = BANK_BOX_GOLD;
-    message.text = text;
-    m_window->BroadcastMessage(message);
     m_window->DrawWindow();
 }

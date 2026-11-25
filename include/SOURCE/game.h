@@ -304,10 +304,12 @@ public:
     i8 GetNewHeroId(i8 heroClass);
     i8 GetTownId(i8 x, i8 y);
     i8 GetMineId(i8 x, i8 y);
-    i16 SaveGame(char* filename, b8 generateName);
+    i16 SaveGame(const char* filename, b8 generateName, bool updateName = true);
+    const char* QuickSaveFilename() const;
+    bool CanQuickLoad();
     // The saved game's record of the current state (what SaveGame writes).
     void WriteSaveRecord(class RecordWriter& outFile);
-    i16 LoadGame(char* filename, b32 origData, b32 remoteGame);
+    i16 LoadGame(const char* filename, b32 origData, b32 remoteGame);
     void GiveTroopsToNeutralTowns(void);
     void NewMap(char* mapName);
     void RandomizeEvents(void);
@@ -341,6 +343,7 @@ public:
     void TurnOffAIMusic(void);
     void NextPlayer(void);
     i32 ComputeDailyGold(i32 player);
+    void ShowDailyIncome();
     void PerDay(void);
     void PerWeek(void);
     void PerMonth(void);

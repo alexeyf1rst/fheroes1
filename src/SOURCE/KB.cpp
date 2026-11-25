@@ -277,6 +277,7 @@ i32 oldmain(void) {
         // The menu's goto labels stay inside this lifetime. Campaign retries
         // reacquire the same legacy canvas after returning from adventure.
         std::optional<LegacyCanvas> menuCanvas(std::in_place);
+        bool skipCampaignBriefing = false;
         backdropLoaded = false;
     mainMenu:
         PlayMusic(MUSIC_TRACK_MAIN_MENU);
@@ -356,6 +357,11 @@ i32 oldmain(void) {
 
         gMouseManager->ReallyHidePointer();
         switch (command) {
+            case MAIN_MENU_QUICK_LOAD:
+                gGame->LoadGame(gGame->QuickSaveFilename(), false, false);
+                gCampaignChoice = gGame->m_campaignType;
+                skipCampaignBriefing = true;
+                break;
             case MAIN_MENU_LOAD_GAME:
                 if (!gGame->PickLoadGame())
                     goto mainMenu;
@@ -449,7 +455,7 @@ i32 oldmain(void) {
                 goto playScenario;
             }
         playScenario:
-            if (gGame->m_campaignType > 0) {
+            if (gGame->m_campaignType > 0 && !skipCampaignBriefing) {
                 if (!backdropLoaded) {
                     gWindowManager->FadeScreen(WINDOW_FADE_OUT, WINDOW_FADE_SHORT, gPalette);
                     gResourceManager->GetBackdrop("heroes.bmp", gWindowManager->m_screen);
@@ -460,6 +466,7 @@ i32 oldmain(void) {
                 }
                 gGame->ShowCampaignInfo(gGame->m_campaignScenario, false, 0);
             }
+            skipCampaignBriefing = false;
             gGameInitialized = true;
             backdropLoaded = false;
             StopAllAudio();

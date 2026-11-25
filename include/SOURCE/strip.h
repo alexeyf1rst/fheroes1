@@ -34,7 +34,7 @@ public:
     char m_unused04[0x12];
     i16 m_x;
     i16 m_y;
-    i8 m_unusedStripType;
+    i8 m_stripType;
     i8 m_selectedSlot;
     font* m_font;
     icon* m_stripIcon;

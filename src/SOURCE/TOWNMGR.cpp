@@ -827,17 +827,9 @@ i16 townManager::Main(struct tag_message& message) {
                                     m_buildingWindow = new heroWindow(0, 0, "wellwind.bin");
                                     if (m_buildingWindow == NULL)
                                         MemError();
-                                    {
-                                        char* label = static_cast<char*>(malloc(sizeof("MAX [M]")));
-                                        if (!label)
-                                            MemError();
-                                        strcpy(label, "MAX [M]");
-                                        textWidget* maximum = new textWidget(
-                                            16, 243, 80, 18, label, "smalfont.fnt",
-                                            TEXT_WIDGET_PLAIN_COLOR, kWellRecruitMaximum, WIDGET_KIND_TEXT
-                                        );
-                                        m_buildingWindow->AddWidget(maximum, WINDOW_Z_ORDER_APPEND);
-                                    }
+                                    m_buildingWindow->AddWidget(new goldButton(
+                                        13, 240, 82, 19, kWellRecruitMaximum, localization::Tr("town.well.recruit_all")
+                                    ), WINDOW_Z_ORDER_APPEND);
                                     SetupWell(m_buildingWindow);
                                     m_buildingWindow->SetConfirmButton(DIALOG_BUTTON_0, true);
                                     gWindowManager
@@ -1390,16 +1382,14 @@ void townManager::ResetStrips(void) {
 }
 
 void townManager::AddTransferButtons(void) {
-    for (i16 index = 0; index < 2; ++index) {
-        char* label = strdup(index == 0 ? "v Hero" : "^ Guard");
-        if (!label)
-            MemError();
-        auto* button = new textWidget(
-            4 + index * 51, 80, 49, 17, label, "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR,
-            TOWN_TRANSFER_TO_HERO + index, WIDGET_KIND_TEXT
-        );
-        m_garrisonStrip->m_window->AddWidget(button, WINDOW_Z_ORDER_APPEND);
-    }
+    if (!m_heroStrip->m_army)
+        return;
+    m_garrisonStrip->m_window->AddWidget(
+        new goldButton(7, 80, 47, 19, TOWN_TRANSFER_TO_HERO, localization::Tr("town.army.transfer_to_hero")),
+        WINDOW_Z_ORDER_APPEND);
+    m_garrisonStrip->m_window->AddWidget(
+        new goldButton(57, 80, 48, 19, TOWN_TRANSFER_TO_GARRISON, localization::Tr("town.army.transfer_to_town")),
+        WINDOW_Z_ORDER_APPEND);
 }
 
 void townManager::TransferArmies(i16 action) {
@@ -1468,20 +1458,16 @@ i16 townManager::BuyBuild(
     i32 entryWidth;
     i16 buildCosts[RESOURCE_COUNT];
     textWidget* descriptionWidget;
-    i16 unusedStore2;
     i16 resourceX;
     i16 requiredCount;
     i32 dwelling;
     font* lineFont;
-    i16 unusedStore4;
     i32 layoutSize;
     i32 guildRank;
     heroWindow* panel;
     i32 totalWidth;
-    i16 unusedStore6;
     i32 lineTotal;
     i32 panelExtent;
-    i16 unusedStore5;
     i32 i;
     i32 space;
     i16 lowerResources;
@@ -1492,22 +1478,17 @@ i16 townManager::BuyBuild(
     i32 inRow;
     i32 widgetSlot;
     i16 startX;
-    i16 unusedStore3;
-    i16 unusedStore7;
     i32 rowIndex;
     iconWidget* resWidgets[RESOURCE_COUNT];
     i32 typeList[4];
     i16 topResources;
     tag_message msg;
-    char* infoBuffer;
-    i16 unusedStore1;
     textWidget* amountWidgets[RESOURCE_COUNT];
     char* amountText[RESOURCE_COUNT];
 
     guildRank = 0;
     i = 0;
     costCount = 0;
-    infoBuffer = static_cast<char*>(malloc(300));
     for (i = 0; i < RESOURCE_COUNT; i++)
         resourceTypes[i] = (buildCosts[i] = RESOURCE_NONE);
     dwelling = -1;
@@ -1521,41 +1502,18 @@ i16 townManager::BuyBuild(
             guildRank = 0;
         if (guildRank > TOWN_MAGE_GUILD_COST_LEVEL_LAST)
             guildRank = TOWN_MAGE_GUILD_COST_LEVEL_LAST;
-        for (i = 0; i < RESOURCE_COUNT; i++) {
-            if (gMageBuildingCosts[guildRank][i] > 0) {
-                resourceTypes[costCount] = i;
-                buildCosts[costCount] = gMageBuildingCosts[guildRank][i];
-                costCount++;
-            }
-        }
-    } else if (building <= BUILDING_SLOT_STRUCTURE_LAST) {
-        for (i = 0; i < RESOURCE_COUNT; i++) {
-            H1_ASSERT(building >= BUILDING_SLOT_FIRST && building < BUILDING_SLOT_NEUTRAL_COUNT);
-            H1_ASSERT(i >= 0 && i <= 6);
-            if (gNeutralBuildingCosts[building][i] > 0) {
-                resourceTypes[costCount] = i;
-                buildCosts[costCount] = gNeutralBuildingCosts[building][i];
-                costCount++;
-            }
-        }
-    } else {
-        for (i = 0; i < RESOURCE_COUNT; i++) {
-            H1_ASSERT(dwelling >= 0 && dwelling < TOWN_DWELLING_COST_ROWS);
-            H1_ASSERT(i >= 0 && i <= 6);
-            if (gDwellingCosts[dwelling][i] > 0) {
-                resourceTypes[costCount] = i;
-                buildCosts[costCount] = gDwellingCosts[dwelling][i];
-                costCount++;
-            }
-        }
     }
-    unusedStore1 = 80;
-    unusedStore2 = 40;
-    unusedStore3 = 32;
-    unusedStore4 = 286;
-    unusedStore5 = 0;
-    unusedStore6 = 2;
-    unusedStore7 = 3;
+    i32 costs[RESOURCE_COUNT];
+    GetBuildingCost(m_town->m_type, building, costs, guildRank);
+    for (int resource = RESOURCE_FIRST; resource < RESOURCE_COUNT; ++resource) {
+        if (costs[resource] <= 0)
+            continue;
+        resourceTypes[costCount] = resource;
+        buildCosts[costCount] = costs[resource];
+        ++costCount;
+    }
+    const bool canBuild = CanBuild(m_town, building);
+    cannotBuy = cannotBuy || !canBuild || !CanBuy(m_town, building);
     widgetSlot = 0;
     requiredCount = 0;
     topResources = 0;
@@ -1576,10 +1534,16 @@ i16 townManager::BuyBuild(
         topResources = 3;
         lowerResources = 4;
     }
-    if (building <= BUILDING_SLOT_STRUCTURE_LAST)
-        sprintf(infoBuffer, gNeutralBuildingDescriptions[building]);
-    else
-        sprintf(infoBuffer, gDwellingDescriptions[dwelling]);
+    std::string description = dwelling < 0 ? gNeutralBuildingDescriptions[building] : gDwellingDescriptions[dwelling];
+    if (!quickView && cannotBuy) {
+        description += "\n\n";
+        if (BitTest(gGame->m_townBuiltToday, m_town->m_id))
+            description += localization::Tr("town.build.daily_limit");
+        else if (!canBuild)
+            description += localization::Tr("town.build.blocked");
+        else
+            description += localization::Tr("town.build.shortage");
+    }
     if (dwelling >= 0) {
         u16 prerequisiteMask;
         i32 prerequisiteCount = 0;
@@ -1589,25 +1553,20 @@ i16 townManager::BuyBuild(
         for (i = 0; i < BUILDING_SLOT_REQUIREMENT_END; i++) {
             if (prerequisiteMask & (1 << i)) {
                 if (prerequisiteCount == 0)
-                    strcat(infoBuffer, localization::Tr("town.build.requires"));
+                    description += localization::Tr("town.build.requires");
                 prerequisiteCount++;
-                strcat(infoBuffer, "\n");
+                description += "\n";
                 if (i <= BUILDING_SLOT_STRUCTURE_LAST)
-                    strcat(infoBuffer, gNeutralBuildingNames[i]);
+                    description += gNeutralBuildingNames[i];
                 else
-                    strcat(
-                        infoBuffer,
-                        gDwellingNames
-                            [i - BUILDING_SLOT_DWELLING_FIRST
-                             + m_town->m_type
-                                   * TOWN_DWELLINGS_PER_FACTION]
-                    );
+                    description += gDwellingNames[i - BUILDING_SLOT_DWELLING_FIRST
+                                                  + m_town->m_type * TOWN_DWELLINGS_PER_FACTION];
             }
         }
     }
-    strcat(infoBuffer, "\n ");
+    description += "\n ";
     lineFont = gResourceManager->GetFont("bigfont.fnt");
-    lineTotal = lineFont->LineLength(infoBuffer, 0xee);
+    lineTotal = lineFont->LineLength(description.data(), 0xee);
     gResourceManager->Dispose(lineFont);
     originY = 0x97;
     panelExtent = originY;
@@ -1647,7 +1606,7 @@ i16 townManager::BuyBuild(
         originY,
         0xee,
         (lineTotal << 4) + 6,
-        infoBuffer,
+        strdup(description.c_str()),
         "bigfont.fnt",
         TEXT_WIDGET_PLAIN_COLOR,
         WIDGET_ID_NONE,
@@ -1754,7 +1713,7 @@ i16 townManager::BuyBuild(
         }
         panel->SetConfirmButton(DIALOG_BUTTON_2);
         gWindowManager->DoDialog(panel, TrueFalseDialogHandler, false);
-        if (gWindowManager->m_dialogResult == DIALOG_BUTTON_2) {
+        if (!cannotBuy && gWindowManager->m_dialogResult == DIALOG_BUTTON_2) {
             m_purchasedBuilding = building;
             for (i = 0; i < requiredCount; i++)
                 gCurPlayerData->m_resources[resourceTypes[i]] -= buildCosts[i];
@@ -1768,10 +1727,7 @@ i16 townManager::BuyBuild(
             WIDGET_FLAG_UPDATE | WIDGET_FLAG_DIMMED
         );
     delete panel;
-    if (quickView)
-        return 0;
-    else
-        return gWindowManager->m_dialogResult == DIALOG_BUTTON_2;
+    return m_purchasedBuilding != BUILDING_SLOT_NONE;
 }
 
 void townManager::PlayBuildSound() {
@@ -1830,8 +1786,7 @@ void townManager::BuildObj(i16 building) {
     BitSet(gGame->m_townBuiltToday, m_town->m_id);
     UpdateConstructionTitle();
     m_purchasedBuilding = BUILDING_SLOT_NONE;
-    m_bankBox->Update();
-    m_townWindow->DrawWindow();
+    RedrawTownScreen();
     gMouseManager->ReallyShowPointer();
     gWindowManager->BroadcastMessage(
         MESSAGE_WIDGET,
@@ -2014,7 +1969,8 @@ static void RecruitWellMaximum(townManager& manager) {
     i32 remaining[RESOURCE_COUNT];
     i16 bought[BUILDING_SLOT_DWELLING_COUNT] = {};
     std::copy_n(gCurPlayerData->m_resources, RESOURCE_COUNT, remaining);
-    std::string summary;
+    std::string garrisonList;
+    std::string visitorList;
     for (i16 level = BUILDING_SLOT_DWELLING_COUNT - 1; level >= 0; --level) {
         if (!(city.m_buildings & (1 << (BUILDING_SLOT_DWELLING_FIRST + level))))
             continue;
@@ -2026,37 +1982,38 @@ static void RecruitWellMaximum(townManager& manager) {
             if (cost[resource] > 0)
                 quantity = std::min(quantity, remaining[resource] / cost[resource]);
         }
-        for (armyGroup* army : {&garrison, visitorArmy ? &visitor : nullptr}) {
-            if (!army || quantity <= 0)
-                break;
-            for (i8 type : {creature, static_cast<i8>(CREATURE_NONE)}) {
-                for (i8 slot = 0; slot < ARMY_GROUP_SLOT_COUNT && quantity > 0; ++slot) {
-                    if (army->m_creatureTypes[slot] != type)
-                        continue;
-                    const i32 count = type == CREATURE_NONE ? 0 : army->m_creatureCounts[slot];
-                    const i32 add = std::min(quantity, std::numeric_limits<i16>::max() - count);
-                    army->m_creatureTypes[slot] = creature;
-                    army->m_creatureCounts[slot] = static_cast<i16>(count + add);
-                    bought[level] += add;
-                    quantity -= add;
-                }
-            }
-        }
+        quantity = std::max<i32>(0, quantity);
+        const i32 forGarrison = AddRecruits(garrison, creature, quantity);
+        const i32 forVisitor = visitorArmy ? AddRecruits(visitor, creature, quantity - forGarrison) : 0;
+        bought[level] = forGarrison + forVisitor;
         if (bought[level]) {
-            summary += std::to_string(bought[level]) + " " + gArmyNamesPlural[creature] + "\n";
+            if (forGarrison)
+                garrisonList += "\n" + std::to_string(forGarrison) + " " + CREATURE_DISPLAY_NAME(creature, forGarrison);
+            if (forVisitor)
+                visitorList += "\n" + std::to_string(forVisitor) + " " + CREATURE_DISPLAY_NAME(creature, forVisitor);
             for (i16 resource = 0; resource < RESOURCE_COUNT; ++resource)
                 remaining[resource] -= bought[level] * cost[resource];
         }
     }
-    if (summary.empty()) {
-        NormalDialog("No troops can be recruited.", NORMAL_DIALOG_TYPE_OK);
+    if (garrisonList.empty() && visitorList.empty()) {
+        NormalDialog(localization::Tr("town.well.none_available"), NORMAL_DIALOG_TYPE_OK);
         return;
     }
-    summary += "\n";
+    std::string summary = localization::Tr("town.well.confirm_purchase");
+    if (!garrisonList.empty())
+        summary += "\n\n" + std::string(localization::Tr("town.army.garrison")) + garrisonList;
+    if (!visitorList.empty())
+        summary += "\n\n" + std::string(localization::Tr("town.army.visitor")) + visitorList;
+    summary += "\n\n";
+    summary += localization::Tr("town.well.total_cost");
+    bool firstCost = true;
     for (i16 resource = 0; resource < RESOURCE_COUNT; ++resource) {
         const i32 spent = gCurPlayerData->m_resources[resource] - remaining[resource];
-        if (spent > 0)
-            summary += std::to_string(spent) + " " + gResourceNames[resource] + " ";
+        if (spent > 0) {
+            summary += firstCost ? "\n" : ", ";
+            summary += std::to_string(spent) + " " + gResourceNames[resource];
+            firstCost = false;
+        }
     }
     NormalDialog(&summary[0], NORMAL_DIALOG_TYPE_YES_NO);
     if (gWindowManager->m_dialogResult != NORMAL_DIALOG_BUTTON_YES)
@@ -2537,7 +2494,6 @@ b8 townManager::RecruitHero(b8 quickView) {
         );
         if (m_garrisonStrip == NULL)
             MemError();
-        AddTransferButtons();
         delete m_heroStrip;
         sprintf(gText, "port%04d.icn", m_recruitHeroes[m_recruitSlot]->m_portrait);
         m_heroStrip = new strip(
@@ -2552,6 +2508,8 @@ b8 townManager::RecruitHero(b8 quickView) {
         );
         if (m_heroStrip == NULL)
             MemError();
+        AddTransferButtons();
+        m_garrisonStrip->DrawIcons(false);
         m_recruitHeroes[m_recruitSlot]->AddAdventureStats(*m_heroStrip->m_window, 7, 86, 94);
         m_heroStrip->m_window->DrawWindow(0);
         if (m_town->m_buildings & (1 << BUILDING_SLOT_MAGE_GUILD))
@@ -2756,9 +2714,7 @@ i16 CastleHandler(struct tag_message& message) {
                     (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) != MESSAGE_MODIFIER_NONE;
                 switch (message.id) {
                     case BUILDING_SLOT_MAGE_GUILD:
-                        if (!quickViewVal
-                            && (gTownManager->m_town->m_mageGuildLevel == MAGE_GUILD_LEVEL_4
-                                || !(gTownManager->m_buildableBuildings & (1 << message.id))))
+                        if (!quickViewVal && gTownManager->m_town->m_mageGuildLevel == MAGE_GUILD_LEVEL_4)
                             break;
                         else
                             goto buy_building;
@@ -2772,16 +2728,9 @@ i16 CastleHandler(struct tag_message& message) {
                     case BUILDING_SLOT_DWELLING_4:
                     case BUILDING_SLOT_DWELLING_5:
                     case BUILDING_SLOT_DWELLING_6:
-                        if (!quickViewVal
-                            && ((gTownManager->m_town->m_buildings & (1 << message.id))
-                                || !(gTownManager->m_buildableBuildings & (1 << message.id))))
+                        if (!quickViewVal && (gTownManager->m_town->m_buildings & (1 << message.id)))
                             break;
                     buy_building:
-                        for (objNum = 0; objNum < gTownManager->m_townObjectCount; objNum++) {
-                            if (gTownManager->m_townObjects[objNum]->m_buildingId
-                                == message.id)
-                                break;
-                        }
                         result = gTownManager->BuyBuild(
                             message.id,
                             (gTownManager->m_affordableBuildings & (1 << message.id)) == 0,
