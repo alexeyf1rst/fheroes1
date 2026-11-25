@@ -53,8 +53,8 @@ public:
         for (int row = 0; row < RESOURCE_COUNT; ++row) {
             const int resource = order[row];
             const bool gold = resource == RESOURCE_GOLD;
-            const int rowY = y + 20 + row * 19 + (gold ? 4 : 0);
-            const int rowHeight = gold ? 23 : 18;
+            const int rowY = y + 19 + row * 16 + (gold ? 3 : 0);
+            const int rowHeight = gold ? 22 : 15;
             FillBitmapArea(screen, x + 3, rowY, m_width - 6, rowHeight, gold ? goldColor : rowColor);
             DrawResource(sprite, screen, resource, x + 5, rowY, 24, rowHeight, gold ? goldColor : rowColor);
             char amount[16];
@@ -255,6 +255,8 @@ bankBox::bankBox(i16 x, i16 y, class playerData* player) {
     if (!m_window)
         MemError();
     m_window->AddWidget(new TownTreasury(*player), WINDOW_Z_ORDER_APPEND);
+    m_window->AddWidget(new goldButton(8, 149, 80, 18, TOWN_INCOME_CONTROL,
+                                       localization::Tr("town.treasury.income")), WINDOW_Z_ORDER_APPEND);
     gWindowManager->AddWindow(m_window, WINDOW_Z_ORDER_APPEND, true);
     Update();
 }

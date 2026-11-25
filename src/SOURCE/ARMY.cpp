@@ -282,7 +282,7 @@ void army::DrawToBuffer(i16 x, i16 y) {
                     ICON_DRAW_OFFSET_FULL
                 );
             }
-            if (m_animationFrame == 1 && gCombatManager->m_showArmyQuantities) {
+            if (m_animationFrame == 1 && m_quantity > 0 && gCombatManager->m_showArmyQuantities) {
                 if (m_stats.attributes & MONSTER_FLAGS_WIDE) {
                     if (m_facing == ARMY_FACING_RIGHT)
                         countX = x + 75;
@@ -294,21 +294,25 @@ void army::DrawToBuffer(i16 x, i16 y) {
                     else
                         countX = x - 39;
                 }
-                gCombatManager->m_combatIcons[COMBAT_ICON_TEXTBAR]
-                    ->DrawToBuffer(countX, y - 11, 5, ICON_DRAW_NORMAL, ICON_DRAW_OFFSET_FULL);
-                sprintf(countText, "%d", m_quantity);
-                gCombatManager->m_smallFont
-                    ->DrawBoundedString(countText, countX, y - 12, 20, 12, 1, FONT_ALIGN_CENTER);
+                auto* small = gCombatManager->m_smallFont;
+                auto* screen = gWindowManager->m_screen;
+                snprintf(countText, sizeof(countText), "%d", m_quantity);
+                const int badgeWidth = std::max(22, small->LineWidth(countText) + 8);
                 const int healthMode = gConfig.combatHealthBars;
-                if (healthMode != 2 && (m_hitPointsLost > 0 || healthMode == 1)
-                    && m_stats.hitPoints > 0 && countX >= 0 && countX + 20 <= LOGICAL_SCREEN_WIDTH
-                    && y >= 3 && y <= COMBAT_PANEL_TOP) {
+                const bool showHealth = healthMode != 2 && (m_hitPointsLost > 0 || healthMode == 1)
+                    && m_stats.hitPoints > 0;
+                const int badgeHeight = small->m_height + (showHealth ? 6 : 3);
+                const int badgeX = std::clamp<int>(countX + (20 - badgeWidth) / 2, 0, LOGICAL_SCREEN_WIDTH - badgeWidth);
+                const int badgeY = std::clamp<int>(y - small->m_height - 2, 0, COMBAT_PANEL_TOP - badgeHeight);
+                FillBitmapArea(screen, badgeX, badgeY, badgeWidth, badgeHeight, 0);
+                small->DrawBoundedString(countText, badgeX + 3, badgeY + 1, badgeWidth - 6,
+                                         small->m_height, 1, FONT_ALIGN_CENTER);
+                if (showHealth) {
+                    const int barWidth = badgeWidth - 4;
                     const int remaining = std::max(1, m_stats.hitPoints - m_hitPointsLost);
-                    const int length = std::clamp(18 * remaining / m_stats.hitPoints, 1, 18);
-                    auto* screen = gWindowManager->m_screen;
-                    FillBitmapArea(screen, countX, y - 3, 20, 4, 0);
-                    FillBitmapArea(screen, countX + 1, y - 2, 18, 2, ARMY_BAD_SPELL_OUTLINE_COLOR);
-                    FillBitmapArea(screen, countX + 1, y - 2, length, 2, ARMY_GOOD_SPELL_OUTLINE_COLOR);
+                    const int length = std::clamp(barWidth * remaining / m_stats.hitPoints, 1, barWidth);
+                    FillBitmapArea(screen, badgeX + 2, badgeY + badgeHeight - 4, barWidth, 2, ARMY_BAD_SPELL_OUTLINE_COLOR);
+                    FillBitmapArea(screen, badgeX + 2, badgeY + badgeHeight - 4, length, 2, ARMY_GOOD_SPELL_OUTLINE_COLOR);
                 }
             }
             break;
@@ -1516,10 +1520,15 @@ void army::PreviewAttack(const army& target, b32 rangedAttack, i32& minimum, i32
     const i32 defense = rangedAttack ? RangedDefenseModifier(&target) : 0;
     const i32 low = m_damageMode == ARMY_DAMAGE_MAXIMUM ? m_stats.damageMax : m_stats.damageMin;
     const i32 high = m_damageMode == ARMY_DAMAGE_MINIMUM ? m_stats.damageMin : m_stats.damageMax;
-    minimum = ScaleAttackDamage(*this, target, low * m_quantity, rangedAttack, defense, ARMY_LUCK_NONE);
-    maximum = ScaleAttackDamage(*this, target, high * m_quantity, rangedAttack, defense, ARMY_LUCK_NONE);
-    minimum = minimum < 1 ? 1 : (minimum > 32000 ? 32000 : minimum);
-    maximum = maximum < 1 ? 1 : (maximum > 32000 ? 32000 : maximum);
+    const i32 luck = gGame->GetLuck(gCombatManager->m_heroes[m_side], nullptr);
+    minimum = ScaleAttackDamage(*this, target, low * m_quantity, rangedAttack, defense,
+                                luck < -1 ? ARMY_LUCK_BAD : ARMY_LUCK_NONE);
+    maximum = ScaleAttackDamage(*this, target, high * m_quantity, rangedAttack, defense,
+                                luck > 0 ? ARMY_LUCK_GOOD : ARMY_LUCK_NONE);
+    if (m_creatureType == CREATURE_GENIE)
+        maximum = std::max(maximum, ((target.m_quantity + 1) / 2) * target.m_stats.hitPoints);
+    minimum = std::clamp(minimum, 1, 32000);
+    maximum = std::clamp(maximum, 1, 32000);
 }
 
 void army::DamageEnemy(

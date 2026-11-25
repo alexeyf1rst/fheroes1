@@ -9,6 +9,7 @@
 #include <BASE/baseManager.h>
 #include <BASE/executive.h>
 #include <BASE/font.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -63,6 +64,159 @@
 
 i8 gHighScoreType;
 i8 gTerrainCost[FINDPATH_TERRAIN_COUNT][FINDPATH_STEP_COST_COUNT];
+
+namespace {
+enum MenuSetting : i16 {
+    MainMenuSettings = 16000,
+    MenuDisplay,
+    MenuMusic,
+    MenuSound,
+    MenuBattleSpeed,
+    MenuTurnOrder,
+    MenuAutoSave,
+    MenuCloseSettings
+};
+
+constexpr i16 kMenuControls[] = {
+    MAIN_MENU_NEW_GAME, MAIN_MENU_LOAD_GAME, MAIN_MENU_HIGH_SCORES,
+    MAIN_MENU_CREDITS, MainMenuSettings, MAIN_MENU_QUIT
+};
+constexpr int kMenuControlCount = sizeof(kMenuControls) / sizeof(kMenuControls[0]);
+heroWindow* s_mainMenuWindow = nullptr;
+int s_mainMenuFocus = 0;
+heroWindow* s_menuSettingsWindow = nullptr;
+
+class MainMenuButton : public battleGoldButton {
+public:
+    MainMenuButton(i16 x, i16 y, i16 id, const char* label, const heroWindow& window, i16 originalId)
+        : battleGoldButton(x, y, 132, 42, id, label, window, originalId) {}
+
+    void Draw() override {
+        battleGoldButton::Draw();
+        if (m_id == kMenuControls[s_mainMenuFocus]) {
+            const int x = m_owner->m_posX + m_x;
+            const int y = m_owner->m_posY + m_y;
+            const int gold = goldButton::MatchGold(60, 48, 17, true);
+            FillBitmapArea(gWindowManager->m_screen, x - 5, y + 7, 2, m_height - 14, gold);
+            FillBitmapArea(gWindowManager->m_screen, x + m_width + 3, y + 7, 2, m_height - 14, gold);
+        }
+    }
+};
+
+void PrepareMainMenu(heroWindow& window) {
+    const char* labels[] = {
+        localization::Tr("startup.menu.new_game"), localization::Tr("startup.menu.load_game"),
+        localization::Tr("startup.menu.scores"), localization::Tr("startup.menu.credits"),
+        localization::Tr("startup.menu.settings"), localization::Tr("startup.menu.quit")
+    };
+    constexpr i16 rows[] = {44, 107, 166, 221, 273, 324};
+    for (int row = 0; row < kMenuControlCount; ++row) {
+        const i16 id = kMenuControls[row];
+        auto* button = new MainMenuButton(31, rows[row], id, labels[row], window,
+                                          id == MainMenuSettings ? static_cast<i16>(MAIN_MENU_QUIT) : id);
+        tag_message hide{};
+        SET_WIDGET_MESSAGE(hide, WIDGET_COMMAND_CLEAR_FLAGS, id);
+        hide.value = WIDGET_FLAG_ENABLED | WIDGET_FLAG_DRAW | WIDGET_FLAG_SELECTED;
+        window.BroadcastMessage(hide);
+        window.AddWidget(button, WINDOW_Z_ORDER_APPEND);
+    }
+}
+
+class MenuSettingsBackdrop : public widget {
+public:
+    MenuSettingsBackdrop() : widget(0, 0, 460, 294, WIDGET_ID_NONE, WIDGET_KIND_NONE) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+    void Draw() override {
+        const int x = m_owner->m_posX;
+        const int y = m_owner->m_posY;
+        auto* screen = gWindowManager->m_screen;
+        const int edge = goldButton::MatchGold(49, 34, 12, true);
+        FillBitmapArea(screen, x, y, m_width, m_height, edge);
+        FillBitmapArea(screen, x + 2, y + 2, m_width - 4, m_height - 4, goldButton::MatchGold(9, 8, 7, true));
+        FillBitmapArea(screen, x + 5, y + 5, m_width - 10, m_height - 10, goldButton::MatchGold(18, 17, 15, true));
+        FillBitmapArea(screen, x + 16, y + 39, m_width - 32, 1, edge);
+        FillBitmapArea(screen, x + 16, y + 232, m_width - 32, 1, edge);
+    }
+    i16 Main(tag_message& message) override { return widget::Main(message); }
+};
+
+void SetMenuSetting(i16 id, const char* format, const char* value) {
+    char label[96];
+    snprintf(label, sizeof(label), format, value);
+    tag_message message{};
+    SET_WIDGET_MESSAGE(message, WIDGET_COMMAND_SET_TEXT, id);
+    message.text = label;
+    s_menuSettingsWindow->BroadcastMessage(message);
+}
+
+void RefreshMenuSettings() {
+    const char* on = localization::Tr("startup.settings.on");
+    const char* off = localization::Tr("startup.settings.off");
+    SetMenuSetting(MenuMusic, localization::Tr("startup.settings.music"), gConfig.musicVolume ? on : off);
+    SetMenuSetting(MenuSound, localization::Tr("startup.settings.effects"), gConfig.soundVolume ? on : off);
+    SetMenuSetting(MenuTurnOrder, localization::Tr("startup.settings.order"), gConfig.showCombatOrder ? on : off);
+    SetMenuSetting(MenuAutoSave, localization::Tr("startup.settings.autosave"), gConfig.autosave ? on : off);
+    char speed[8];
+    snprintf(speed, sizeof(speed), "%dx", std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED));
+    SetMenuSetting(MenuBattleSpeed, localization::Tr("startup.settings.speed"), speed);
+}
+
+i16 MenuSettingsHandler(tag_message& message) {
+    if (message.type == MESSAGE_KEY_DOWN && (message.keyCode == INPUT_SCAN_ESCAPE || message.keyCode == INPUT_SCAN_ENTER))
+        SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MenuCloseSettings);
+    if (message.type != MESSAGE_WIDGET || message.command != WIDGET_NOTIFY_DESELECT
+        || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
+        return MESSAGE_DISPATCH_CONTINUE;
+    switch (message.id) {
+        case MenuDisplay: AppMenuCommand(KBWIN_MENU_DISPLAY_SETTINGS); break;
+        case MenuMusic:
+            gConfig.musicVolume = gConfig.musicVolume ? SOUND_VOLUME_OFF : SOUND_VOLUME_LAST;
+            SetMusicVolume(gConfig.musicVolume);
+            break;
+        case MenuSound:
+            gConfig.soundVolume = gConfig.soundVolume ? SOUND_VOLUME_OFF : SOUND_VOLUME_LAST;
+            SetEffectsVolume(gConfig.soundVolume);
+            break;
+        case MenuBattleSpeed:
+            gConfig.combatAnimationSpeed = std::clamp(gConfig.combatAnimationSpeed, 1, COMBAT_MAX_ANIMATION_SPEED)
+                                           % COMBAT_MAX_ANIMATION_SPEED + 1;
+            break;
+        case MenuTurnOrder: gConfig.showCombatOrder = !gConfig.showCombatOrder; break;
+        case MenuAutoSave: gConfig.autosave = !gConfig.autosave; break;
+        case MenuCloseSettings:
+            FINISH_DIALOG_MESSAGE(message);
+            return MESSAGE_DISPATCH_FORWARD;
+        default: return MESSAGE_DISPATCH_CONTINUE;
+    }
+    WritePrefs();
+    RefreshMenuSettings();
+    s_menuSettingsWindow->DrawWindow();
+    return MESSAGE_DISPATCH_CONSUME;
+}
+
+void ShowMenuSettings() {
+    heroWindow window((LOGICAL_SCREEN_WIDTH - 460) / 2, (LOGICAL_SCREEN_HEIGHT - 294) / 2,
+                      460, 294, WINDOW_FLAG_SAVE_BACKGROUND | WINDOW_FLAG_OWNS_WIDGETS);
+    window.AddWidget(new MenuSettingsBackdrop(), WINDOW_Z_ORDER_BOTTOM);
+    window.AddWidget(new textWidget(12, 13, 436, 20, strdup(localization::Tr("startup.menu.settings")),
+                                   "bigfont.fnt", TEXT_WIDGET_PLAIN_COLOR, WIDGET_ID_NONE, WIDGET_KIND_TEXT),
+                     WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(24, 53, 412, 32, MenuDisplay, localization::Tr("menu.display.settings")),
+                     WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(24, 99, 202, 32, MenuMusic, ""), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(234, 99, 202, 32, MenuSound, ""), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(24, 143, 202, 32, MenuBattleSpeed, ""), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(234, 143, 202, 32, MenuTurnOrder, ""), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(24, 187, 202, 32, MenuAutoSave, ""), WINDOW_Z_ORDER_APPEND);
+    window.AddWidget(new goldButton(167, 246, 126, 30, MenuCloseSettings, localization::Tr("menu.display.close")),
+                     WINDOW_Z_ORDER_APPEND);
+    s_menuSettingsWindow = &window;
+    RefreshMenuSettings();
+    gWindowManager->DoDialog(&window, MenuSettingsHandler, false);
+    s_menuSettingsWindow = nullptr;
+}
+}
 
 void PollSound() {
     if (gTimers[GLOBAL_POLL_SOUND_TIMER_SLOT] > KBTickCount())
@@ -345,8 +499,11 @@ i32 oldmain(void) {
                 if (!mainMenuWindow)
                     MemError();
                 gInSetupDialog = true;
-                mainMenuWindow->SetConfirmButton(MAIN_MENU_NEW_GAME, true);
+                s_mainMenuFocus = 0;
+                PrepareMainMenu(*mainMenuWindow);
+                s_mainMenuWindow = mainMenuWindow;
                 gWindowManager->DoDialog(mainMenuWindow, InitMenuHandler, false);
+                s_mainMenuWindow = nullptr;
                 delete mainMenuWindow;
                 command = gWindowManager->m_dialogResult;
                 gInSetupDialog = false;
@@ -639,12 +796,24 @@ i16 InitMenuHandler(tag_message& message) {
     i32 helpIndex;
 
     PollSound();
+    if (message.type == MESSAGE_KEY_DOWN && s_mainMenuWindow) {
+        const int step = message.keyCode == INPUT_SCAN_NUMPAD_8 ? -1
+            : message.keyCode == INPUT_SCAN_NUMPAD_2 ? 1 : 0;
+        if (step && (message.modifiers & MESSAGE_MODIFIER_ARROW)) {
+            s_mainMenuFocus = (s_mainMenuFocus + step + kMenuControlCount) % kMenuControlCount;
+            s_mainMenuWindow->DrawWindow();
+            return MESSAGE_DISPATCH_CONSUME;
+        }
+        if (message.keyCode == INPUT_SCAN_ENTER && message.modifiers == MESSAGE_MODIFIER_NONE)
+            SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, kMenuControls[s_mainMenuFocus]);
+    }
     if (message.type == MESSAGE_KEY_DOWN && message.modifiers == MESSAGE_MODIFIER_NONE) {
         switch (message.keyCode) {
             case INPUT_SCAN_N: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_NEW_GAME); break;
             case INPUT_SCAN_L: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_LOAD_GAME); break;
             case INPUT_SCAN_H: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_HIGH_SCORES); break;
             case INPUT_SCAN_C: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_CREDITS); break;
+            case INPUT_SCAN_S: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MainMenuSettings); break;
             case INPUT_SCAN_Q: SET_WIDGET_MESSAGE(message, WIDGET_NOTIFY_DESELECT, MAIN_MENU_QUIT); break;
         }
     }
@@ -673,7 +842,22 @@ i16 InitMenuHandler(tag_message& message) {
         }
     } else if (message.type == MESSAGE_WIDGET) {
         switch (message.command) {
+            case WIDGET_NOTIFY_SELECT:
+                if (s_mainMenuWindow) {
+                    for (int row = 0; row < kMenuControlCount; ++row) {
+                        if (message.id == kMenuControls[row]) {
+                            s_mainMenuFocus = row;
+                            s_mainMenuWindow->DrawWindow();
+                            break;
+                        }
+                    }
+                }
+                break;
             case WIDGET_NOTIFY_DESELECT:
+                if (message.id == MainMenuSettings) {
+                    ShowMenuSettings();
+                    return MESSAGE_DISPATCH_CONSUME;
+                }
                 if (message.id > 0 && message.id <= MAIN_MENU_LAST)
                     handled = true;
                 break;

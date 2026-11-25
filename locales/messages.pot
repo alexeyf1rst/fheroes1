@@ -245,6 +245,11 @@ msgstr ""
 msgid "combat.artifact.captured"
 msgstr ""
 
+#: src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.attack.preview"
+msgstr ""
+
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.auto.confirm"
 msgstr ""
@@ -320,6 +325,10 @@ msgstr ""
 #: src/SOURCE/ARMY.cpp
 #, c-format
 msgid "combat.genie.half_army.buka"
+msgstr ""
+
+#: src/SOURCE/DRAWING.cpp
+msgid "combat.history.empty"
 msgstr ""
 
 #: src/SOURCE/DRAWING.cpp
@@ -447,6 +456,27 @@ msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.wounded"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.active"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.attacker"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.defender"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+#, c-format
+msgid "combat.order.hint"
+msgstr ""
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.waiting"
 msgstr ""
 
 #: src/SOURCE/COMMAND.cpp
@@ -1260,6 +1290,28 @@ msgid "file.players.label"
 msgstr ""
 
 #: src/SOURCE/REQUEST.cpp
+#, c-format
+msgid "file.preview.campaign"
+msgstr ""
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.empty"
+msgstr ""
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.invalid"
+msgstr ""
+
+#: src/SOURCE/REQUEST.cpp
+#, c-format
+msgid "file.preview.scenario"
+msgstr ""
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.select"
+msgstr ""
+
+#: src/SOURCE/REQUEST.cpp
 msgid "file.save.label"
 msgstr ""
 
@@ -1345,7 +1397,7 @@ msgstr ""
 msgid "hero.waiting.badge"
 msgstr ""
 
-#: src/PORT/SOURCE/kbwin.cpp
+#: src/PORT/SOURCE/kbwin.cpp src/SOURCE/KB.cpp
 msgid "menu.display.close"
 msgstr ""
 
@@ -1377,7 +1429,7 @@ msgstr ""
 msgid "menu.display.scaling"
 msgstr ""
 
-#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp src/SOURCE/KB.cpp
 msgid "menu.display.settings"
 msgstr ""
 
@@ -2508,6 +2560,10 @@ msgid "spell.storm.damage"
 msgstr ""
 
 #: src/SOURCE/SPELLS.cpp
+msgid "spell.target.immune"
+msgstr ""
+
+#: src/SOURCE/SPELLS.cpp
 msgid "spell.target.select"
 msgstr ""
 
@@ -2573,12 +2629,69 @@ msgstr ""
 msgid "startup.manager.failed"
 msgstr ""
 
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.credits"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.load_game"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.new_game"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.quit"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.scores"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.settings"
+msgstr ""
+
 #: src/BASE/EXEC.cpp
 msgid "startup.mouse.failed"
 msgstr ""
 
 #: src/BASE/EXEC.cpp
 msgid "startup.resources.failed"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.autosave"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.effects"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.music"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.settings.off"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+msgid "startup.settings.on"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.order"
+msgstr ""
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.speed"
 msgstr ""
 
 #: src/BASE/EXEC.cpp
@@ -6864,6 +6977,14 @@ msgstr ""
 #: src/SOURCE/TOWNMGR.cpp
 #, c-format
 msgid "town.split.prompt"
+msgstr ""
+
+#: src/SOURCE/STRIP.cpp
+msgid "town.treasury.income"
+msgstr ""
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.treasury.income_help"
 msgstr ""
 
 #: src/SOURCE/STRIP.cpp

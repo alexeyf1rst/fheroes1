@@ -449,11 +449,45 @@ combatManager::GetPointer(i32 command) {
         return static_cast<i32>(command);
 }
 
+void combatManager::UpdateFieldHover(i16 x, i16 y) {
+    const i8 card = TurnOrderCardAt(x, y);
+    if (card >= 0) {
+        const auto& entry = m_turnOrder[card];
+        const char* side = entry.side == COMBAT_ATTACKER_SIDE
+            ? localization::Tr("combat.order.attacker") : localization::Tr("combat.order.defender");
+        const char* turn = card == 0 ? localization::Tr("combat.order.active")
+                                      : localization::Tr("combat.order.waiting");
+        char hint[160];
+        snprintf(hint, sizeof(hint), localization::Tr("combat.order.hint"), side, entry.quantity,
+                 CREATURE_DISPLAY_NAME(entry.creature, entry.quantity), turn);
+        m_selectedHex = ARMY_HEX_INVALID;
+        m_previousCommand = COMBAT_INVALID_COMMAND;
+        m_currentCommand = COMBAT_MESSAGE_COMMAND_DEFAULT;
+        gMouseManager->SetPointer(COMBAT_POINTER_DEFAULT);
+        CombatMessage(hint, true);
+        return;
+    }
+    const i16 hex = GetGridIndex(x, y);
+    if (hex != m_selectedHex || hex == ARMY_HEX_INVALID) {
+        m_selectedHex = hex;
+        m_previousCommand = COMBAT_INVALID_COMMAND;
+        m_currentCommand = GetCommand(hex);
+        m_mouseDirection = COMBAT_DIRECTION_INVALID;
+        if (m_currentCommand == COMBAT_MESSAGE_COMMAND_ATTACK)
+            SetCombatDirections(hex);
+        else
+            gMouseManager->SetPointer(GetPointer(m_currentCommand));
+    }
+    if (m_currentCommand == COMBAT_MESSAGE_COMMAND_ATTACK)
+        CheckSetMouseDirection(x, y, hex);
+    if (m_currentCommand != m_previousCommand) {
+        m_previousCommand = m_currentCommand;
+        CombatMessage(m_currentCommand);
+    }
+}
+
 i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
-    i16 mouseX = message.x;
-    i16 mouseY = message.y;
-    i8 unused = 0;
-    i16 hoverGridIndex;
+    i16 mouseX, mouseY;
 
     if (!(message.type & m_messageTypeMask))
         return MESSAGE_DISPATCH_CONTINUE;
@@ -466,24 +500,7 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                     switch (message.id) {
                         case COMBAT_CONTROL_FIELD:
                             gMouseManager->MouseCoords(mouseX, mouseY);
-                            hoverGridIndex = GetGridIndex(mouseX, mouseY);
-                            if (hoverGridIndex != m_selectedHex
-                                || hoverGridIndex == ARMY_HEX_INVALID) {
-                                m_selectedHex = hoverGridIndex;
-                                m_previousCommand = COMBAT_INVALID_COMMAND;
-                                m_currentCommand = GetCommand(m_selectedHex);
-                                m_mouseDirection = COMBAT_DIRECTION_INVALID;
-                                if (m_currentCommand == COMBAT_MESSAGE_COMMAND_ATTACK) {
-                                    SetCombatDirections(hoverGridIndex);
-                                    CheckSetMouseDirection(mouseX, mouseY, hoverGridIndex);
-                                } else
-                                    gMouseManager->SetPointer(GetPointer(m_currentCommand));
-                            } else if (m_currentCommand == COMBAT_MESSAGE_COMMAND_ATTACK)
-                                CheckSetMouseDirection(mouseX, mouseY, hoverGridIndex);
-                            if (m_currentCommand != m_previousCommand) {
-                                m_previousCommand = m_currentCommand;
-                                CombatMessage(m_currentCommand);
-                            }
+                            UpdateFieldHover(mouseX, mouseY);
                             break;
                         default:
                             gMouseManager->MouseCoords(mouseX, mouseY);
@@ -500,6 +517,18 @@ i32 combatManager::ProcessCombatMsg(struct tag_message& message) {
                     }
                     break;
                 case WIDGET_NOTIFY_SELECT:
+                    if (message.id == COMBAT_CONTROL_FIELD) {
+                        const i8 card = TurnOrderCardAt(message.mouseX, message.mouseY);
+                        if (card >= 0) {
+                            if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON) {
+                                const auto& entry = m_turnOrder[card];
+                                ViewArmy(&m_armies[entry.side][entry.armyIndex], entry.side, true);
+                                ResetMouse();
+                            }
+                            break;
+                        }
+                        UpdateFieldHover(message.mouseX, message.mouseY);
+                    }
                     if (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON)
                         RightClick(m_selectedHex);
                     else {

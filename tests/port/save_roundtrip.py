@@ -6,7 +6,7 @@
 Needs $HOMM1_DATA (the game folder); without it the test is
 skipped (exit 77). The game folder is copied to a temporary folder first.
 A script of clicks (HOMM1_INPUT_REPLAY) opens the load screen, loads
-GAMES\\________.GM1, opens the file options and saves over it. The new file
+a standard saved game, opens the file options and saves over it. The new file
 must equal the shipped one byte for byte except the 17-byte save-name field
 (offset 207), which holds the name of the file the game saved to.
 """
@@ -19,7 +19,8 @@ from pathlib import Path
 
 NAME_OFFSET = 207
 NAME_SIZE = 0x11
-SAVE = "________.GM1"
+SHIPPED_SAVE = "________.GM1"
+ROUNDTRIP_SAVE = "ROUNDTRP.GM1"
 
 REPLAY = """\
 3000 click 497 170
@@ -50,13 +51,24 @@ def main() -> int:
         root = Path(scratch) / "game"
         shutil.copytree(data, root, ignore=shutil.ignore_patterns("*.exe", "*.EXE", "*.dll", "*.DLL"))
         games = find(root, "GAMES")
-        original = (games / SAVE).read_bytes()
+        candidates = sorted(entry for entry in games.iterdir()
+                            if entry.is_file() and entry.suffix.upper() == ".GM1") if games else []
+        if not candidates:
+            print("skipped: needs a standard saved game (.GM1) under HOMM1_DATA/GAMES")
+            return 77
+        fixture = find(games, SHIPPED_SAVE) or candidates[0]
+        original = fixture.read_bytes()
+        for entry in candidates:
+            entry.unlink()
+        save = games / ROUNDTRIP_SAVE
+        save.write_bytes(original)
         replay = Path(scratch) / "roundtrip.replay"
         replay.write_text(REPLAY)
         environment = dict(os.environ, HOMM1_DATA=str(root), HOMM1_INPUT_REPLAY=str(replay),
                            HOMM1_NO_DIALOGS="1", SDL_AUDIO_DRIVER="dummy",
-                           SDL_VIDEODRIVER="dummy",
+                           SDL_VIDEO_DRIVER="dummy", HOMM1_CONFIG=str(Path(scratch) / "config"),
                            XDG_CONFIG_HOME=str(Path(scratch) / "config"))
+        before = save.stat().st_mtime_ns
         result = subprocess.run([str(binary), "/I0"],
                                 env=environment, cwd=scratch, timeout=300,
                                 capture_output=True, text=True)
@@ -64,7 +76,11 @@ def main() -> int:
             print(result.stdout, result.stderr)
             print(f"the program ended with {result.returncode}")
             return 1
-        saved = (games / SAVE).read_bytes()
+        if save.stat().st_mtime_ns == before:
+            print("the game did not overwrite the test save")
+            print(result.stdout, result.stderr)
+            return 1
+        saved = save.read_bytes()
     if len(saved) != len(original):
         print(f"size {len(saved)} differs from the shipped {len(original)}")
         return 1
@@ -73,7 +89,7 @@ def main() -> int:
     if differences:
         print(f"{len(differences)} bytes differ, first at offset {differences[0]}")
         return 1
-    print(f"ok: {SAVE} saved again is identical outside its name field ({len(saved)} bytes)")
+    print(f"ok: {fixture.name} saved again is identical outside its name field ({len(saved)} bytes)")
     return 0
 
 

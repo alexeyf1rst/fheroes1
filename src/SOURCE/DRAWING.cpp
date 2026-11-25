@@ -75,16 +75,20 @@ void combatManager::ShowTurnOrder() {
     }
 }
 
+i8 combatManager::TurnOrderCardAt(i16 x, i16 y) const {
+    if (!m_showTurnOrder || m_quickCombat || m_combatResult != COMBAT_RESULT_PENDING
+        || y < kOrderTop || y >= kOrderTop + kOrderHeight)
+        return -1;
+    const i16 offset = x - OrderLeft(m_turnOrderCount);
+    if (offset < 0 || offset / kOrderStride >= m_turnOrderCount || offset % kOrderStride >= kOrderCardWidth)
+        return -1;
+    return offset / kOrderStride;
+}
+
 void combatManager::UpdateTurnOrderHover() {
-    i8 hover = -1;
-    if (m_showTurnOrder && !m_quickCombat && m_combatResult == COMBAT_RESULT_PENDING) {
-        i16 x, y;
-        gMouseManager->MouseCoords(x, y);
-        const i16 offset = x - OrderLeft(m_turnOrderCount);
-        if (y >= kOrderTop && y < kOrderTop + kOrderHeight && offset >= 0
-            && offset / kOrderStride < m_turnOrderCount && offset % kOrderStride < kOrderCardWidth)
-            hover = offset / kOrderStride;
-    }
+    i16 x, y;
+    gMouseManager->MouseCoords(x, y);
+    const i8 hover = TurnOrderCardAt(x, y);
     if (hover != m_turnOrderHover) {
         m_turnOrderHover = hover;
         DrawFrame(false);
@@ -117,11 +121,12 @@ void combatManager::DrawTurnOrder() {
     for (i8 index = 0; index < m_turnOrderCount; ++index) {
         const TurnOrderEntry& entry = m_turnOrder[index];
         const i16 x = left + index * kOrderStride;
-        const bool highlighted = index == m_turnOrderHover || index == 0;
-        const int sideColor = entry.side == m_currentSide ? friendly : opponent;
+        const int outline = index == 0 ? gold : index == m_turnOrderHover
+            ? goldButton::MatchGold(54, 54, 52, true) : edge;
+        const int sideColor = entry.side == COMBAT_ATTACKER_SIDE ? friendly : opponent;
         FillBitmapArea(screen, x, kOrderTop, kOrderCardWidth, kOrderHeight, shadow);
         FillBitmapArea(screen, x + 1, kOrderTop + 1, kOrderCardWidth - 2, kOrderHeight - 2,
-                       highlighted ? gold : edge);
+                       outline);
         FillBitmapArea(screen, x + 2, kOrderTop + 2, kOrderCardWidth - 4, kOrderHeight - 4, stone);
         const auto& frame = portraits->m_frames[entry.creature];
         portraits->DrawToBuffer(x + (kOrderCardWidth - frame.w) / 2 - frame.x,
@@ -185,6 +190,17 @@ public:
     size_t LastPage() const {
         return pages.size() - 1;
     }
+    void ShowPage(size_t requested) {
+        page = std::min(requested, LastPage());
+        for (const i16 control : {HistoryPrevious, HistoryNext}) {
+            const bool enabled = control == HistoryPrevious ? page > 0 : page < LastPage();
+            tag_message message{};
+            SET_WIDGET_MESSAGE(message, enabled ? WIDGET_COMMAND_SET_FLAGS : WIDGET_COMMAND_CLEAR_FLAGS, control);
+            message.value = WIDGET_FLAG_ENABLED;
+            m_owner->BroadcastMessage(message);
+        }
+        m_owner->DrawWindow();
+    }
     void Draw() override {
         const int x = m_owner->m_posX, y = m_owner->m_posY;
         auto* screen = gWindowManager->m_screen;
@@ -195,10 +211,19 @@ public:
                  static_cast<int>(page + 1), static_cast<int>(LastPage() + 1));
         m_font->DrawBoundedString(title, x + 12, y + 12, 416, 20, 1, FONT_ALIGN_CENTER);
         const auto& history = gCombatManager->m_combatHistory;
+        if (history.empty()) {
+            char empty[96];
+            snprintf(empty, sizeof(empty), "%s", localization::Tr("combat.history.empty"));
+            m_font->DrawBoundedString(empty, x + 16, y + 48, 408, 24, 1, FONT_ALIGN_CENTER);
+            return;
+        }
         const size_t end = page + 1 < pages.size() ? pages[page + 1] : history.size();
         int top = y + 42;
         for (size_t index = pages[page]; index < end; ++index) {
             const int height = EntryHeight(history[index]);
+            if (index % 2)
+                FillBitmapArea(screen, x + 12, top - 4, m_width - 24, height,
+                               goldButton::MatchGold(16, 15, 13, true));
             m_font->DrawBoundedString(const_cast<char*>(history[index].c_str()),
                                       x + 16, top, 408, height - 8, 1, FONT_ALIGN_LEFT);
             top += height;
@@ -231,20 +256,19 @@ i16 HistoryHandler(tag_message& message) {
     if (message.type != MESSAGE_WIDGET || message.command != WIDGET_NOTIFY_DESELECT
         || (message.modifiers & MESSAGE_MODIFIER_RIGHT_BUTTON))
         return MESSAGE_DISPATCH_CONTINUE;
+    size_t next = gHistoryPanel->page;
     switch (message.id) {
         case HistoryOkay:
             FINISH_DIALOG_MESSAGE(message);
             return MESSAGE_DISPATCH_FORWARD;
-        case HistoryFirst: gHistoryPanel->page = 0; break;
-        case HistoryPrevious:
-            if (gHistoryPanel->page > 0)
-                --gHistoryPanel->page;
-            break;
-        case HistoryNext: gHistoryPanel->page = std::min(gHistoryPanel->page + 1, gHistoryPanel->LastPage()); break;
-        case HistoryLast: gHistoryPanel->page = gHistoryPanel->LastPage(); break;
+        case HistoryFirst: next = 0; break;
+        case HistoryPrevious: if (next > 0) --next; break;
+        case HistoryNext: next = std::min(next + 1, gHistoryPanel->LastPage()); break;
+        case HistoryLast: next = gHistoryPanel->LastPage(); break;
         default: return MESSAGE_DISPATCH_CONTINUE;
     }
-    gHistoryPanel->m_owner->DrawWindow();
+    if (next != gHistoryPanel->page)
+        gHistoryPanel->ShowPage(next);
     return MESSAGE_DISPATCH_CONSUME;
 }
 }
@@ -258,8 +282,10 @@ void combatManager::ScrollCombatHistory(float amount) {
         return;
     gHistoryPanel->wheel -= static_cast<float>(steps);
     const int last = static_cast<int>(gHistoryPanel->LastPage());
-    gHistoryPanel->page = static_cast<size_t>(std::clamp(static_cast<int>(gHistoryPanel->page) - steps, 0, last));
-    gHistoryPanel->m_owner->DrawWindow();
+    const int page = static_cast<int>(gHistoryPanel->page);
+    const int next = std::clamp(page - (steps > 0 ? 1 : -1), 0, last);
+    if (next != page)
+        gHistoryPanel->ShowPage(next);
 }
 
 void combatManager::CombatEvent(char* text) {
@@ -276,6 +302,12 @@ void combatManager::ShowCombatHistory() {
     auto* panel = new HistoryPanel();
     panel->page = panel->LastPage();
     window.AddWidget(panel, WINDOW_Z_ORDER_APPEND);
+    if (panel->LastPage() > 0) {
+        window.AddWidget(new goldButton(16, 310, 42, 25, HistoryPrevious, "", goldButton::Left), WINDOW_Z_ORDER_APPEND);
+        auto* next = new goldButton(62, 310, 42, 25, HistoryNext, "", goldButton::Right);
+        next->m_flags &= ~WIDGET_FLAG_ENABLED;
+        window.AddWidget(next, WINDOW_Z_ORDER_APPEND);
+    }
     window.AddWidget(new battleGoldButton(300, 310, 124, 25, HistoryOkay,
                                           localization::Tr("combat.options.okay"), *m_combatWindow,
                                           COMBAT_CONTROL_AUTO_COMBAT), WINDOW_Z_ORDER_APPEND);
@@ -377,7 +409,7 @@ void combatManager::CombatMessage(i16 messageType) {
         const i32 hp = targetArmy->m_stats.hitPoints;
         if (hp > 0) {
             char attackHint[192];
-            snprintf(attackHint, sizeof(attackHint), "%s   Damage: %d-%d   Kills: %d-%d", gText, minimum, maximum,
+            snprintf(attackHint, sizeof(attackHint), localization::Tr("combat.attack.preview"), gText, minimum, maximum,
                      targetArmy->CasualtiesFromDamage(minimum), targetArmy->CasualtiesFromDamage(maximum));
             CombatMessage(attackHint, true);
             return;

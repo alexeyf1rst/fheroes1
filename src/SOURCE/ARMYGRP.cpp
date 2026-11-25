@@ -164,9 +164,26 @@ void armyGroup::Redistribute(i8 source, armyGroup& target, i8 destination, i16 a
 }
 
 b8 armyGroup::QuickArrange(i8 slot, i16 modifiers, b8 allowHalf) {
+    if (slot < 0 || slot >= ARMY_GROUP_SLOT_COUNT)
+        return false;
     const i8 creature = m_creatureTypes[slot];
     if (creature == CREATURE_NONE)
         return false;
+
+    if (allowHalf && (modifiers & MESSAGE_MODIFIER_CONTROL_KEYS) && (modifiers & MESSAGE_MODIFIER_SHIFT_KEYS)) {
+        i8 slots[ARMY_GROUP_SLOT_COUNT] = {slot};
+        int count = 1;
+        const int quantity = m_creatureCounts[slot];
+        for (i8 target = 0; target < ARMY_GROUP_SLOT_COUNT && count < quantity; ++target) {
+            if (m_creatureTypes[target] == CREATURE_NONE)
+                slots[count++] = target;
+        }
+        for (int index = 0; index < count; ++index) {
+            m_creatureTypes[slots[index]] = creature;
+            m_creatureCounts[slots[index]] = quantity / count + (index < quantity % count);
+        }
+        return true;
+    }
 
     if (!(modifiers & MESSAGE_MODIFIER_CONTROL_KEYS) && (modifiers & MESSAGE_MODIFIER_ALT)) {
         for (i8 source = 0; source < ARMY_GROUP_SLOT_COUNT; ++source) {

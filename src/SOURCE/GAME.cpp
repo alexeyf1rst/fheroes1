@@ -364,26 +364,57 @@ const char* game::QuickSaveFilename() const {
 }
 
 bool game::CanQuickLoad() {
-    char path[64];
+    char path[FILE_PATH_CAPACITY];
     snprintf(path, sizeof(path), "%s%s", gGamePath, QuickSaveFilename());
-    RecordReader saved;
-    if (!saved.LoadFile(path))
+    SaveFilePreview save{};
+    if (!ReadSavePreview(path, save))
+        return false;
+    return (m_campaignType > CAMPAIGN_NONE) == (save.campaign > CAMPAIGN_NONE);
+}
+
+bool game::ReadSavePreview(const char* path, SaveFilePreview& preview) {
+    // The legacy fixed-width save includes the map, its extra planes and
+    // visitation flags. Read only its prefix when browsing the file list.
+    constexpr i32 minimumFullSaveSize = 77663;
+    constexpr size_t calendarOffset = sizeof(gIAmGreatest) + sizeof(m_difficultyRating)
+        + sizeof(gMonthType) + sizeof(gMonthTypeExtra) + sizeof(gWeekType) + sizeof(gWeekTypeExtra)
+        + 4 * sizeof(i32) + 0x2c + sizeof(m_mapDescription) + sizeof(m_mapSize) + sizeof(m_mapDifficulty)
+        + sizeof(m_mapName) + 0x11 + sizeof(m_difficulty) + sizeof(m_playerCount) + sizeof(gSavedCurPlayer)
+        + sizeof(m_deadPlayerCount) + sizeof(m_playerDead) + GAME_PLAYER_COUNT;
+    u8 bytes[calendarOffset + 3 * sizeof(u16)];
+    const i32 file = FileOpen(path, FILE_OPEN_READ);
+    if (file == FILE_INVALID)
+        return false;
+    const bool complete = FileLength(file) >= minimumFullSaveSize && FileReadExact(file, bytes, sizeof(bytes));
+    FileClose(file);
+    if (!complete)
         return false;
 
-    // The save layout is fixed. Reject incomplete slots before leaving the map.
-    RecordWriter current;
-    WriteSaveRecord(current);
-    if (saved.Remaining() != current.Size())
-        return false;
-
-    saved.Skip(sizeof(gIAmGreatest) + sizeof(m_difficultyRating) + sizeof(gMonthType)
-               + sizeof(gMonthTypeExtra) + sizeof(gWeekType) + sizeof(gWeekTypeExtra));
-    const i32 campaign = saved.GetI32();
-    const i32 scenario = saved.GetI32();
-    if (m_campaignType <= CAMPAIGN_NONE)
-        return campaign <= CAMPAIGN_NONE;
-    return campaign >= CAMPAIGN_IRONFIST && campaign <= CAMPAIGN_ALAMAR
-        && scenario >= 0 && scenario < CAMPAIGN_SCENARIO_COUNT;
+    RecordReader saved(bytes, sizeof(bytes));
+    saved.Skip(sizeof(gIAmGreatest) + sizeof(m_difficultyRating) + sizeof(gMonthType) + sizeof(gMonthTypeExtra)
+               + sizeof(gWeekType) + sizeof(gWeekTypeExtra));
+    preview.campaign = saved.GetI32();
+    preview.scenario = saved.GetI32();
+    saved.Skip(2 * sizeof(i32) + 0x2c + sizeof(m_mapDescription));
+    i8 mapSize, mapDifficulty;
+    saved.Get(mapSize);
+    saved.Get(mapDifficulty);
+    saved.Get(preview.mapName, sizeof(m_mapName));
+    preview.mapName[sizeof(m_mapName)] = '\0';
+    saved.Skip(0x11 + sizeof(m_difficulty));
+    i8 players, currentPlayer;
+    saved.Get(players);
+    saved.Get(currentPlayer);
+    preview.players = players;
+    saved.Skip(sizeof(m_deadPlayerCount) + sizeof(m_playerDead) + GAME_PLAYER_COUNT);
+    const u16 day = saved.GetU16(), week = saved.GetU16(), month = saved.GetU16();
+    preview.day = day + (week - 1) * CALENDAR_DAYS_PER_WEEK + (month - 1) * CALENDAR_DAYS_PER_MONTH;
+    return saved.Ok() && currentPlayer >= 0 && currentPlayer < preview.players
+        && preview.players <= GAME_PLAYER_COUNT && mapSize >= MAP_SIZE_SMALL && mapSize <= MAP_SIZE_LARGE
+        && mapDifficulty >= MAP_DIFFICULTY_EASY && mapDifficulty <= MAP_DIFFICULTY_FORGET_IT
+        && day >= 1 && day <= CALENDAR_DAYS_PER_WEEK && week >= 1 && week <= 4 && month >= 1
+        && (preview.campaign <= CAMPAIGN_NONE || (preview.campaign >= CAMPAIGN_IRONFIST && preview.campaign <= CAMPAIGN_ALAMAR
+            && preview.scenario >= 0 && preview.scenario < CAMPAIGN_SCENARIO_COUNT));
 }
 
 i16 game::SaveGame(const char* filename, b8 generateName, bool updateName) {

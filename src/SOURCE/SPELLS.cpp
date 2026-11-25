@@ -95,7 +95,21 @@ void combatManager::SetSpellAreaPreview(i16 hex) {
 
 void combatManager::DrawSpellAreaPreview() {
     i16 hexes[kSpellAreaSize];
-    SpellArea(m_spellPreviewHex, hexes);
+    if (m_selectedSpell == SPELL_FIREBALL || m_selectedSpell == SPELL_METEOR_SHOWER) {
+        SpellArea(m_spellPreviewHex, hexes);
+    } else {
+        for (i16& hex : hexes)
+            hex = ARMY_HEX_INVALID;
+        hexes[0] = m_spellPreviewHex;
+        const hexcell& target = m_hexCells[m_spellPreviewHex];
+        if (target.m_occupantSide != COMBAT_SIDE_NONE) {
+            for (const i16 neighbor : {static_cast<i16>(m_spellPreviewHex - 1), static_cast<i16>(m_spellPreviewHex + 1)}) {
+                if (ValidHex(neighbor) && neighbor / COMBAT_GRID_COLUMNS == m_spellPreviewHex / COMBAT_GRID_COLUMNS
+                    && HEX_HAS_OCCUPANT(m_hexCells[neighbor], target.m_occupantSide, target.m_occupantIndex))
+                    hexes[1] = neighbor;
+            }
+        }
+    }
     for (const i16 hex : hexes) {
         const i16 column = hex % COMBAT_GRID_COLUMNS;
         if (!ValidHex(hex) || column < COMBAT_GRID_FIRST_INNER_COLUMN
@@ -201,7 +215,8 @@ i16 HandleCastSpell(struct tag_message& message) {
 
     switch (message.type) {
         case MESSAGE_MOUSE_MOVE:
-            hex = gCombatManager->GetGridIndex(message.x, message.y);
+            hex = gCombatManager->TurnOrderCardAt(message.x, message.y) >= 0
+                ? ARMY_HEX_INVALID : gCombatManager->GetGridIndex(message.x, message.y);
             if (hex != gSpellHoverHex) {
                 gSpellHoverHex = hex;
                 if (!gCombatManager->ValidSpellTarget(gCombatManager->m_selectedSpell, hex)) {
@@ -212,15 +227,21 @@ i16 HandleCastSpell(struct tag_message& message) {
                             localization::Tr("spell.teleport.invalid"),
                             true
                         );
-                    else
+                    else if (ValidHex(hex)) {
+                        const hexcell& cell = gCombatManager->m_hexCells[hex];
+                        const army* stack = cell.m_occupantSide != COMBAT_SIDE_NONE
+                            ? &gCombatManager->m_armies[cell.m_occupantSide][cell.m_occupantIndex] : nullptr;
+                        char help[100];
+                        snprintf(help, sizeof(help), "%s", stack && ARMY_IGNORES_SPELLS(stack)
+                            ? localization::Tr("spell.target.immune") : localization::Tr("spell.target.select"));
+                        gCombatManager->CombatMessage(help, true);
+                    } else
                         gCombatManager->CombatMessage(
                             localization::Tr("spell.target.select"),
                             true
                         );
                 } else {
-                    if (gCombatManager->m_selectedSpell == SPELL_FIREBALL
-                        || gCombatManager->m_selectedSpell == SPELL_METEOR_SHOWER)
-                        gCombatManager->SetSpellAreaPreview(hex);
+                    gCombatManager->SetSpellAreaPreview(hex);
                     gMouseManager->SetPointer(
                         gCombatManager->m_selectedSpell
                     );
@@ -229,6 +250,8 @@ i16 HandleCastSpell(struct tag_message& message) {
             }
             break;
         case MESSAGE_LEFT_BUTTON_DOWN:
+            if (gCombatManager->TurnOrderCardAt(message.x, message.y) >= 0)
+                break;
             hex = gCombatManager->GetGridIndex(message.x, message.y);
             if (gCombatManager->ValidSpellTarget(gCombatManager->m_selectedSpell, hex)) {
                 if (gInTeleportGetDest)

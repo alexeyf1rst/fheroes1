@@ -244,6 +244,11 @@ msgstr "Армагеддон наносит %d ед. урона."
 msgid "combat.artifact.captured"
 msgstr "Вы захватили вражеский артефакт!"
 
+#: src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.attack.preview"
+msgstr "%s. Урон %d-%d, потери %d-%d"
+
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.auto.confirm"
 msgstr "Включить автобой?"
@@ -320,6 +325,10 @@ msgstr "воинов"
 #, c-format
 msgid "combat.genie.half_army.buka"
 msgstr "%s %s уничтожил вражеских воинов!"
+
+#: src/SOURCE/DRAWING.cpp
+msgid "combat.history.empty"
+msgstr "Ходов пока нет."
 
 #: src/SOURCE/DRAWING.cpp
 #, c-format
@@ -447,6 +456,27 @@ msgstr "Настройки боя"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.wounded"
 msgstr "Раненые"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.active"
+msgstr "ходит сейчас"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.attacker"
+msgstr "Атака"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.defender"
+msgstr "Защита"
+
+#: src/SOURCE/COMMAND.cpp
+#, c-format
+msgid "combat.order.hint"
+msgstr "%s: %d %s - %s"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.waiting"
+msgstr "в очереди"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.quick.confirm"
@@ -1259,6 +1289,28 @@ msgid "file.players.label"
 msgstr "Игроки"
 
 #: src/SOURCE/REQUEST.cpp
+#, c-format
+msgid "file.preview.campaign"
+msgstr "Кампания - миссия %d - день %d"
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.empty"
+msgstr "Сохранений нет."
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.invalid"
+msgstr "Сохранение неполное или несовместимое."
+
+#: src/SOURCE/REQUEST.cpp
+#, c-format
+msgid "file.preview.scenario"
+msgstr "Сценарий - день %d - игроков %d"
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.select"
+msgstr "Выберите сохранение для просмотра."
+
+#: src/SOURCE/REQUEST.cpp
 msgid "file.save.label"
 msgstr "Сохранить:"
 
@@ -1344,7 +1396,7 @@ msgstr "%s - %s   (Уровень %d)"
 msgid "hero.waiting.badge"
 msgstr "Z"
 
-#: src/PORT/SOURCE/kbwin.cpp
+#: src/PORT/SOURCE/kbwin.cpp src/SOURCE/KB.cpp
 msgid "menu.display.close"
 msgstr "Закрыть"
 
@@ -1376,7 +1428,7 @@ msgstr "Разрешение"
 msgid "menu.display.scaling"
 msgstr "Масштаб"
 
-#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp src/SOURCE/KB.cpp
 msgid "menu.display.settings"
 msgstr "Параметры экрана..."
 
@@ -2507,6 +2559,10 @@ msgid "spell.storm.damage"
 msgstr "Шторм наносить %d ед. урона."
 
 #: src/SOURCE/SPELLS.cpp
+msgid "spell.target.immune"
+msgstr "Эта цель невосприимчива к заклинанию."
+
+#: src/SOURCE/SPELLS.cpp
 msgid "spell.target.select"
 msgstr "Выберите цель заклинания"
 
@@ -2572,6 +2628,30 @@ msgstr "Загрузка Героев Меча и Магии (версия 1.1)"
 msgid "startup.manager.failed"
 msgstr "Не могу добавить менеджера!"
 
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.credits"
+msgstr "Авторы"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.load_game"
+msgstr "Загрузить игру"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.new_game"
+msgstr "Новая игра"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.quit"
+msgstr "Выход"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.scores"
+msgstr "Рекорды"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.settings"
+msgstr "Настройки"
+
 #: src/BASE/EXEC.cpp
 msgid "startup.mouse.failed"
 msgstr "Ошибка инициации мышки."
@@ -2579,6 +2659,39 @@ msgstr "Ошибка инициации мышки."
 #: src/BASE/EXEC.cpp
 msgid "startup.resources.failed"
 msgstr "Ошибка инициации ресурсов. Вероятно, проблемы с диском."
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.autosave"
+msgstr "Автосохранение: %s"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.effects"
+msgstr "Звуки: %s"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.music"
+msgstr "Музыка: %s"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.settings.off"
+msgstr "Выкл."
+
+#: src/SOURCE/KB.cpp
+msgid "startup.settings.on"
+msgstr "Вкл."
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.order"
+msgstr "Очередь боя: %s"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.speed"
+msgstr "Скорость боя: %s"
 
 #: src/BASE/EXEC.cpp
 msgid "startup.sound.failed"
@@ -6864,6 +6977,14 @@ msgstr "героя"
 #, c-format
 msgid "town.split.prompt"
 msgstr "Перенести %s из армии %s в армию %s?"
+
+#: src/SOURCE/STRIP.cpp
+msgid "town.treasury.income"
+msgstr "Доход"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.treasury.income_help"
+msgstr "Показать ежедневный доход королевства"
 
 #: src/SOURCE/STRIP.cpp
 msgid "town.treasury.title"

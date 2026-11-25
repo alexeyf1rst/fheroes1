@@ -244,6 +244,11 @@ msgstr "The armaggedon does %d damage."
 msgid "combat.artifact.captured"
 msgstr "You have captured an enemy artifact!"
 
+#: src/SOURCE/DRAWING.cpp
+#, c-format
+msgid "combat.attack.preview"
+msgstr "%s. Damage %d-%d, kills %d-%d"
+
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.auto.confirm"
 msgstr "Enable auto combat?"
@@ -320,6 +325,10 @@ msgstr "creatures"
 #, c-format
 msgid "combat.genie.half_army.buka"
 msgstr "%s %s half the enemy troops!"
+
+#: src/SOURCE/DRAWING.cpp
+msgid "combat.history.empty"
+msgstr "No actions recorded yet."
 
 #: src/SOURCE/DRAWING.cpp
 #, c-format
@@ -447,6 +456,27 @@ msgstr "Battle Options"
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.options.wounded"
 msgstr "Wounded"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.active"
+msgstr "current turn"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.attacker"
+msgstr "Attacker"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.defender"
+msgstr "Defender"
+
+#: src/SOURCE/COMMAND.cpp
+#, c-format
+msgid "combat.order.hint"
+msgstr "%s: %d %s - %s"
+
+#: src/SOURCE/COMMAND.cpp
+msgid "combat.order.waiting"
+msgstr "in queue"
 
 #: src/SOURCE/COMMAND.cpp
 msgid "combat.quick.confirm"
@@ -1259,6 +1289,28 @@ msgid "file.players.label"
 msgstr "Players"
 
 #: src/SOURCE/REQUEST.cpp
+#, c-format
+msgid "file.preview.campaign"
+msgstr "Campaign - mission %d - day %d"
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.empty"
+msgstr "No saved games found."
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.invalid"
+msgstr "Incomplete or incompatible save."
+
+#: src/SOURCE/REQUEST.cpp
+#, c-format
+msgid "file.preview.scenario"
+msgstr "Scenario - day %d - %d players"
+
+#: src/SOURCE/REQUEST.cpp
+msgid "file.preview.select"
+msgstr "Select a saved game to see its details."
+
+#: src/SOURCE/REQUEST.cpp
 msgid "file.save.label"
 msgstr "File to Save:"
 
@@ -1344,7 +1396,7 @@ msgstr "%s the %s   (Level %d)"
 msgid "hero.waiting.badge"
 msgstr "Z"
 
-#: src/PORT/SOURCE/kbwin.cpp
+#: src/PORT/SOURCE/kbwin.cpp src/SOURCE/KB.cpp
 msgid "menu.display.close"
 msgstr "Close"
 
@@ -1376,7 +1428,7 @@ msgstr "Resolution"
 msgid "menu.display.scaling"
 msgstr "Scaling"
 
-#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp
+#: src/PORT/SOURCE/Menu.cpp src/PORT/SOURCE/kbwin.cpp src/SOURCE/KB.cpp
 msgid "menu.display.settings"
 msgstr "Screen settings..."
 
@@ -2507,6 +2559,10 @@ msgid "spell.storm.damage"
 msgstr "The elemental storm does %d damage."
 
 #: src/SOURCE/SPELLS.cpp
+msgid "spell.target.immune"
+msgstr "This target is immune to the spell."
+
+#: src/SOURCE/SPELLS.cpp
 msgid "spell.target.select"
 msgstr "Select Spell Target"
 
@@ -2572,6 +2628,30 @@ msgstr "Loading Heroes of Might and Magic for Windows 95 (version 1.2)"
 msgid "startup.manager.failed"
 msgstr "Can't add manager!"
 
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.credits"
+msgstr "Credits"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.load_game"
+msgstr "Load game"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.new_game"
+msgstr "New game"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.quit"
+msgstr "Quit"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.scores"
+msgstr "High scores"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.menu.settings"
+msgstr "Settings"
+
 #: src/BASE/EXEC.cpp
 msgid "startup.mouse.failed"
 msgstr "Unable to initialize mouse."
@@ -2579,6 +2659,39 @@ msgstr "Unable to initialize mouse."
 #: src/BASE/EXEC.cpp
 msgid "startup.resources.failed"
 msgstr "Unable to initialize resources - possible disk problem."
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.autosave"
+msgstr "Autosave: %s"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.effects"
+msgstr "Sound effects: %s"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.music"
+msgstr "Music: %s"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.settings.off"
+msgstr "Off"
+
+#: src/SOURCE/KB.cpp
+msgid "startup.settings.on"
+msgstr "On"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.order"
+msgstr "Turn order: %s"
+
+#: src/SOURCE/KB.cpp
+#, c-format
+msgid "startup.settings.speed"
+msgstr "Battle speed: %s"
 
 #: src/BASE/EXEC.cpp
 msgid "startup.sound.failed"
@@ -6864,6 +6977,14 @@ msgstr "Hero's Army"
 #, c-format
 msgid "town.split.prompt"
 msgstr "Move how many %s troops from %s to %s?"
+
+#: src/SOURCE/STRIP.cpp
+msgid "town.treasury.income"
+msgstr "Income"
+
+#: src/SOURCE/TOWNMGR.cpp
+msgid "town.treasury.income_help"
+msgstr "Show the kingdom's daily income"
 
 #: src/SOURCE/STRIP.cpp
 msgid "town.treasury.title"

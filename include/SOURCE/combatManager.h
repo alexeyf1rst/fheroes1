@@ -163,7 +163,9 @@ public:
     TurnOrderEntry m_turnOrder[COMBAT_TURN_ORDER_CAPACITY];
     i8 m_turnOrderCount = 0;
     i8 m_turnOrderHover = -1;
+    i8 TurnOrderCardAt(i16 x, i16 y) const;
     void UpdateTurnOrderHover();
+    void UpdateFieldHover(i16 x, i16 y);
     bool IsTurnOrderHovered(const army* unit) const;
     bool m_quickCombat = false;
     bool m_autoResolveAtStart = false;

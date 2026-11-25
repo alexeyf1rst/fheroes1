@@ -20,6 +20,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <random>
 #include <string>
 
 bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen);
@@ -27,6 +29,16 @@ bool KBStartHost(const char* dataRoot, const char* gameArguments, i32 fullScreen
 namespace {
 
 int gFailures = 0;
+
+void SetVariable(const char* name, const char* value, bool replace) {
+    if (!replace && std::getenv(name) != nullptr)
+        return;
+#if defined(_WIN32)
+    _putenv_s(name, value);
+#else
+    setenv(name, value, 1);
+#endif
+}
 
 void Expect(bool condition, const char* what) {
     std::printf("%s %s\n", condition ? "ok" : "FAIL", what);
@@ -132,18 +144,19 @@ int main() {
         std::printf("skipped: needs HOMM1_DATA\n");
         return 77;
     }
-    setenv("SDL_VIDEODRIVER", "dummy", 0);
+    SetVariable("SDL_VIDEODRIVER", "dummy", false);
     // SIGTERM ends the program at once (timeout, ctest); SDL would turn it into
     // a quit event that a hung loop never reads.
-    setenv("SDL_NO_SIGNAL_HANDLERS", "1", 0);
-    setenv("SDL_AUDIO_DRIVER", "dummy", 0);
-    setenv("HOMM1_NO_DIALOGS", "1", 1);
-    const char* temporary = std::getenv("TMPDIR");
-    std::string config = std::string(temporary != nullptr && temporary[0] != '\0' ? temporary : "/tmp")
-                         + "/homm1-editor-regressions-XXXXXX";
-    if (mkdtemp(config.data()) == nullptr)
+    SetVariable("SDL_NO_SIGNAL_HANDLERS", "1", false);
+    SetVariable("SDL_AUDIO_DRIVER", "dummy", false);
+    SetVariable("HOMM1_NO_DIALOGS", "1", true);
+    namespace fs = std::filesystem;
+    std::error_code error;
+    const fs::path config = fs::temp_directory_path(error)
+        / ("homm1-editor-regressions-" + std::to_string(std::random_device()()));
+    if (error || !fs::create_directory(config, error))
         return 1;
-    setenv("XDG_CONFIG_HOME", config.c_str(), 1);
+    SetVariable("HOMM1_CONFIG", config.string().c_str(), true);
     if (!KBStartHost(data, "", 0))
         return 1;
     if (gExec->InitSystem() != 0 || gExec->AddManager(gEditManager, BASE_MANAGER_PRIORITY_UNASSIGNED) != 0)
@@ -151,9 +164,9 @@ int main() {
     TerrainShares();
     ExtraRecordCapacity();
     PlacementAtTheEdges();
-    std::string cleanup = "rm -r '" + config + "'";
-    if (std::system(cleanup.c_str()) != 0)
-        std::fprintf(stderr, "could not remove %s\n", config.c_str());
+    fs::remove_all(config, error);
+    if (error)
+        std::fprintf(stderr, "could not remove %s\n", config.string().c_str());
     std::fflush(stdout);
     std::_Exit(gFailures != 0 ? 1 : 0);
 }

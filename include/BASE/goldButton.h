@@ -30,12 +30,15 @@ public:
     void Draw() override {
         const int x = m_owner->m_posX + m_x;
         const int y = m_owner->m_posY + m_y;
-        const int shade = MatchGold(25, 15, 2);
-        const int shine = MatchGold(63, 49, 13);
-        const int gold = MatchGold(49, 31, 3);
+        const bool enabled = (m_flags & WIDGET_FLAG_ENABLED) != 0;
+        const bool pressed = (m_flags & WIDGET_FLAG_SELECTED) != 0;
+        const int shade = enabled ? MatchGold(25, 15, 2, true) : MatchGold(19, 17, 14, true);
+        const int shine = enabled ? MatchGold(63, 49, 13, true) : MatchGold(34, 31, 26, true);
+        const int gold = enabled ? MatchGold(pressed ? 38 : 49, pressed ? 24 : 31, 3, true)
+                                 : MatchGold(25, 23, 19, true);
         bitmap* screen = gWindowManager->m_screen;
-        const int bevel = MatchGold(39, 23, 2);
-        const int highlight = MatchGold(58, 42, 5);
+        const int bevel = enabled ? MatchGold(39, 23, 2, true) : MatchGold(23, 21, 17, true);
+        const int highlight = enabled ? MatchGold(58, 42, 5, true) : MatchGold(30, 27, 22, true);
         FillBitmapArea(screen, x + 1, y, m_width - 2, m_height, shade);
         FillBitmapArea(screen, x, y + 1, m_width, m_height - 2, shade);
         FillBitmapArea(screen, x + 1, y + 1, m_width - 2, m_height - 3, bevel);
@@ -44,7 +47,7 @@ public:
         FillBitmapArea(screen, x + 3, y + 3, m_width - 6, m_height - 6, gold);
         FillBitmapArea(screen, x + 3, y + 3, m_width - 6, 1, highlight);
         if (m_mark == Label) {
-            const i16 top = y + (m_height - m_font->m_height) / 2;
+            const i16 top = y + (m_height - m_font->m_height) / 2 + pressed;
             m_font->DrawBoundedString(m_text, x + 2, top + 1, m_width - 3, m_font->m_height, shade, m_alignment);
             m_font->DrawBoundedString(m_text, x + 1, top, m_width - 3, m_font->m_height, shine, m_alignment);
         } else {

@@ -479,6 +479,9 @@ void townManager::SetCommandAndText(struct tag_message& message) {
         case TOWN_TRANSFER_TO_GARRISON:
             strcpy(m_statusText, "Move troops to the garrison (Up)");
             break;
+        case TOWN_INCOME_CONTROL:
+            strcpy(m_statusText, localization::Tr("town.treasury.income_help"));
+            break;
         case TOWN_CLOSE_CONTROL:
             strcpy(m_statusText, gTownCommand[TOWN_TEXT_EXIT]);
             break;
@@ -992,6 +995,10 @@ i16 townManager::Main(struct tag_message& message) {
                         case TOWN_TRANSFER_TO_GARRISON:
                             if (!rightButton)
                                 TransferArmies(message.id);
+                            break;
+                        case TOWN_INCOME_CONTROL:
+                            if (!rightButton)
+                                gGame->ShowDailyIncome();
                             break;
                         default:
                             if (rightButton) {

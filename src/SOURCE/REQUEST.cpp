@@ -2,6 +2,7 @@
 
 #include <BASE/baseManager.h>
 #include <BASE/font.h>
+#include <BASE/goldButton.h>
 #include <BASE/heroWindow.h>
 #include <BASE/heroWindowManager.h>
 #include <BASE/icon.h>
@@ -30,6 +31,7 @@
 #include <vector>
 #include <stdio.h>
 #include <string.h>
+#include <ctime>
 
 b32 ShowThisMap(char* fileName) {
     // Names are copied into fields sized for the original's 8.3 names; a
@@ -67,6 +69,50 @@ b32 ShowThisMap(char* fileName) {
     return false;
 }
 
+namespace {
+constexpr int kSavePreviewHeight = 50;
+
+class SavePreviewPanel : public textWidget {
+public:
+    SavePreviewPanel(const fileRequester& requester, i16 y)
+        : textWidget(8, y, requester.m_window->m_winWidth - 16, kSavePreviewHeight,
+                     strdup(""), "smalfont.fnt", TEXT_WIDGET_PLAIN_COLOR, WIDGET_ID_NONE, WIDGET_KIND_TEXT),
+          m_requester(requester) {
+        m_flags &= ~WIDGET_FLAG_ENABLED;
+    }
+    void Draw() override {
+        const int x = m_owner->m_posX + m_x, y = m_owner->m_posY + m_y;
+        auto* screen = gWindowManager->m_screen;
+        FillBitmapArea(screen, x, y, m_width, m_height, goldButton::MatchGold(39, 31, 18, true));
+        FillBitmapArea(screen, x + 2, y + 2, m_width - 4, m_height - 4, goldButton::MatchGold(18, 17, 15, true));
+        m_font->DrawBoundedString(const_cast<char*>(m_requester.m_previewTitle), x + 8, y + 5, m_width - 16,
+                                  m_font->m_height, 1, FONT_ALIGN_CENTER);
+        m_font->DrawBoundedString(const_cast<char*>(m_requester.m_previewDetails), x + 8, y + 19, m_width - 16,
+                                  m_font->m_height, 1, FONT_ALIGN_CENTER);
+        m_font->DrawBoundedString(const_cast<char*>(m_requester.m_previewTime), x + 8, y + 33, m_width - 16,
+                                  m_font->m_height, 1, FONT_ALIGN_CENTER);
+    }
+private:
+    const fileRequester& m_requester;
+};
+
+void FormatSaveTime(u64 stamp, char* output, size_t capacity) {
+    if (stamp == 0)
+        return;
+#if defined(_WIN32)
+    constexpr u64 epochDifference = 11644473600ULL;
+    const u64 seconds = stamp / 10000000ULL;
+    if (seconds < epochDifference)
+        return;
+    const std::time_t localSeconds = static_cast<std::time_t>(seconds - epochDifference);
+#else
+    const std::time_t localSeconds = static_cast<std::time_t>(stamp / 1000000000ULL);
+#endif
+    if (const std::tm* local = std::localtime(&localSeconds))
+        std::strftime(output, capacity, "%Y-%m-%d %H:%M", local);
+}
+}
+
 fileRequester::fileRequester(
     i16 x,
     i16 y,
@@ -74,7 +120,7 @@ fileRequester::fileRequester(
     const char* pattern,
     const char* directory,
     const char* defaultExtension
-) {
+) : m_directory(directory) {
     char fullFileName[FILE_PATH_CAPACITY];
     SMapHeader header;
     struct Entry {
@@ -90,6 +136,7 @@ fileRequester::fileRequester(
     m_extensions = NULL;
     m_mapNames = NULL;
     m_mapInfo = NULL;
+    m_filename[0] = '\0';
     m_x = x;
     m_y = y;
     strcpy(m_defaultExtension, defaultExtension);
@@ -101,6 +148,7 @@ fileRequester::fileRequester(
 
     const bool sortByDate = mode == FILE_REQUESTER_LOAD
                             && (!strnicmp(defaultExtension, ".GM", 3) || !stricmp(defaultExtension, ".CGM"));
+    m_showSavePreview = sortByDate;
     std::vector<Entry> entries;
     const std::string wildcard = std::string(directory) + pattern;
     FileFindData data;
@@ -111,6 +159,9 @@ fileRequester::fileRequester(
                 continue;
             const char* extension = FindLastToken(data.name, '.');
             const std::string name(data.name, extension ? extension - data.name : strlen(data.name));
+            if (name.size() > FILE_REQUESTER_LISTED_NAME_LIMIT
+                || (extension && strlen(extension) >= FILE_REQUESTER_EXTENSION_SIZE))
+                continue;
             const u64 modified = sortByDate ? FileModificationTime((std::string(directory) + data.name).c_str()) : 0;
             entries.push_back({name, extension ? extension : "", modified});
         } while (FileFindNext(find, &data));
@@ -180,7 +231,7 @@ fileRequester::fileRequester(
     }
 
     KBChangeMenu(gDefaultMenu);
-    m_acceptMask = FILE_REQUESTER_DISPATCH_MASK;
+    m_acceptMask = FILE_REQUESTER_DISPATCH_MASK | MESSAGE_MOUSE_WHEEL;
     m_result = FILE_REQUESTER_MAP_INFO_NONE;
 }
 
@@ -217,6 +268,11 @@ i16 fileRequester::Open(i16 priority) {
     m_window = new heroWindow(m_x, m_y, "request.bin");
     if (!m_window)
         MemError();
+    if (m_showSavePreview) {
+        const i16 previewY = m_window->m_winHeight + 4;
+        m_window->m_winHeight = previewY + kSavePreviewHeight;
+        m_window->AddWidget(new SavePreviewPanel(*this, previewY), WINDOW_Z_ORDER_APPEND);
+    }
     m_window->SetConfirmButton(DIALOG_BUTTON_2);
     m_scrollKnob = new iconWidget(
         283,
@@ -343,6 +399,21 @@ i16 fileRequester::Main(tag_message& message) {
         return MESSAGE_DISPATCH_CONSUME;
 
     switch (message.type) {
+        case MESSAGE_MOUSE_WHEEL: {
+            if (message.x < m_x || message.x >= m_x + m_window->m_winWidth || message.y < m_y
+                || message.y >= m_y + m_window->m_winHeight)
+                break;
+            m_wheelRemainder += message.value;
+            const i32 steps = m_wheelRemainder / INPUT_WHEEL_STEP;
+            m_wheelRemainder %= INPUT_WHEEL_STEP;
+            const int next = std::clamp<int>(m_topIndex - steps, 0, std::max(0, m_fileCount - FILE_REQUESTER_VISIBLE_ROWS));
+            if (next != m_topIndex) {
+                m_topIndex = next;
+                m_lastListClick = FILE_REQUESTER_SELECTION_NONE;
+                Update(true);
+            }
+            break;
+        }
         case MESSAGE_KEY_DOWN: {
             if (!m_fileCount)
                 break;
@@ -368,6 +439,7 @@ i16 fileRequester::Main(tag_message& message) {
                     break;
             }
             if (selected != m_selectedIndex) {
+                m_lastListClick = FILE_REQUESTER_SELECTION_NONE;
                 m_selectedIndex = selected;
                 if (selected < m_topIndex)
                     m_topIndex = selected;
@@ -466,19 +538,12 @@ i16 fileRequester::Main(tag_message& message) {
                             }
                             break;
                         case scrollBarId:
-                            pageCount = m_fileCount - FILE_REQUESTER_LAST_ROW_OFFSET;
-                            if (pageCount < 1)
-                                pageCount = 1;
-                            stepSize = FILE_REQUESTER_GUTTER_STEPS / pageCount;
-                            gMouseManager->MouseCoords(mouseX, mouseY);
-                            mouseY -= m_y + FILE_REQUESTER_GUTTER_TOP;
-                            mouseY -= FILE_REQUESTER_SCROLL_KNOB_HALF_HEIGHT;
-                            firstShown = mouseY * FILE_REQUESTER_GUTTER_SCALE / stepSize;
-                            m_topIndex = firstShown;
-                            if (m_topIndex + FILE_REQUESTER_LAST_ROW_OFFSET >= m_fileCount)
-                                m_topIndex = m_fileCount - FILE_REQUESTER_VISIBLE_ROWS;
-                            if (m_topIndex < 0)
-                                m_topIndex = 0;
+                            pageCount = std::max(0, m_fileCount - FILE_REQUESTER_VISIBLE_ROWS);
+                            stepSize = FILE_REQUESTER_GUTTER_BOTTOM - FILE_REQUESTER_GUTTER_TOP;
+                            mouseY = message.mouseY - m_y - FILE_REQUESTER_GUTTER_TOP
+                                - FILE_REQUESTER_SCROLL_KNOB_HALF_HEIGHT;
+                            firstShown = std::clamp<int>(mouseY, 0, stepSize);
+                            m_topIndex = (firstShown * pageCount + stepSize / 2) / stepSize;
                             Update(true);
                             break;
                         case scrollerId:
@@ -493,8 +558,13 @@ i16 fileRequester::Main(tag_message& message) {
                         case firstItemId + 6:
                         case firstItemId + 7:
                         case firstItemId + 8:
-                        case firstItemId + 9:
-                            if (message.id - firstItemId + m_topIndex == m_selectedIndex) {
+                        case firstItemId + 9: {
+                            const i16 clicked = message.id - firstItemId + m_topIndex;
+                            const bool doubleClick = clicked < m_fileCount && clicked == m_selectedIndex
+                                && clicked == m_lastListClick && message.mouseTimestamp - m_lastListClickTime <= 650;
+                            m_lastListClick = clicked;
+                            m_lastListClickTime = message.mouseTimestamp;
+                            if (doubleClick) {
                                 message.value = DIALOG_BUTTON_2;
                                 message.id = DIALOG_BUTTON_2;
                                 handled = true;
@@ -509,6 +579,7 @@ i16 fileRequester::Main(tag_message& message) {
                             }
                             Update(true);
                             break;
+                        }
                     }
                     break;
                 default:
@@ -521,7 +592,14 @@ i16 fileRequester::Main(tag_message& message) {
 
     if (handled == true) {
 #ifndef HOMM1_EDITOR
-        if (gCampaignChoice <= CAMPAIGN_NONE && m_mode == FILE_REQUESTER_LOAD
+        if (m_showSavePreview && message.value == DIALOG_BUTTON_2) {
+            UpdateSavePreview(true);
+            if (!m_saveCanLoad) {
+                NormalDialog(localization::Tr("file.preview.invalid"), NORMAL_DIALOG_TYPE_OK);
+                handled = false;
+            }
+        }
+        if (handled && gCampaignChoice <= CAMPAIGN_NONE && m_mode == FILE_REQUESTER_LOAD
             && m_selectedIndex >= 0 && gRequestingGames && message.value != FILE_REQUESTER_CANCEL) {
             number =
                 m_extensions[m_selectedIndex].text[FILE_REQUESTER_EXTENSION_PLAYER_DIGIT] - '0';
@@ -561,56 +639,42 @@ void fileRequester::UpdateMapInfo(void) {
         else
             strcpy(gCurMapName, "");
         ShowMapInfo();
+        m_result = m_selectedIndex;
     }
 }
 
 char* gFRDummy = "";
 
 void fileRequester::DoKnob(void) {
-    i32 lastTop;
-    i16 topRow;
-    double scale;
-    tag_message event;
+    const int lastTop = std::max(0, m_fileCount - FILE_REQUESTER_VISIBLE_ROWS);
+    const int span = FILE_REQUESTER_GUTTER_BOTTOM - FILE_REQUESTER_GUTTER_TOP;
+    if (lastTop == 0) {
+        m_scrollKnob->m_flags &= ~WIDGET_FLAG_SELECTED;
+        return;
+    }
     i16 x;
     i16 grabPointerY;
-    i16 grabOffset;
 
     gMouseManager->SetCursorShape(4);
-    lastTop = m_topIndex;
-    scale = 156.0 / (m_fileCount - FILE_REQUESTER_LAST_ROW_OFFSET);
     gMouseManager->MouseCoords(x, grabPointerY);
-    grabOffset = grabPointerY - m_scrollKnob->m_y;
-    gInputManager->Flush();
-    event = gInputManager->GetEvent();
-    while (!IS_BUTTON_RELEASE_MESSAGE(event.type)) {
-        if (event.type == MESSAGE_MOUSE_MOVE) {
-            if (event.y < grabOffset + FILE_REQUESTER_GUTTER_TOP)
-                event.y = grabOffset + FILE_REQUESTER_GUTTER_TOP;
-            if (event.y > grabOffset + FILE_REQUESTER_GUTTER_BOTTOM)
-                event.y = grabOffset + FILE_REQUESTER_GUTTER_BOTTOM;
-            gMouseManager->Main(event);
-            m_scrollKnob->m_y = event.y - grabOffset;
-            if (m_fileCount > FILE_REQUESTER_VISIBLE_ROWS) {
-                topRow = (m_scrollKnob->m_y - FILE_REQUESTER_GUTTER_TOP) / scale;
-                if (topRow != lastTop) {
-                    if (topRow > m_fileCount - FILE_REQUESTER_VISIBLE_ROWS)
-                        topRow = m_fileCount - FILE_REQUESTER_VISIBLE_ROWS;
-                    if (topRow < 0)
-                        topRow = 0;
-                    m_topIndex = topRow;
-                    Update(false);
-                    m_scrollKnob->m_y = event.y - grabOffset;
-                    m_window->DrawWindow();
-                    lastTop = topRow;
-                } else {
-                    m_window->DrawWindow();
-                }
-            } else {
-                m_window->DrawWindow();
-            }
-        }
+    const int grabOffset = grabPointerY - m_y - m_scrollKnob->m_y;
+    while (gForegroundApp) {
         Process1WindowsMessage();
-        event = gInputManager->GetEvent();
+        const tag_message event = gInputManager->GetEvent();
+        if (IS_BUTTON_RELEASE_MESSAGE(event.type))
+            break;
+        if (event.type == MESSAGE_MOUSE_MOVE) {
+            const int position = std::clamp(event.y - m_y - grabOffset - FILE_REQUESTER_GUTTER_TOP, 0, span);
+            const int next = (position * lastTop + span / 2) / span;
+            if (next != m_topIndex) {
+                m_topIndex = next;
+                m_lastListClick = FILE_REQUESTER_SELECTION_NONE;
+                Update(true);
+            }
+        } else if (event.type != MESSAGE_NONE) {
+            gInputManager->PutBackEvent(event);
+            break;
+        }
     }
     gMouseManager->SetCursorShape(6);
     m_scrollKnob->m_flags &= ~WIDGET_FLAG_SELECTED;
@@ -668,7 +732,7 @@ void fileRequester::Update(b8 drawWindow) {
             if (hasPlayerSuffix)
                 textLimit -= theSuffixWidth + FILE_REQUESTER_PLAYER_SUFFIX_GAP;
             length = strlen(gText);
-            while (bigFont->LineWidth(gText) > textLimit) {
+            while (length > 0 && bigFont->LineWidth(gText) > textLimit) {
                 length--;
                 gText[length] = 0;
             }
@@ -709,9 +773,45 @@ void fileRequester::Update(b8 drawWindow) {
         gutterFactor = 156.0 / (m_fileCount - FILE_REQUESTER_VISIBLE_ROWS);
         m_scrollKnob->m_y = m_topIndex * gutterFactor + 56.0;
     }
+    UpdateSavePreview();
     if (drawWindow)
         m_window->DrawWindow();
     gResourceManager->Dispose(bigFont);
+}
+
+void fileRequester::UpdateSavePreview(bool force) {
+#ifndef HOMM1_EDITOR
+    if (!m_showSavePreview || (!force && m_previewIndex == m_selectedIndex))
+        return;
+    m_previewIndex = m_selectedIndex;
+    m_saveCanLoad = false;
+    m_previewTitle[0] = m_previewDetails[0] = m_previewTime[0] = '\0';
+    if (m_selectedIndex < 0 || m_selectedIndex >= m_fileCount) {
+        snprintf(m_previewTitle, sizeof(m_previewTitle), "%s", m_fileCount
+            ? localization::Tr("file.preview.select") : localization::Tr("file.preview.empty"));
+    } else {
+        const std::string path = m_directory + m_fileNames[m_selectedIndex].text + m_extensions[m_selectedIndex].text;
+        SaveFilePreview preview{};
+        const bool campaignPattern = !stricmp(m_defaultExtension, ".CGM");
+        m_saveCanLoad = gGame->ReadSavePreview(path.c_str(), preview)
+            && campaignPattern == (preview.campaign > CAMPAIGN_NONE);
+        if (m_saveCanLoad) {
+            snprintf(m_previewTitle, sizeof(m_previewTitle), "%s",
+                     preview.mapName[0] ? preview.mapName : m_fileNames[m_selectedIndex].text);
+            if (campaignPattern)
+                snprintf(m_previewDetails, sizeof(m_previewDetails), localization::Tr("file.preview.campaign"),
+                         preview.scenario + 1, preview.day);
+            else
+                snprintf(m_previewDetails, sizeof(m_previewDetails), localization::Tr("file.preview.scenario"),
+                         preview.day, preview.players);
+            FormatSaveTime(FileModificationTime(path.c_str()), m_previewTime, sizeof(m_previewTime));
+        } else {
+            snprintf(m_previewTitle, sizeof(m_previewTitle), "%s", m_fileNames[m_selectedIndex].text);
+            snprintf(m_previewDetails, sizeof(m_previewDetails), "%s", localization::Tr("file.preview.invalid"));
+        }
+    }
+    SetOK(m_saveCanLoad);
+#endif
 }
 
 char* fileRequester::GetMapName(void) {

@@ -13,6 +13,7 @@
 #include <BASE/executive.h>
 #include <BASE/font.h>
 #include <BASE/heroWindowManager.h>
+#include <BASE/message.h>
 #include <BASE/miscwin.h>
 #include <BASE/mouseManager.h>
 #include <BASE/palette.h>
@@ -209,6 +210,26 @@ void RecruitmentStackLimits() {
            "recruitment reports the quantity that actually fits without overflowing");
 }
 
+void EvenArmySplit() {
+    armyGroup army;
+    army.m_creatureTypes[2] = CREATURE_ARCHER;
+    army.m_creatureCounts[2] = 11;
+    army.m_creatureTypes[4] = CREATURE_GOBLIN;
+    army.m_creatureCounts[4] = 4;
+    const i16 shortcut = MESSAGE_MODIFIER_CONTROL_KEYS | MESSAGE_MODIFIER_SHIFT_KEYS;
+    const bool split = army.QuickArrange(2, shortcut, true);
+    Expect(split && army.m_creatureCounts[2] == 3 && army.m_creatureCounts[0] == 3
+           && army.m_creatureCounts[1] == 3 && army.m_creatureCounts[3] == 2
+           && army.m_creatureTypes[4] == CREATURE_GOBLIN && army.m_creatureCounts[4] == 4,
+           "the even split uses free slots and preserves the other stack");
+    army.QuickArrange(2, shortcut, true);
+    Expect(army.m_creatureCounts[2] == 3 && army.m_creatureCounts[4] == 4,
+           "splitting in a full army keeps every stack");
+    army.QuickArrange(2, MESSAGE_MODIFIER_ALT, true);
+    Expect(army.GetNumArmies() == 2 && army.m_creatureCounts[2] == 11 && army.m_creatureCounts[4] == 4,
+           "the merged stack contains every troop from the even split");
+}
+
 }  // namespace
 
 int main() {
@@ -242,6 +263,7 @@ int main() {
     WeekWithAbsentPlayers();
     CampaignCrests();
     RecruitmentStackLimits();
+    EvenArmySplit();
     LongWords();
     fs::remove_all(config, error);
     if (error)

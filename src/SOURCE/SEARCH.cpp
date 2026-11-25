@@ -99,38 +99,29 @@ i32 searchArray::BuildPath(
     i16 destinationY,
     i16 maximumCost
 ) {
-    u8* pathDirection = m_directions;
-    m_pathLength = 0;
+    return m_pathLength = TracePath(startX, startY, destinationX, destinationY, maximumCost, m_directions);
+}
+
+i32 searchArray::TracePath(i16 startX, i16 startY, i16 destinationX, i16 destinationY, i16 maximumCost,
+                          u8 (&directions)[SEARCH_PATH_CAPACITY]) const {
+    i32 length = 0;
+    i32 traced = 0;
     while (destinationX != startX || destinationY != startY) {
-        // A route traced back through a cell the search did not reach can
-        // leave the grid; the original read the nodes beyond it.
-        // A failed trace also forgets the steps it collected: the original
-        // left them in m_pathLength, and ShowRoute drew them from a start
-        // outside the grid, writing before the route map.
-        if (destinationX < 0 || destinationX >= MAP_CELL_GRID_SIZE || destinationY < 0
-            || destinationY >= MAP_CELL_GRID_SIZE) {
-            m_pathLength = 0;
+        if (!MAP_CELL_IN_BOUNDS(destinationX, destinationY) || ++traced > SEARCH_CELL_CAPACITY)
             return 0;
-        }
-        searchNode* node = &m_cells[destinationX][destinationY];
-        if (node->x != destinationX && node->y != destinationY) {
-            m_pathLength = 0;
+        const searchNode& node = m_cells[destinationX][destinationY];
+        if (node.x != destinationX || node.y != destinationY || node.direction >= MAP_DIRECTION_COUNT)
             return 0;
+        if (node.distance <= maximumCost) {
+            directions[length++] = node.direction;
+            if (length >= SEARCH_PATH_CAPACITY)
+                return 0;
         }
-        if (node->distance <= maximumCost) {
-            *pathDirection = node->direction;
-            ++pathDirection;
-            ++m_pathLength;
-            if (m_pathLength >= SEARCH_PATH_CAPACITY) {
-                m_pathLength = 0;
-                break;
-            }
-        }
-        i16 backDirection = OppositeMapDirection(node->direction);
+        const i16 backDirection = OppositeMapDirection(node.direction);
         destinationX += gNormalDirTable[backDirection].x;
         destinationY += gNormalDirTable[backDirection].y;
     }
-    return m_pathLength;
+    return length;
 }
 
 void searchArray::SeedPosition(

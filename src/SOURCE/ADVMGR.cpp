@@ -2237,13 +2237,14 @@ advManager::RouteForecast advManager::ForecastRoute(hero& subject, i16 targetX, 
     forecast.remaining = subject.m_remainingMobility;
     i16 x = subject.m_x;
     i16 y = subject.m_y;
-    gSearchArray->BuildPath(x, y, targetX, targetY, SEARCH_UNLIMITED_COST);
-    if (gSearchArray->m_pathLength <= 0) {
+    u8 directions[SEARCH_PATH_CAPACITY];
+    const i32 length = gSearchArray->TracePath(x, y, targetX, targetY, SEARCH_UNLIMITED_COST, directions);
+    if (length <= 0) {
         forecast.days = -1;
         return forecast;
     }
-    for (int index = gSearchArray->m_pathLength - 1; index >= 0; --index) {
-        const i8 direction = gSearchArray->m_directions[index];
+    for (int index = length - 1; index >= 0; --index) {
+        const i8 direction = directions[index];
         const i32 terrain = CELL_TERRAIN(GetCell(x, y));
         const i32 diagonal = direction & MAP_DIRECTION_DIAGONAL_BIT;
         i32 stepCost = CalcTerrainCost(terrain, diagonal, forecast.remaining, subject.m_heroClass);

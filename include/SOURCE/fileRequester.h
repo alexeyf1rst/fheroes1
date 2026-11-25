@@ -4,6 +4,7 @@
 #include <BASE/baseManager.h>
 #include <BASE/dialog.h>
 #include <BASE/message.h>
+#include <string>
 
 struct tag_message;
 class heroWindow;
@@ -103,6 +104,14 @@ struct FileRequesterMapInfo {
     char description[FILE_REQUESTER_MAP_DESCRIPTION_SIZE];
 };
 
+struct SaveFilePreview {
+    i32 campaign;
+    i32 scenario;
+    i32 day;
+    i32 players;
+    char mapName[18];
+};
+
 struct SMapHeader {
     i16 id;
     i8 difficulty;
@@ -131,6 +140,16 @@ public:
     i16 m_result;
     iconWidget* m_scrollKnob;
     i16 m_acceptMask;
+    std::string m_directory;
+    bool m_showSavePreview = false;
+    bool m_saveCanLoad = false;
+    char m_previewTitle[96] = {};
+    char m_previewDetails[120] = {};
+    char m_previewTime[40] = {};
+    i16 m_previewIndex = FILE_REQUESTER_MAP_INFO_NONE;
+    i32 m_wheelRemainder = 0;
+    i16 m_lastListClick = FILE_REQUESTER_SELECTION_NONE;
+    u32 m_lastListClickTime = 0;
     fileRequester(
         i16 x,
         i16 y,
@@ -147,6 +166,7 @@ public:
     void UpdateMapInfo(void);
     void DoKnob(void);
     void Update(b8 drawWindow);
+    void UpdateSavePreview(bool force = false);
     char* GetMapName(void);
     char* GetFilename(void);
     void ShowMapInfo(void);

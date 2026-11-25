@@ -307,6 +307,7 @@ public:
     i16 SaveGame(const char* filename, b8 generateName, bool updateName = true);
     const char* QuickSaveFilename() const;
     bool CanQuickLoad();
+    bool ReadSavePreview(const char* path, struct SaveFilePreview& preview);
     // The saved game's record of the current state (what SaveGame writes).
     void WriteSaveRecord(class RecordWriter& outFile);
     i16 LoadGame(const char* filename, b32 origData, b32 remoteGame);

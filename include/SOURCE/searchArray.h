@@ -57,6 +57,8 @@ public:
     u8 m_directions[SEARCH_PATH_CAPACITY];
     searchArray(void);
     i32 BuildPath(i16 startX, i16 startY, i16 destinationX, i16 destinationY, i16 maximumCost);
+    i32 TracePath(i16 startX, i16 startY, i16 destinationX, i16 destinationY, i16 maximumCost,
+                  u8 (&directions)[SEARCH_PATH_CAPACITY]) const;
     void SeedPosition(
         i16 seedX,
         i16 seedY,
